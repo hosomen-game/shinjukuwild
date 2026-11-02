@@ -318,7 +318,7 @@ const CONFIG = {
   version: 'proto-0.2',
   yearSeconds: 20,
   player: { speed: 13, staminaMax: 100, staminaRegen: 18, maxHP: 100, lifespan: 15, biteDamage: 1, radius: 0.45 },
-  attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, staminaCost: 16, hitPad: 0.35, autoAimCos: 0.5 },
+  attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, staminaCost: 16, hitPad: 0.35 },
   pack: { litter: 2, pupHP: 30, hungerPerMember: 0.15, assistRange: 14, assistPerMember: 0.5, growYears: 1 },
   hunger: { max: 100, decayPerSec: 1.5, starveDamagePerSec: 5, oldAgeMul: 4 },
   modes: {
@@ -749,7 +749,7 @@ function succeed() {
 
 function resetRun(mode) {
   G.mode = mode; G.state = 'play'; G.playT = 0; G.mateT = CONFIG.mate.respawnSeconds;
-  P = { x: 286, z: 215, dir: Math.PI, hp: CONFIG.player.maxHP, maxHP: CONFIG.player.maxHP, hunger: 80, stamina: CONFIG.player.staminaMax, age: 0, gen: 1, kcal: 0, atkCd: 0, hurtT: 0, lungeT: 0, lungeDir: 0, lungeTarget: null, lungePerfect: false, perfect: 0, moving: false, zone: null, phase: 0, years: 0, maxPack: 1 };
+  P = { x: 286, z: 215, dir: Math.PI, hp: CONFIG.player.maxHP, maxHP: CONFIG.player.maxHP, hunger: 80, stamina: CONFIG.player.staminaMax, age: 0, gen: 1, kcal: 0, atkCd: 0, hurtT: 0, lungeT: 0, lungeDir: 0, lungeCrit: null, perfect: 0, moving: false, zone: null, phase: 0, years: 0, maxPack: 1 };
   clearPack();
   MARKS.forEach(z => { z.claimed = false; z.prog = 0; z.markMesh.pole.material.color.setHex(0xe8a23d); z.markMesh.ring.material.color.setHex(0xe8a23d); });
   animals.filter(a => a.role === 'mate').forEach(removeAnimal);
@@ -777,22 +777,14 @@ function tryAttack(mvx, mvz) {
   const A = CONFIG.attack;
   if (P.atkCd > 0) return;
   if (P.stamina < A.staminaCost) { floatAt(P, '息切れ…', 'hit', .8); P.atkCd = .3; return; }
-  let dir = Math.hypot(mvx, mvz) > .1 ? Math.atan2(mvx, mvz) : P.dir, target = null;
-  if (huntTarget) target = huntTarget;
-  else {
-    let bd = 1e9; const cx = Math.sin(dir), cz = Math.cos(dir);
-    for (const a of animals) {
-      if (!a.alive || a.role === 'mate') continue;
-      const dx = a.x - P.x, dz = a.z - P.z, d = Math.hypot(dx, dz);
-      if (d < reach() + a.sp.radius && (dx * cx + dz * cz) / (d || 1) > A.autoAimCos && d < bd) { bd = d; target = a; }
-    }
-  }
-  if (target) dir = Math.atan2(target.x - P.x, target.z - P.z);
-  P.lungeT = A.lungeTime; P.lungeDir = dir; P.dir = dir; P.lungeTarget = target; P.lungePerfect = !!(target && target === huntTarget && huntPerfect);
+  // 自動エイムなし：入力方向（止まっていれば向いている方向）へまっすぐ飛ぶ
+  const dir = Math.hypot(mvx, mvz) > .1 ? Math.atan2(mvx, mvz) : P.dir;
+  P.lungeCrit = new Set(animals.filter(a => a.alive && a.role !== 'mate' && Math.hypot(a.x - P.x, a.z - P.z) < reach() + a.sp.radius + 1 && ambushKind(a)));
+  P.lungeT = A.lungeTime; P.lungeDir = dir; P.dir = dir;
   P.stamina -= A.staminaCost; P.atkCd = A.cooldown;
 }
 function hit(a) {
-  const perfect = a === P.lungeTarget && P.lungePerfect;
+  const perfect = !!(P.lungeCrit && P.lungeCrit.has(a));
   const near = pack.filter(m => Math.hypot(m.x - a.x, m.z - a.z) < CONFIG.pack.assistRange);
   near.forEach(m => { m.rush = { x: a.x, z: a.z, t: .45 }; });
   const assist = Math.floor(near.length * CONFIG.pack.assistPerMember);
@@ -1025,9 +1017,12 @@ function ambushKind(a) {
 function updateHunt(dt) {
   let ht = null, hd = 1e9;
   if (P.lungeT > 0 && huntTarget && huntTarget.alive) return;
+  const fx = Math.sin(P.dir), fz = Math.cos(P.dir);
   for (const a of animals) {
     if (!a.alive || a.role === 'mate') continue;
-    const d = Math.hypot(a.x - P.x, a.z - P.z) - a.sp.radius; if (d < reach() && d < hd) { hd = d; ht = a; }
+    const dx = a.x - P.x, dz = a.z - P.z, dc = Math.hypot(dx, dz) || 1, d = dc - a.sp.radius;
+    if ((dx * fx + dz * fz) / dc < .55) continue; // 正面にいる相手だけに印を出す
+    if (d < reach() && d < hd) { hd = d; ht = a; }
   }
   huntTarget = ht; huntKind = ht ? ambushKind(ht) : null; huntPerfect = !!huntKind;
   aimMark.visible = !!ht; if (!ht) return;
