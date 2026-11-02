@@ -1,0 +1,1320 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}</style>
+<title>新宿ワイルド 試作版</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* layout: full-bleed 3D canvas; HUD floats in the corners like a wildlife tracking tag clipped to the screen */
+:root{
+  --bg:#11140f; --ink:#efebdc; --mute:#a6ad99; --panel:rgba(17,21,15,.82); --line:rgba(239,235,220,.16);
+  --moss:#a9c94b; --amber:#e8a23d; --blood:#da4a3d; --sky:#8fbfd1; --sign:#1f4a37;
+  --display:'Dela Gothic One','Hiragino Sans','Noto Sans JP',sans-serif;
+  --body:'Zen Kaku Gothic New','Hiragino Sans','Noto Sans JP',system-ui,sans-serif;
+  --mono:'DotGothic16','Hiragino Sans',ui-monospace,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidden;-webkit-user-select:none;user-select:none}
+#app{position:fixed;inset:0}
+#c{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#c:active{cursor:grabbing}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-offset:2px}
+
+.tl{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 16px)}
+.tr{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 16px)}
+
+.tag{width:256px;background:var(--panel);border:1px solid var(--line);border-radius:12px 12px 12px 28px;padding:12px 14px 12px;display:grid;gap:7px;backdrop-filter:blur(6px)}
+.tag::after{content:"";position:absolute;top:10px;right:10px;width:10px;height:10px;border-radius:50%;border:2px solid var(--line)}
+.tag-head{display:flex;align-items:baseline;gap:8px;padding-right:20px}
+.tag-id{font-family:var(--mono);font-size:12px;color:var(--mute);letter-spacing:.06em}
+.tag-name{font-weight:700;font-size:14px}
+.pill{margin-left:auto;font-size:11px;font-weight:700;color:var(--bg);background:var(--moss);border-radius:999px;padding:2px 8px;white-space:nowrap}
+.bar{display:grid;grid-template-columns:52px 1fr 30px;align-items:center;gap:8px;font-size:12px;color:var(--mute)}
+.track{height:8px;border-radius:4px;background:rgba(239,235,220,.1);overflow:hidden}
+.track i{display:block;height:100%;width:100%;border-radius:4px;transition:width .15s linear}
+#hpBar{background:var(--blood)} #huBar{background:var(--amber)} #stBar{background:var(--sky)}
+.bar b{font-family:var(--mono);font-weight:400;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin:2px 0 0;border-top:1px dashed var(--line);padding-top:8px}
+.facts div{display:flex;justify-content:space-between;gap:6px;font-size:12px}
+.facts dt{color:var(--mute)} .facts dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.facts dd.warn{color:var(--blood)}
+
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:60vw}
+.tb{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 11px;font-size:13px;font-weight:500;min-width:36px}
+.tb:hover{border-color:var(--moss)}
+.tb.on{background:var(--moss);color:var(--bg);border-color:var(--moss)}
+
+#zone{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);background:var(--sign);border:2px solid rgba(239,235,220,.85);border-radius:6px;padding:4px 14px 5px;text-align:center;transition:opacity .4s;pointer-events:none}
+#zone small{display:block;font-size:10px;letter-spacing:.2em;color:rgba(239,235,220,.7)}
+#zone span{font-weight:700;font-size:15px}
+
+#hint{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:7px 16px;font-size:13px;max-width:calc(100vw - 32px);width:max-content;text-align:center;line-height:1.5;pointer-events:none;transition:opacity .35s;opacity:0}
+#hint.on{opacity:1}
+#hint.go{border-color:var(--blood);color:#fff;background:rgba(150,36,28,.9)}
+#claim{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 118px);transform:translateX(-50%);width:220px;font-size:12px;text-align:center;pointer-events:none}
+#claim .track{height:6px;margin-top:5px} #claim i{background:var(--moss);width:0}
+#toast{position:absolute;left:50%;top:28%;transform:translate(-50%,-6px);font-family:var(--display);font-size:22px;text-align:center;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;text-shadow:0 2px 0 #000,0 0 18px rgba(0,0,0,.6);max-width:calc(100vw - 32px)}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast small{display:block;font-family:var(--body);font-size:13px;font-weight:500;margin-top:4px}
+#vig{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 140px 40px rgba(218,74,61,.85);opacity:0;transition:opacity .12s}
+#floaters{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.fl{position:absolute;transform:translate(-50%,-100%);font-family:var(--mono);font-size:14px;white-space:nowrap;text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.8)}
+.fl.perfect{color:var(--moss);font-size:18px}.fl.hit{color:var(--amber)}.fl.alert{color:var(--blood);font-size:24px}.fl.q{color:var(--amber);font-size:20px}.fl.mate{color:#f39bb0;font-size:20px}
+
+#tune{position:absolute;right:calc(env(safe-area-inset-right,0px) + 16px);top:calc(env(safe-area-inset-top,0px) + 56px);width:300px;max-height:calc(100% - 140px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:10px;backdrop-filter:blur(6px)}
+#tune h2{font-size:14px;margin:0;font-weight:700}
+#tune p{margin:0;font-size:12px;color:var(--mute);line-height:1.6}
+.tr-row{display:grid;gap:3px;font-size:12px}
+.tr-row label{display:flex;justify-content:space-between;gap:8px;color:var(--mute)}
+.tr-row output{font-family:var(--mono);color:var(--ink)}
+.tr-row input{width:100%;accent-color:var(--moss)}
+.tune-btns{display:flex;gap:6px;flex-wrap:wrap}
+.tune-group{display:grid;gap:2px;margin-top:6px;padding-top:8px;border-top:1px dashed var(--line)}
+.tune-group h3{margin:0;font-size:13px;font-weight:700;color:var(--moss)}
+.tune-group:nth-of-type(2) h3{color:var(--amber)}
+.tune-group p{font-size:11px}
+#jsonOut{width:100%;height:110px;font-family:ui-monospace,monospace;font-size:11px;background:#0b0d0a;color:var(--ink);border:1px solid var(--line);border-radius:6px;-webkit-user-select:text;user-select:text}
+
+#touch #joy{position:absolute;left:calc(env(safe-area-inset-left,0px) + 24px);bottom:calc(env(safe-area-inset-bottom,0px) + 70px);width:120px;height:120px;border-radius:50%;background:rgba(17,21,15,.45);border:1px solid var(--line);touch-action:none}
+#knob{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(239,235,220,.25);border:1px solid rgba(239,235,220,.5)}
+.tbtns{position:absolute;right:calc(env(safe-area-inset-right,0px) + 20px);bottom:calc(env(safe-area-inset-bottom,0px) + 74px);display:flex;gap:12px;align-items:flex-end}
+.tbtns button{border-radius:50%;border:1px solid var(--line);background:rgba(17,21,15,.6);font-weight:700;touch-action:none}
+#tBite{width:88px;height:88px;font-size:16px;background:rgba(218,74,61,.55);border-color:rgba(239,235,220,.4)}
+/* 上段中央：体力・空腹・スタミナの3連。タップで詳細 */
+#vitals{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);width:min(460px,calc(100% - 32px));display:grid;grid-template-columns:1fr auto;gap:4px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px 4px;text-align:left;backdrop-filter:blur(6px);cursor:pointer}
+#vitals:hover{border-color:rgba(239,235,220,.3)}
+.vt-bars{display:grid;gap:5px;min-width:0}
+.vt{display:grid;grid-template-columns:4.2em 1fr 2.2em;align-items:center;gap:8px}
+.vt-label{font-family:var(--display);font-size:13px;letter-spacing:.04em}
+.vt-track{display:block;height:10px;border-radius:5px;background:rgba(239,235,220,.1);overflow:hidden;position:relative}
+.vt-track::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),rgba(17,21,15,.55) calc(10% - 1px) 10%)}
+.vt-track i{display:block;height:100%;transition:width .15s linear}
+.vt b{font-family:var(--mono);font-weight:400;font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
+#hpRow .vt-label{color:#ef7a6e} #hpBar{background:var(--blood)}
+#hungry .vt-label{color:var(--amber)} #hgBar{background:var(--amber)}
+#stRow .vt-label{color:var(--sky);font-size:11px} #stRow .vt-track{height:6px} #stBar{background:var(--sky)} #stRow b{font-size:12px;color:var(--mute)}
+#hungry.low .vt-label{color:var(--blood)} #hungry.low #hgBar{background:var(--blood)}
+#hungry.old .vt-label::after{content:"老";font-family:var(--body);font-size:10px;color:var(--mute);margin-left:2px}
+@media (prefers-reduced-motion:no-preference){#hungry.low #hgBar{animation:hgPulse .8s ease-in-out infinite alternate}@keyframes hgPulse{to{opacity:.5}}}
+.vt-pack{display:grid;justify-items:center;align-content:center;min-width:52px;border-left:1px dashed var(--line);padding-left:12px;line-height:1.1}
+.vt-pack small{font-size:10px;color:var(--mute)}
+.vt-pack strong{font-family:var(--display);font-weight:400;font-size:26px;color:var(--ink)}
+.vt-more{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:4px 14px;border-top:1px dashed var(--line);padding-top:6px;margin-top:2px}
+.vt-more span{display:flex;justify-content:space-between;gap:6px;font-size:12px}
+.vt-more em{font-style:normal;color:var(--mute)} .vt-more b{font-family:var(--mono);font-weight:400}
+.vt-more b.warn{color:var(--blood)}
+.vt-chev{grid-column:1/-1;text-align:center;font-size:10px;color:var(--mute);line-height:1.2}
+#vitals[aria-expanded="true"] .vt-chev{font-size:0} #vitals[aria-expanded="true"] .vt-chev::after{content:"閉じる ▴";font-size:10px}
+
+/* 現在地の看板：エリア移動時に5秒＋地図を開いている間 */
+#zone{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 152px);transform:translate(-50%,-6px);background:var(--sign);border:2px solid rgba(239,235,220,.85);border-radius:6px;padding:4px 14px 5px;text-align:center;pointer-events:none;opacity:0;transition:opacity .35s,transform .35s}
+#zone.on{opacity:1;transform:translate(-50%,0)}
+#zone small{display:block;font-size:10px;letter-spacing:.2em;color:rgba(239,235,220,.7)}
+#zone span{font-weight:700;font-size:15px}
+
+#mateCmp{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 116px);display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid rgba(243,155,176,.5);border-radius:999px;padding:4px 12px 4px 8px;font-size:12px;pointer-events:none;white-space:nowrap}
+#mateArrow{color:#f39bb0;flex:none}
+
+/* 地図パネル：普段は畳む。占拠時に5秒だけ次の縄張りを紹介 */
+#mapPanel{position:absolute;left:calc(env(safe-area-inset-left,0px) + 16px);top:calc(env(safe-area-inset-top,0px) + 12px);width:224px;display:grid;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;pointer-events:none;backdrop-filter:blur(6px)}
+#mapPanel.intro{border-color:var(--amber)}
+.mp-head{display:grid;line-height:1.3}
+.mp-head small{font-size:10px;color:var(--mute);letter-spacing:.1em}
+#mapPanel.intro .mp-head small{color:var(--amber)}
+.mp-head span{font-weight:700;font-size:14px}
+#mini{width:100%;aspect-ratio:4/3;max-width:100%;display:block;background:rgba(9,11,8,.55);border-radius:6px}
+#compass{display:flex;align-items:center;gap:10px}
+#cmpArrow{color:var(--amber);flex:none}
+.cmp-txt{display:grid;line-height:1.3;min-width:0}
+.cmp-txt small{font-size:10px;color:var(--mute);letter-spacing:.08em}
+.cmp-txt span{font-weight:700;font-size:13px}
+.cmp-txt em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--mute)}
+#compass.away #cmpArrow{color:var(--moss)}
+.mp-foot{margin:0;font-size:10px;color:var(--mute);text-align:right}
+@media (pointer:coarse){.mp-foot{display:none}}
+
+
+.screen{position:fixed;inset:0;display:grid;place-items:center;background:rgba(9,11,8,.62);padding-block:calc(env(safe-area-inset-top,0px) + 16px) calc(env(safe-area-inset-bottom,0px) + 16px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));overflow:auto}
+.card{width:min(560px,100%);background:var(--panel);border:1px solid var(--line);border-radius:16px 16px 16px 40px;padding:24px 24px 22px;display:grid;gap:16px;backdrop-filter:blur(8px)}
+.eyebrow{margin:0;font-family:var(--mono);font-size:12px;color:var(--moss);letter-spacing:.12em}
+.card h1{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(34px,8vw,52px);line-height:1.05;letter-spacing:.02em;text-wrap:balance}
+.card h2{margin:0;font-family:var(--display);font-weight:400;font-size:28px}
+.lede{margin:0;line-height:1.75;color:var(--ink);max-width:40em}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode{text-align:left;background:rgba(239,235,220,.05);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:6px}
+.mode:hover{border-color:var(--moss);background:rgba(169,201,75,.1)}
+.mode-name{font-family:var(--display);font-size:20px}
+.mode-desc{font-size:12.5px;line-height:1.6;color:var(--mute)}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:12.5px}
+.keys dt{font-family:var(--mono);color:var(--moss)} .keys dd{margin:0;color:var(--mute)}
+.best{margin:0;font-size:12px;color:var(--mute);font-family:var(--mono)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin:0}
+.stats div{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding-bottom:4px}
+.stats dt{color:var(--mute);font-size:13px}.stats dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.score{font-family:var(--display);font-size:40px;color:var(--moss);line-height:1}
+.score small{font-family:var(--body);font-size:13px;color:var(--mute);margin-left:6px}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{border-radius:10px;padding:10px 18px;font-weight:700;border:1px solid var(--line);background:rgba(239,235,220,.06)}
+.btn.primary{background:var(--moss);color:var(--bg);border-color:var(--moss)}
+
+@media (max-width:640px){
+  #tune{left:calc(env(safe-area-inset-left,0px) + 16px);width:auto}
+  .modes{grid-template-columns:1fr}
+  .keys.desk{display:none}
+  #toast{font-size:18px}
+}
+/* 狭い画面：上から 3連メーター → 地図（左）＋ツール（右・縦）。キャラのいる中央は空ける */
+@media (max-width:860px){
+  #vitals{width:auto;left:calc(env(safe-area-inset-left,0px) + 16px);right:calc(env(safe-area-inset-right,0px) + 16px);transform:none;padding:6px 10px 3px}
+  .tr{top:calc(env(safe-area-inset-top,0px) + 112px)}
+  .toolbar{flex-direction:column;align-items:flex-end;gap:5px}
+  .tb{padding:5px 9px;font-size:12px}
+  #mapPanel{top:calc(env(safe-area-inset-top,0px) + 112px);right:calc(env(safe-area-inset-right,0px) + 74px);width:auto;max-width:420px;grid-template-columns:132px 1fr;grid-template-rows:auto auto;gap:6px 10px;padding:8px}
+  #mapPanel .mp-head{grid-column:2;grid-row:1}
+  #mapPanel #mini{grid-column:1;grid-row:1/3}
+  #mapPanel #compass{grid-column:2;grid-row:2;align-items:flex-start}
+  .mp-foot{display:none}
+  .vt-more{grid-template-columns:repeat(2,1fr)}
+  #zone{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 214px)}
+  #mateCmp{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 274px)}
+  #claim{bottom:calc(env(safe-area-inset-bottom,0px) + 316px)}
+  #hint{bottom:calc(env(safe-area-inset-bottom,0px) + 12px);font-size:12px;padding:6px 14px}
+  #tune{top:calc(env(safe-area-inset-top,0px) + 112px);right:calc(env(safe-area-inset-right,0px) + 74px)}
+}
+@media (pointer:coarse) and (min-width:861px){#mapPanel{top:calc(env(safe-area-inset-top,0px) + 12px)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div id="app">
+  <canvas id="c" aria-label="ゲーム画面"></canvas>
+  <div id="floaters"></div>
+  <div id="vig"></div>
+  <div id="hud" hidden>
+    <div class="tr toolbar">
+      <button class="tb" id="btnView" title="3Dと真上2Dを切り替え（V）">3D</button>
+      <button class="tb" id="btnIn" aria-label="寄る">＋</button>
+      <button class="tb" id="btnOut" aria-label="引く">－</button>
+      <button class="tb" id="btnMap" title="地図を開く・畳む（M）">地図</button>
+      <button class="tb" id="btnTune">調整</button>
+      <button class="tb" id="btnPause" aria-label="一時停止">Ⅱ</button>
+    </div>
+    <button id="vitals" aria-expanded="false" aria-label="ステータス。タップで詳細">
+      <span class="vt-bars">
+        <span class="vt" id="hpRow"><span class="vt-label">体力</span><span class="vt-track"><i id="hpBar"></i></span><b id="hpNum">100</b></span>
+        <span class="vt" id="hungry"><span class="vt-label">空腹</span><span class="vt-track"><i id="hgBar"></i></span><b id="hgNum">80</b></span>
+        <span class="vt" id="stRow"><span class="vt-label">スタミナ</span><span class="vt-track"><i id="stBar"></i></span><b id="stNum">100</b></span>
+      </span>
+      <span class="vt-pack"><small>群れ</small><strong id="pack">1</strong><small>匹</small></span>
+      <span class="vt-more" id="vtMore" hidden>
+        <span><em>年齢</em><b id="age">0.0年</b></span>
+        <span><em>世代</em><b id="gen">第1</b></span>
+        <span><em>縄張り</em><b id="terr">0/7</b></span>
+        <span><em>図鑑</em><b id="dex">0/3</b></span>
+        <span><em>摂取</em><b id="kcal">0kcal</b></span>
+        <span><em>モード</em><b id="modeName">—</b></span>
+      </span>
+      <span class="vt-chev" aria-hidden="true">詳細 ▾</span>
+    </button>
+    <div id="zone"><small>現在地</small><span id="zoneName">—</span></div>
+    <div id="mateCmp" hidden>
+      <svg id="mateArrow" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="currentColor"/></svg>
+      <span id="mateTxt"></span>
+    </div>
+    <section id="mapPanel" hidden aria-label="地図">
+      <div class="mp-head"><small id="mpMode">現在地</small><span id="mpZone">—</span></div>
+      <canvas id="mini" aria-label="ミニマップ"></canvas>
+      <div id="compass">
+        <svg id="cmpArrow" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="currentColor"/></svg>
+        <div class="cmp-txt"><small>次の縄張り</small><span id="cmpName">—</span><em id="cmpInfo"></em></div>
+      </div>
+      <p class="mp-foot">M で畳む</p>
+    </section>
+    <div id="claim" hidden><span id="claimText">縄張り占拠中</span><div class="track"><i id="claimBar"></i></div></div>
+    <div id="hint"></div>
+    <div id="toast"></div>
+    <aside id="tune" hidden aria-label="バランス調整">
+      <h2>バランス調整</h2>
+      <p>動かすと即反映、このブラウザに保存されます。JSONは「core（芯）」と「session（短時間版専用）」に分かれて出力されます。</p>
+      <div id="tuneRows"></div>
+      <div class="tune-btns">
+        <button class="tb" id="btnCopy">JSONをコピー</button>
+        <button class="tb" id="btnReset">初期値に戻す</button>
+      </div>
+      <textarea id="jsonOut" hidden readonly aria-label="設定JSON"></textarea>
+    </aside>
+    <div id="touch" hidden>
+      <div id="joy"><div id="knob"></div></div>
+      <div class="tbtns"><button id="tBite">攻撃</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="title" class="screen">
+  <div class="card">
+    <p class="eyebrow">試作版 v0.1 ・ HTMLプロトタイプ</p>
+    <h1>新宿ワイルド</h1>
+    <p class="lede">人が消えて緑に飲まれた新宿。ミニチュアダックスとして狩り、縄張りを広げ、群れを増やして命をつなぐ。</p>
+    <div class="modes">
+      <button class="mode" id="btnSurvival"><span class="mode-name">サバイバル</span><span class="mode-desc">空腹と寿命がある。歌舞伎町のライオンが群れを襲う。何年、何匹で生き延びられるか。</span></button>
+      <button class="mode" id="btnRelax"><span class="mode-name">のんびり</span><span class="mode-desc">寿命なし、空腹ゆるめ、敵はおとなしい。街を歩いて図鑑を埋める。</span></button>
+    </div>
+    <dl class="keys desk">
+      <dt>WASD</dt><dd>移動</dd>
+      <dt>Space</dt><dd>飛びかかり攻撃。連打すればダッシュ代わり。気づかれる前に背後か草むらから飛びかかれば不意打ちで一撃。頭上の印が赤ければ成功</dd>
+      <dt>ドラッグ / Q・E</dt><dd>カメラ回転、ホイールでズーム</dd>
+      <dt>M</dt><dd>地図を開く・畳む（縄張りを取ると5秒だけ次の行き先を表示）</dd>
+      <dt>V</dt><dd>3D と 真上2D の切り替え</dd>
+    </dl>
+    <dl class="keys">
+      <dt>縄張り</dt><dd>各エリアには主がいる。エリアの外へ誘い出し、留守のうちにオレンジの輪の中でじっとすると占拠。全エリア制覇がゴール</dd>
+      <dt>世代交代</dt><dd>メスは自分の巣に現れる。巣に戻ると子が2匹生まれ群れが増える。リーダーが倒れても群れが残れば続行</dd>
+      <dt>ルート</dt><dd>御苑から時計回りに一周して、最後に隣の歌舞伎町を取る。ミニマップの番号の順</dd>
+      <dt>食物連鎖</dt><dd>ライオンは草食を襲い、草食の主を倒すとそのエリアを奪う。食事中のライオンは隙だらけ</dd>
+    </dl>
+    <p class="best" id="bestLine"></p>
+  </div>
+</div>
+
+<div id="over" class="screen" hidden>
+  <div class="card">
+    <p class="eyebrow" id="overCause">記録</p>
+    <h2 id="overHead">生存記録</h2>
+    <p class="score" id="overScore">0<small>サバイバルポイント</small></p>
+    <dl class="stats">
+      <div><dt>生存年数</dt><dd id="oYears">0</dd></div>
+      <div><dt>総摂取</dt><dd id="oKcal">0</dd></div>
+      <div><dt>世代</dt><dd id="oGen">1</dd></div>
+      <div><dt>縄張り</dt><dd id="oTerr">0</dd></div>
+      <div><dt>最大の群れ</dt><dd id="oPerf">1</dd></div>
+      <div><dt>自己ベスト</dt><dd id="oBest">0</dd></div>
+    </dl>
+    <div class="actions"><button class="btn primary" id="btnContinue" hidden>このまま続ける</button><button class="btn primary" id="btnAgain">もう一度</button><button class="btn" id="btnToTitle">タイトルへ</button></div>
+  </div>
+</div>
+
+<div id="pause" class="screen" hidden>
+  <div class="card">
+    <h2>一時停止</h2>
+    <div class="actions"><button class="btn primary" id="btnResume">再開</button><button class="btn" id="btnQuit">タイトルへ</button></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+/* ========= バランスデータ（Unity版へ移植する部分） ========= */
+const CONFIG = {
+  version: 'proto-0.2',
+  yearSeconds: 20,
+  player: { speed: 13, staminaMax: 100, staminaRegen: 18, maxHP: 100, lifespan: 15, biteDamage: 1, radius: 0.45 },
+  attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, staminaCost: 16, hitPad: 0.35, autoAimCos: 0.5 },
+  pack: { litter: 2, pupHP: 30, hungerPerMember: 0.15, assistRange: 14, assistPerMember: 0.5, growYears: 1 },
+  hunger: { max: 100, decayPerSec: 1.5, starveDamagePerSec: 5, oldAgeMul: 4 },
+  modes: {
+    survival: { label: 'サバイバル', hungerMul: 1, aging: true, hostile: true, canDie: true },
+    relax: { label: 'のんびり', hungerMul: 0.3, aging: false, hostile: false, canDie: false }
+  },
+  hunt: { awareLimit: 0.5, backCos: -0.25, ambushDamage: 3, bossAmbushDamage: 6 },
+  territory: { claimSeconds: 3, claimRadius: 8.9, safeRadius: 10, nestHealPerSec: 6 },
+  mate: { respawnSeconds: 40, perTerritorySpeedup: 0.25, perPackSlowdown: 0.3, hpBonus: 10 },
+  boss: { leash: 24, returnMul: 0.5, sight: 45, giveUp: 40, attackCooldown: 1.3, relaxKnockOnly: true },
+  bosses: {
+    goen:          { rank: 1, type: 'rabbit', short: '御苑' },
+    nichome:       { rank: 2, type: 'rabbit', short: '二丁目' },
+    higashiguchi:  { rank: 2, type: 'deer',   short: '東口' },
+    nishiguchi:    { rank: 3, type: 'deer',   short: '西口' },
+    nishishinjuku: { rank: 3, type: 'lion',   short: '摩天楼' },
+    nakano:        { rank: 4, type: 'lion',   short: '坂上' },
+    kabuki:        { rank: 5, type: 'lion',   short: '歌舞伎町' }
+  },
+  bossRank: { hpBase: 12, hpPerRank: 14, speedBase: 9.5, speedPerRank: 1.5, dmgBase: 4, dmgPerRank: 6, kcalPerRank: 400 },
+  bossType: { rabbit: { scale: 2.6, hp: 0.8, speed: 0.95, dmg: 0.7 }, deer: { scale: 1.9, hp: 1, speed: 1, dmg: 0.9 }, lion: { scale: 1.4, hp: 1.15, speed: 1.08, dmg: 1.3 } },
+  chain: { huntRange: 10, huntChance: 0.35, huntGiveUp: 6, eatSeconds: 5, eatDetectMul: 0.35, fightSeconds: 2.5, eventInterval: 12, raidChance: 0.06, herbChance: 0.01, protectSeconds: 180 },
+  stealth: { grassMul: 0.45, lungeMul: 1.7, stillMul: 0.55 },
+  population: { preyMul: 1, predators: 8 },
+  species: {
+    rabbit: { name: 'ウサギ', role: 'prey', hp: 2, speed: 17, radius: 0.45, detect: 9, kcal: 120, hunger: 22 },
+    deer:   { name: 'シカ', role: 'prey', hp: 5, speed: 21, radius: 0.85, detect: 14, kcal: 420, hunger: 55 },
+    lion:   { name: 'ライオン', role: 'predator', hp: 7, speed: 17.2, radius: 0.8, detect: 12, damage: 14, attackCooldown: 1.1, kcal: 600, hunger: 70 },
+    mate:   { name: 'ダックス（メス）', role: 'mate', hp: 99, speed: 10, radius: 0.45, detect: 0 }
+  },
+  spawn: {
+    goen: [['deer', 6], ['rabbit', 8]], mori: [['rabbit', 6], ['deer', 2]], nakano: [['rabbit', 6]],
+    nishishinjuku: [['rabbit', 4]], nishiguchi: [['rabbit', 4]], kabuki: [['rabbit', 5]],
+    higashiguchi: [['rabbit', 3]], nichome: [['rabbit', 3]], koshu: [['rabbit', 4], ['deer', 2]], kita: [['rabbit', 4]]
+  },
+  score: { perYear: 100, perKcal: 0.1, perGen: 500, perTerritory: 300, perPerfect: 50, perPack: 200 }
+};
+const DEFAULTS = JSON.parse(JSON.stringify(CONFIG));
+const getPath = (o, p) => p.split('.').reduce((a, k) => a[k], o);
+const setPath = (o, p, v) => { const ks = p.split('.'); const l = ks.pop(); ks.reduce((a, k) => a[k], o)[l] = v; };
+const TUNABLES = [
+  { p: 'hunger.decayPerSec', label: '空腹の減り（/秒）', min: 0.3, max: 4, step: 0.1 },
+  { p: 'yearSeconds', label: '1年の長さ（秒）', min: 8, max: 60, step: 1 },
+  { p: 'player.lifespan', label: '寿命（年）', min: 5, max: 30, step: 1 },
+  { p: 'population.preyMul', label: '獲物の数（倍）', min: 0.3, max: 2.5, step: 0.1 },
+  { p: 'player.speed', label: 'ダックスの移動速度', min: 5, max: 24, step: 0.5 },
+  { p: 'attack.staminaCost', label: '攻撃1回のスタミナ', min: 4, max: 40, step: 1 },
+  { p: 'population.predators', label: 'ライオンの数', min: 0, max: 24, step: 1 },
+  { p: 'species.lion.speed', label: 'ライオンの速度', min: 6, max: 26, step: 0.5 },
+  { p: 'species.lion.damage', label: 'ライオンの攻撃力', min: 2, max: 40, step: 1 },
+  { p: 'pack.hungerPerMember', label: '群れ1匹あたりの空腹増加', min: 0, max: 0.5, step: 0.01 },
+  { p: 'mate.respawnSeconds', label: 'メスが現れる間隔（秒）', min: 10, max: 120, step: 5 },
+  { p: 'mate.perPackSlowdown', label: '群れ1匹あたりメスが遠のく割合', min: 0, max: 1, step: 0.05 },
+  { p: 'chain.raidChance', label: 'ライオンが草食の主を襲う確率', min: 0, max: 0.5, step: 0.01 },
+  { p: 'chain.herbChance', label: '草食が肉食エリアを奪い返す確率', min: 0, max: 0.2, step: 0.005 },
+  { p: 'boss.leash', label: '主が追ってくる距離（エリア外）', min: 6, max: 60, step: 1 },
+  { p: 'boss.returnMul', label: '主が戻る速さ（倍）', min: 0.2, max: 1, step: 0.05 },
+  { p: 'hunt.backCos', label: '背後の判定（小さいほど真後ろが必要）', min: -0.9, max: 0.3, step: 0.05 },
+  { p: 'hunt.ambushDamage', label: '不意打ちの威力（肉食）', min: 1, max: 10, step: 1 },
+  { p: 'hunt.bossAmbushDamage', label: '不意打ちの威力（主）', min: 1, max: 30, step: 1 }
+];
+try { const s = JSON.parse(localStorage.getItem('sw-tune') || '{}'); for (const k in s) if (TUNABLES.some(t => t.p === k)) setPath(CONFIG, k, s[k]); } catch (e) {}
+
+/* ========= マップ（圧縮新宿） ========= */
+const ZONES = [
+  { id: 'nakano', name: '中野坂上', x: 20, z: 40, w: 96, h: 50, kind: 'house', mark: true },
+  { id: 'mori', name: '森（通路）', x: 20, z: 100, w: 96, h: 40, kind: 'forest' },
+  { id: 'nishishinjuku', name: '西新宿', x: 20, z: 150, w: 96, h: 60, kind: 'tower', mark: true },
+  { id: 'nishiguchi', name: '新宿駅西口', x: 126, z: 150, w: 70, h: 60, kind: 'plaza', mark: true },
+  { id: 'kita', name: '北新宿', x: 126, z: 40, w: 70, h: 100, kind: 'ruins' },
+  { id: 'koshu', name: '甲州街道', x: 20, z: 220, w: 176, h: 60, kind: 'road' },
+  { id: 'eki', name: '新宿駅', x: 200, z: 40, w: 26, h: 240, kind: 'station' },
+  { id: 'kabuki', name: '歌舞伎町', x: 232, z: 40, w: 108, h: 100, kind: 'alley', mark: true },
+  { id: 'higashiguchi', name: '新宿駅東口', x: 232, z: 150, w: 52, h: 60, kind: 'shops', mark: true },
+  { id: 'nichome', name: '新宿二丁目', x: 290, z: 150, w: 50, h: 60, kind: 'bars', mark: true },
+  { id: 'goen', name: '新宿御苑', x: 232, z: 220, w: 108, h: 60, kind: 'park', mark: true }
+];
+const ZMAP = {}; ZONES.forEach(z => { z.cx = z.x + z.w / 2; z.cz = z.z + z.h / 2; ZMAP[z.id] = z; });
+const MARKS = ZONES.filter(z => z.mark);
+const ROUTE = ['goen', 'nichome', 'higashiguchi', 'nishiguchi', 'nishishinjuku', 'nakano', 'kabuki'];
+const BOUNDS = { minx: 12, maxx: 348, minz: 34, maxz: 286 };
+const KIND = {
+  house: { cell: 10, min: 5.5, max: 7.5, hmin: 3, hmax: 7, p: .72, tint: [0xbdb5a5, 0xa99f8b, 0xc7bfb0, 0x9d8f7c] },
+  tower: { cell: 22, min: 12, max: 16, hmin: 26, hmax: 62, p: .85, tint: [0x9aa3a6, 0x8a959a, 0xaab2b3, 0x7f8a90] },
+  plaza: { cell: 18, min: 9, max: 12, hmin: 8, hmax: 14, p: .38, tint: [0xa5a59c, 0x92938a] },
+  alley: { cell: 9, min: 6.4, max: 7.4, hmin: 6, hmax: 16, p: .85, tint: [0x8e7e78, 0x7a6c69, 0x9b8a7e, 0x6f6460], signs: .9 },
+  shops: { cell: 13, min: 9, max: 11, hmin: 10, hmax: 24, p: .75, tint: [0xa39b90, 0x8f8a82, 0xb0a99c] },
+  bars: { cell: 10, min: 6.5, max: 8, hmin: 5, hmax: 11, p: .7, tint: [0x8f8188, 0x7c7178, 0x9a8c86], signs: .55 },
+  ruins: { cell: 14, min: 7, max: 10, hmin: 2, hmax: 9, p: .4, tint: [0x8d8a7e, 0x7b786d] }
+};
+const GROUND_C = { house: 0x5d5f55, forest: 0x445d2f, tower: 0x5b6062, plaza: 0x67685f, ruins: 0x575a4b, road: 0x4c4e48, alley: 0x5c514c, shops: 0x605e58, bars: 0x5d5458, park: 0x4b6b33, station: 0x4f4d48 };
+const TREE_C = [0x4f7a2e, 0x5c8a34, 0x3f6a2a, 0x6b913a];
+const NEON = [0xff5fa2, 0x52e3e1, 0xffd34d, 0xb07cff, 0xff7a4a];
+
+/* ========= 乱数・衝突 ========= */
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const rng = mulberry32(20261101);
+const R = (a, b) => a + rng() * (b - a);
+const pick = arr => arr[Math.floor(rng() * arr.length)];
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const GRID = new Map(), GC = 16; let stamp = 0;
+function gridAdd(o, x0, x1, z0, z1) { for (let i = Math.floor(x0 / GC); i <= Math.floor(x1 / GC); i++) for (let j = Math.floor(z0 / GC); j <= Math.floor(z1 / GC); j++) { const k = i * 1000 + j; if (!GRID.has(k)) GRID.set(k, []); GRID.get(k).push(o); } }
+function addBox(x, z, w, d) { const o = { t: 0, minx: x - w / 2, maxx: x + w / 2, minz: z - d / 2, maxz: z + d / 2, s: 0 }; gridAdd(o, o.minx, o.maxx, o.minz, o.maxz); }
+function addCircle(x, z, r) { const o = { t: 1, x, z, r, s: 0 }; gridAdd(o, x - r, x + r, z - r, z + r); }
+function forNear(x, z, r, fn) { stamp++; for (let i = Math.floor((x - r) / GC); i <= Math.floor((x + r) / GC); i++) for (let j = Math.floor((z - r) / GC); j <= Math.floor((z + r) / GC); j++) { const l = GRID.get(i * 1000 + j); if (!l) continue; for (const o of l) { if (o.s === stamp) continue; o.s = stamp; if (fn(o)) return true; } } return false; }
+function collides(x, z, r) {
+  if (x < BOUNDS.minx || x > BOUNDS.maxx || z < BOUNDS.minz || z > BOUNDS.maxz) return true;
+  return forNear(x, z, r, o => { if (o.t === 0) { const cx = clamp(x, o.minx, o.maxx), cz = clamp(z, o.minz, o.maxz); return (x - cx) ** 2 + (z - cz) ** 2 < r * r; } return (x - o.x) ** 2 + (z - o.z) ** 2 < (r + o.r) ** 2; });
+}
+function resolve(p, r) {
+  let hit = false;
+  forNear(p.x, p.z, r, o => {
+    if (o.t === 0) {
+      const cx = clamp(p.x, o.minx, o.maxx), cz = clamp(p.z, o.minz, o.maxz); const dx = p.x - cx, dz = p.z - cz, d2 = dx * dx + dz * dz;
+      if (d2 < r * r) {
+        hit = true;
+        if (d2 > 1e-6) { const d = Math.sqrt(d2); p.x = cx + dx / d * r; p.z = cz + dz / d * r; }
+        else { const l = p.x - o.minx, rr = o.maxx - p.x, t = p.z - o.minz, b = o.maxz - p.z, m = Math.min(l, rr, t, b); if (m === l) p.x = o.minx - r; else if (m === rr) p.x = o.maxx + r; else if (m === t) p.z = o.minz - r; else p.z = o.maxz + r; }
+      }
+    } else {
+      const dx = p.x - o.x, dz = p.z - o.z, d = Math.hypot(dx, dz), m = o.r + r;
+      if (d < m) { hit = true; if (d > 1e-6) { p.x = o.x + dx / d * m; p.z = o.z + dz / d * m; } else p.x += m; }
+    }
+    return false;
+  });
+  const ox = p.x, oz = p.z;
+  p.x = clamp(p.x, BOUNDS.minx + r, BOUNDS.maxx - r); p.z = clamp(p.z, BOUNDS.minz + r, BOUNDS.maxz - r);
+  return hit || ox !== p.x || oz !== p.z;
+}
+function zoneAt(x, z) { for (const zn of ZONES) if (x >= zn.x && x <= zn.x + zn.w && z >= zn.z && z <= zn.z + zn.h) return zn; return null; }
+
+/* ========= three.js 基本 ========= */
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const coarse = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, coarse ? 1.5 : 1.75));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene(); const SKY = 0x9aab9e; scene.background = new THREE.Color(SKY);
+const fog = new THREE.Fog(SKY, 80, 260); scene.fog = fog;
+const cam3 = new THREE.PerspectiveCamera(42, 1, 2, 900);
+const cam2 = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 800); cam2.up.set(0, 0, -1);
+scene.add(new THREE.HemisphereLight(0xdbe8d8, 0x3d3b2c, 0.9));
+const sun = new THREE.DirectionalLight(0xfff0d2, 0.85); sun.castShadow = true; sun.shadow.mapSize.set(coarse ? 1024 : 2048, coarse ? 1024 : 2048);
+Object.assign(sun.shadow.camera, { left: -55, right: 55, top: 55, bottom: -55, near: 1, far: 240 }); sun.shadow.bias = -0.0008;
+scene.add(sun); scene.add(sun.target);
+const BOXG = new THREE.BoxGeometry(1, 1, 1);
+const matCache = {};
+const mat = c => matCache[c] || (matCache[c] = new THREE.MeshLambertMaterial({ color: c }));
+
+function instanced(geo, list, material, setFn, shadows) {
+  const m = new THREE.InstancedMesh(geo, material, Math.max(1, list.length)); m.count = list.length;
+  const o = new THREE.Object3D(), col = new THREE.Color();
+  list.forEach((it, i) => { o.position.set(0, 0, 0); o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1); setFn(o, it); o.updateMatrix(); m.setMatrixAt(i, o.matrix); col.setHex(it.c); m.setColorAt(i, col); });
+  m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
+  m.castShadow = shadows !== false; m.receiveShadow = true; scene.add(m); return m;
+}
+function groundRect(x, z, w, h, c, layer) {
+  const L = layer == null ? 1 : layer;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshLambertMaterial({ color: c, polygonOffset: true, polygonOffsetFactor: -L * 2, polygonOffsetUnits: -L * 4 }));
+  m.rotation.x = -Math.PI / 2; m.position.set(x + w / 2, L === 0 ? -0.4 : (L - 1) * 0.04, z + h / 2); m.renderOrder = L; m.receiveShadow = true; scene.add(m); return m;
+}
+
+/* ========= 街の生成 ========= */
+const BLD = [], TREES = [], GRASS = [], CARS = [], SIGNS = [], LINES = [];
+function plantTrees(zn, n, avoid) {
+  for (let i = 0; i < n; i++) {
+    const x = R(zn.x + 1.5, zn.x + zn.w - 1.5), z = R(zn.z + 1.5, zn.z + zn.h - 1.5);
+    if (avoid && avoid(x, z)) continue; if (collides(x, z, 1.3)) continue;
+    const s = R(0.8, 1.45); TREES.push({ x, z, s, c: pick(TREE_C) }); addCircle(x, z, 0.45 * s + 0.1);
+  }
+}
+function addGrass(zn, n) { for (let i = 0; i < n; i++) GRASS.push({ x: R(zn.x + 3, zn.x + zn.w - 3), z: R(zn.z + 3, zn.z + zn.h - 3), r: R(2.6, 5), c: pick([0x5f8233, 0x6a8d39, 0x557a2e]) }); }
+const nearMark = (zn, x, z, r) => zn.mark && Math.hypot(x - zn.cx, z - zn.cz) < r;
+let POND = null;
+
+function buildWorld() {
+  groundRect(-120, -100, 600, 500, 0x3c4236, 0);
+  ZONES.forEach(zn => {
+    groundRect(zn.x, zn.z, zn.w, zn.h, GROUND_C[zn.kind]);
+    const k = KIND[zn.kind];
+    if (k) {
+      for (let x = zn.x + 2; x + k.cell <= zn.x + zn.w - 2 + 0.01; x += k.cell)
+        for (let z = zn.z + 2; z + k.cell <= zn.z + zn.h - 2 + 0.01; z += k.cell) {
+          if (rng() > k.p) continue;
+          const cx = x + k.cell / 2, cz = z + k.cell / 2;
+          if (nearMark(zn, cx, cz, k.cell * 0.5 + 7)) continue;
+          const w = R(k.min, k.max), d = R(k.min, k.max), h = R(k.hmin, k.hmax);
+          const base = new THREE.Color(pick(k.tint)).lerp(new THREE.Color(0x56763a), R(0, .22));
+          BLD.push({ x: cx, z: cz, w, d, h, c: base.getHex() }); addBox(cx, cz, w, d);
+          if (k.signs && rng() < k.signs) {
+            const f = Math.floor(rng() * 4), sh = R(1.6, 3.2), sy = R(2.5, Math.max(3, h * 0.7));
+            const s = { c: pick(NEON), y: sy, h: sh };
+            if (f < 2) Object.assign(s, { x: cx + (f ? 1 : -1) * (w / 2 + 0.15), z: cz + R(-d / 3, d / 3), w: 0.25, d: 1.1 });
+            else Object.assign(s, { x: cx + R(-w / 3, w / 3), z: cz + (f === 3 ? 1 : -1) * (d / 2 + 0.15), w: 1.1, d: 0.25 });
+            SIGNS.push(s);
+          }
+        }
+    }
+    if (zn.kind === 'forest') { plantTrees(zn, 150, (x, z) => nearMark(zn, x, z, 7)); addGrass(zn, 9); }
+    if (zn.kind === 'park') {
+      POND = { x: zn.cx + 26, z: zn.cz + 6, r: 8 }; addCircle(POND.x, POND.z, POND.r);
+      plantTrees(zn, 95, (x, z) => nearMark(zn, x, z, 8) || Math.hypot(x - POND.x, z - POND.z) < POND.r + 2); addGrass(zn, 12);
+    }
+    if (zn.kind === 'road') {
+      for (let i = 0; i < 24; i++) { const x = R(zn.x + 4, zn.x + zn.w - 4), z = R(zn.z + 8, zn.z + zn.h - 8); const rot = rng() < .8; const w = rot ? 4.2 : 1.9, d = rot ? 1.9 : 4.2; if (collides(x, z, 3)) continue; CARS.push({ x, z, w, d, c: pick([0x8a8f92, 0x6c5f55, 0x9b6b4f, 0x5e6b72, 0xb0aa9a]) }); addBox(x, z, w, d); }
+      for (let x = zn.x + 2; x < zn.x + zn.w - 4; x += 8) LINES.push({ x: x + 2, z: zn.cz, w: 4, d: 0.3, c: 0xc9c4b3 });
+      plantTrees(zn, 22); addGrass(zn, 10);
+    }
+    if (zn.kind === 'ruins') { plantTrees(zn, 26); addGrass(zn, 8); }
+    if (zn.kind === 'house') { plantTrees(zn, 10, (x, z) => nearMark(zn, x, z, 7)); addGrass(zn, 5); }
+    if (zn.kind === 'plaza') addGrass(zn, 3);
+    if (zn.kind === 'tower') addGrass(zn, 3);
+  });
+  // 駅（線路の盛り土。隙間がガード下の抜け道）
+  [[40, 95], [110, 170], [190, 250], [262, 280]].forEach(([a, b]) => {
+    BLD.push({ x: 213, z: (a + b) / 2, w: 26, d: b - a, h: 3.2, c: 0x77746c }); addBox(213, (a + b) / 2, 26, b - a);
+    [204, 207, 219, 222].forEach(rx => LINES.push({ x: rx, z: (a + b) / 2, w: 0.18, d: b - a, c: 0x3a3936, y: 3.25 }));
+  });
+  BLD.push({ x: 213, z: 140, w: 22, d: 40, h: 14, c: 0xa4a9a7 });
+  [[95, 110], [170, 190], [250, 262]].forEach(([a, b]) => groundRect(200, a, 26, b - a, 0x34332f, 2));
+  // 外周の緑の壁
+  for (let x = 6; x <= 354; x += 5) { TREES.push({ x, z: 30 + R(-2, 0), s: R(1.2, 1.8), c: pick(TREE_C) }); TREES.push({ x, z: 290 + R(0, 2), s: R(1.2, 1.8), c: pick(TREE_C) }); }
+  for (let z = 34; z <= 286; z += 5) { TREES.push({ x: 8 + R(-2, 0), z, s: R(1.2, 1.8), c: pick(TREE_C) }); TREES.push({ x: 352 + R(0, 2), z, s: R(1.2, 1.8), c: pick(TREE_C) }); }
+
+  instanced(BOXG, BLD, new THREE.MeshLambertMaterial(), (o, b) => { o.position.set(b.x, b.h / 2, b.z); o.scale.set(b.w, b.h, b.d); });
+  instanced(BOXG, CARS, new THREE.MeshLambertMaterial(), (o, b) => { o.position.set(b.x, 0.7, b.z); o.scale.set(b.w, 1.4, b.d); });
+  instanced(BOXG, SIGNS, new THREE.MeshBasicMaterial(), (o, b) => { o.position.set(b.x, b.y, b.z); o.scale.set(b.w, b.h, b.d); }, false);
+  instanced(BOXG, LINES, new THREE.MeshLambertMaterial(), (o, b) => { o.position.set(b.x, b.y || 0.1, b.z); o.scale.set(b.w, 0.06, b.d); }, false);
+  instanced(new THREE.CylinderGeometry(0.22, 0.32, 2, 6), TREES, new THREE.MeshLambertMaterial(), (o, t) => { o.position.set(t.x, t.s, t.z); o.scale.set(t.s, t.s, t.s); }).instanceColor.array.fill(0.36);
+  instanced(new THREE.IcosahedronGeometry(1.6, 0), TREES, new THREE.MeshLambertMaterial(), (o, t) => { o.position.set(t.x, 2.6 * t.s, t.z); o.scale.set(t.s, t.s * 1.05, t.s); o.rotation.y = t.x; });
+  instanced(new THREE.CylinderGeometry(1, 1, 1, 10), GRASS, new THREE.MeshLambertMaterial(), (o, g) => { o.position.set(g.x, 0.35, g.z); o.scale.set(g.r, 0.7, g.r); }, false);
+  const water = new THREE.Mesh(new THREE.CircleGeometry(POND.r, 28), new THREE.MeshLambertMaterial({ color: 0x4f8088 }));
+  water.rotation.x = -Math.PI / 2; water.position.set(POND.x, 0.1, POND.z); scene.add(water);
+  // 縄張りの印
+  MARKS.forEach(zn => {
+    const g = new THREE.Group(); g.position.set(zn.cx, 0, zn.cz);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 2.4, 8), new THREE.MeshLambertMaterial({ color: 0xe8a23d })); pole.position.y = 1.2; pole.castShadow = true; g.add(pole);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(CONFIG.territory.claimRadius - .5, CONFIG.territory.claimRadius, 48), new THREE.MeshBasicMaterial({ color: 0xe8a23d, transparent: true, opacity: 0.75, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.12; g.add(ring);
+    scene.add(g); zn.markMesh = { g, pole, ring }; zn.claimed = false; zn.prog = 0;
+  });
+}
+const inGrass = (x, z) => GRASS.some(g => (x - g.x) ** 2 + (z - g.z) ** 2 < g.r * g.r);
+
+/* ========= 動物モデル ========= */
+const LOOK = {
+  dachs:  { L: 1.25, W: .4, H: .38, leg: .17, head: .36, c1: 0x8b4a22, c2: 0x5e3015, ear: 'flop', tail: .4 },
+  mate:   { L: 1.15, W: .38, H: .36, leg: .16, head: .34, c1: 0xd49b5e, c2: 0xa66b38, ear: 'flop', tail: .36, bow: true },
+  pup:    { L: 1.0, W: .36, H: .34, leg: .15, head: .34, c1: 0xa8622f, c2: 0x6e3a1a, ear: 'flop', tail: .3 },
+  rabbit: { L: .62, W: .5, H: .5, leg: .1, head: .4, c1: 0xf2efe6, c2: 0xe7a7a7, ear: 'long', tail: .14, hop: true, puff: true },
+  deer:   { L: 1.5, W: .5, H: .6, leg: 1.05, head: .4, c1: 0x9a6236, c2: 0xefe1c6, ear: 'pointy', tail: .14, antler: true, neck: true, legC: 0x7d4f2b },
+  lion:   { L: 1.8, W: .72, H: .78, leg: .72, head: .56, c1: 0xc99a52, c2: 0x6b3f1c, ear: 'round', tail: .9, thin: true, mane: true, tuft: true, legC: 0xb88a48 }
+};
+function part(c, w, h, d, x, y, z, parent) { const m = new THREE.Mesh(BOXG, mat(c)); m.scale.set(w, h, d); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m; }
+function makeAnimal(L) {
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const by = L.leg + L.H / 2;
+  part(L.c1, L.W, L.H, L.L, 0, by, 0, body);
+  if (L.spots) for (let i = 0; i < 4; i++) part(L.c2, L.W * 1.03, L.H * 0.22, L.L * 0.11, 0, by + L.H * 0.12, (i - 1.5) * L.L * 0.22, body);
+  const hd = L.head, hz = L.L / 2 + hd * (L.neck ? 0.1 : 0.3), hy = by + L.H * (L.neck ? 1.25 : 0.35);
+  if (L.neck) { const n = part(L.c1, L.W * .5, L.H * 1.2, L.W * .5, 0, by + L.H * .75, L.L / 2 - .05, body); n.rotation.x = .35; }
+  if (L.mane) part(L.c2, hd * 1.75, hd * 1.75, hd * .9, 0, hy + hd * .05, hz - hd * .35, body);
+  if (L.puff) part(0xffffff, L.W * .5, L.W * .5, .2, 0, by + L.H * .2, -L.L / 2 - .08, body);
+  part(L.c1, hd, hd, hd, 0, hy, hz, body);
+  part(L.c2, hd * .55, hd * .45, hd * .55, 0, hy - hd * .15, hz + hd * .6, body);
+  part(0x1c1a18, hd * .2, hd * .16, hd * .1, 0, hy - hd * .04, hz + hd * .9, body);
+  [-1, 1].forEach(s => {
+    part(0x141210, hd * .14, hd * .14, hd * .06, s * hd * .27, hy + hd * .13, hz + hd * .5, body);
+    if (L.ear === 'flop') part(L.c2, 0.07, hd * .85, hd * .5, s * (hd / 2 + .035), hy - hd * .12, hz - hd * .05, body);
+    if (L.ear === 'long') { part(L.c1, hd * .22, hd * 1.4, .07, s * hd * .22, hy + hd * 1.1, hz - .05, body); part(L.c2, hd * .12, hd * 1.1, .02, s * hd * .22, hy + hd * 1.1, hz - .01, body); }
+    if (L.ear === 'pointy') part(L.c1, hd * .3, hd * .5, .06, s * hd * .38, hy + hd * .65, hz - hd * .1, body);
+    if (L.ear === 'round') part(L.c1, hd * .32, hd * .32, .07, s * hd * .36, hy + hd * .55, hz - hd * .1, body);
+    if (L.antler) { part(0xd9c9a3, .06, hd * 1.3, .06, s * hd * .25, hy + hd * 1.1, hz - hd * .1, body); part(0xd9c9a3, hd * .5, .05, .05, s * hd * .45, hy + hd * 1.4, hz - hd * .1, body); }
+  });
+  if (L.bow) part(0xe0607e, .32, .14, .1, 0, hy + hd * .58, hz - hd * .15, body);
+  const tw = L.thin ? .07 : L.W * .28; if (!L.puff) part(L.c1, tw, tw, L.tail, 0, by + L.H * .25, -L.L / 2 - L.tail / 2, body);
+  if (L.tuft) part(L.c2, .2, .2, .26, 0, by + L.H * .25, -L.L / 2 - L.tail - .1, body);
+  if (L.slope) body.rotation.x = -0.1;
+  const legs = [], lw = Math.max(.07, L.W * .28);
+  [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(([sx, sz]) => { const lg = new THREE.Group(); lg.position.set(sx * L.W * .32, L.leg, sz * L.L * .36); part(L.legC || L.c1, lw, L.leg + .02, lw, 0, -L.leg / 2, 0, lg); g.add(lg); legs.push(lg); });
+  return { g, body, legs, look: L };
+}
+
+/* ========= 状態 ========= */
+const G = { state: 'title', mode: 'survival', view: '3d', t: 0, noise: 1, playT: 0, spawnT: 0, hudT: 0, mateT: 0 };
+const cam = { yaw: 0.35, pitch: 0.92, dist: 38, tx: 180, tz: 160, zoom2: 30, titleYaw: 0 };
+let P = null; const animals = []; let huntTarget = null, huntKind = null, huntPerfect = false;
+const seen = new Set();
+
+function spawnAnimal(type, zone, x, z) {
+  const v = makeAnimal(LOOK[type]); scene.add(v.g); const sp = CONFIG.species[type];
+  const a = { type, sp, role: sp.role, zone, x, z, dir: Math.random() * 6.28, hp: sp.hp, state: 'wander', tx: x, tz: z, timer: 0, idle: false, aware: 0, phase: Math.random() * 6, cd: 0, fleeT: 0, alive: true, v, q: false, provoked: false, moving: false };
+  v.g.position.set(x, 0, z); animals.push(a); return a;
+}
+function removeAnimal(a) { a.alive = false; scene.remove(a.v.g); if (a.ring) scene.remove(a.ring); }
+/* 縄張りの主 */
+const inRect = (zn, x, z, pad) => { pad = pad || 0; return x >= zn.x - pad && x <= zn.x + zn.w + pad && z >= zn.z - pad && z <= zn.z + zn.h + pad; };
+const rectDist = (zn, x, z) => Math.hypot(Math.max(zn.x - x, 0, x - (zn.x + zn.w)), Math.max(zn.z - z, 0, z - (zn.z + zn.h)));
+const bossOf = zn => animals.find(a => a.alive && a.role === 'boss' && a.home === zn && a.state !== 'exiled');
+const bossHome = zn => { const b = bossOf(zn); return b && inRect(zn, b.x, b.z); };
+const bossName = (zn, type) => zn.short + (type === 'lion' ? (zn.rank >= 5 ? 'の王' : 'の獅子') : type === 'deer' ? 'の大ジカ' : 'の大ウサギ');
+function makeBoss(zn, type, x, z) {
+  const R = CONFIG.bossRank, T = CONFIG.bossType[type], base = CONFIG.species[type], r = zn.rank, scale = T.scale + .12 * r;
+  const sp = { name: bossName(zn, type), role: 'boss', rank: r, hp: Math.round((R.hpBase + R.hpPerRank * r) * T.hp), speed: (R.speedBase + R.speedPerRank * r) * T.speed, radius: base.radius * scale, damage: Math.round((R.dmgBase + R.dmgPerRank * r) * T.dmg), kcal: 600 + R.kcalPerRank * r, hunger: 100 };
+  const v = makeAnimal(LOOK[type]); v.g.scale.setScalar(scale); scene.add(v.g);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1, 1.12, 40), ringMat(0xda4a3d)); ring.rotation.x = -Math.PI / 2; ring.renderOrder = 997; ring.scale.setScalar(sp.radius * 1.5); scene.add(ring);
+  if (x == null) { const p = randomPoint(zn, .9, { x: zn.cx, z: zn.cz }, 10) || { x: zn.cx + 6, z: zn.cz }; x = p.x; z = p.z; }
+  const a = { type, sp, role: 'boss', zone: zn, home: zn, x, z, dir: Math.random() * 6.28, hp: sp.hp, state: 'guard', tx: x, tz: z, timer: 0, phase: 0, cd: 0, fleeT: 0, alive: true, v, ring, colR: Math.min(.9, sp.radius), met: false, moving: false, aware: 0 };
+  animals.push(a); zn.eco = type === 'lion' ? 'carn' : 'herb'; return a;
+}
+function spawnBosses() {
+  animals.filter(a => a.role === 'boss').forEach(removeAnimal);
+  for (const zn of MARKS) { const B = CONFIG.bosses[zn.id]; zn.rank = B.rank; zn.short = B.short; makeBoss(zn, B.type); }
+}
+function predZones() {
+  const pz = [];
+  MARKS.forEach(z => { if (z.claimed) return; if (z.eco === 'carn') pz.push(z, z); else if (z.id !== ROUTE[0]) pz.push(z); });
+  ['kita', 'koshu', 'mori'].forEach(id => pz.push(ZMAP[id]));
+  return pz;
+}
+function resolveRaid(l, b) {
+  const zn = b.home, x = b.x, z = b.z; removeAnimal(b); removeAnimal(l);
+  const nb = makeBoss(zn, 'lion', x, z);
+  if (G.state === 'play') { toast(zn.short + 'の主が交代', nb.sp.name + 'が' + zn.name + 'を奪った'); floatAt(nb, '新たな主', 'alert', 1.4); }
+}
+function herbTakeover(b) {
+  const zn = b.home, x = b.x, z = b.z; removeAnimal(b);
+  const nb = makeBoss(zn, 'deer', x, z);
+  if (G.state === 'play') toast(zn.short + 'の主が交代', '老いた獅子が去り、' + nb.sp.name + 'が住み着いた');
+}
+function ecoEvents() {
+  const C = CONFIG.chain;
+  for (const zn of MARKS) {
+    if (zn.claimed) continue; const b = bossOf(zn); if (!b || b.state !== 'guard') continue;
+    if (zn.eco === 'herb') {
+      if (ROUTE.indexOf(zn.id) < 2 && G.playT < C.protectSeconds) continue;
+      if (animals.some(x => x.alive && x.state === 'raid' && x.raid === b)) continue;
+      const l = animals.find(x => x.alive && x.role === 'predator' && x.state === 'wander' && inRect(zn, x.x, x.z, 10));
+      if (l && Math.random() < C.raidChance) { l.state = 'raid'; l.raid = b; }
+    } else if (Math.random() < C.herbChance) herbTakeover(b);
+  }
+}
+function updateBoss(a, dt) {
+  const zn = a.home, B = a.sp, BC = CONFIG.boss, play = G.state === 'play';
+  a.cd -= dt; let tx = a.x, tz = a.z, spd = 0;
+  const d = play ? Math.hypot(P.x - a.x, P.z - a.z) : 999;
+  if (a.state === 'fight') { if (!a.foe || !a.foe.alive) a.state = 'guard'; else a.dir = lerpAng(a.dir, Math.atan2(a.foe.x - a.x, a.foe.z - a.z), Math.min(1, dt * 8)); a.moving = Math.sin(G.t * 18) > 0; a.phase += dt * 20; }
+  else if (a.state === 'exiled') { a.fleeT -= dt; tx = a.x + (a.x - zn.cx); tz = a.z + (a.z - zn.cz); spd = B.speed * .8; if (a.fleeT <= 0) { removeAnimal(a); return; } }
+  else if (a.state === 'chase') {
+    if (!play || rectDist(zn, a.x, a.z) > BC.leash || d > BC.giveUp) { a.state = 'return'; if (play) floatAt(a, '縄張りへ戻っていく', 'q', 1.2); }
+    else {
+      tx = P.x; tz = P.z; spd = B.speed;
+      if (d < B.radius + CONFIG.player.radius + .6) {
+        spd = 0; a.dir = lerpAng(a.dir, Math.atan2(P.x - a.x, P.z - a.z), Math.min(1, dt * 10));
+        if (a.cd <= 0) { a.cd = BC.attackCooldown; hurtPlayer(CONFIG.modes[G.mode].hostile ? B.damage : 0, a, B.name + 'に倒された'); }
+      }
+    }
+  } else if (a.state === 'return') {
+    tx = zn.cx; tz = zn.cz; spd = B.speed * BC.returnMul;
+    if (inRect(zn, a.x, a.z, -4)) { a.state = 'guard'; a.timer = 0; }
+  } else {
+    if (play && ((inRect(zn, P.x, P.z) && d < BC.sight) || d < 7)) {
+      a.state = 'chase'; floatAt(a, '!', 'alert');
+      if (!a.met) { a.met = true; toast(B.name + 'に見つかった', '格' + B.rank + '。エリアの外まで誘い出せば縄張りが空く'); }
+    } else {
+      a.timer -= dt;
+      if (a.timer <= 0) { a.tx = zn.x + 4 + Math.random() * (zn.w - 8); a.tz = zn.z + 4 + Math.random() * (zn.h - 8); a.timer = 5 + Math.random() * 4; }
+      tx = a.tx; tz = a.tz; spd = Math.hypot(tx - a.x, tz - a.z) > 1 ? B.speed * .25 : 0;
+    }
+  }
+  const dx = tx - a.x, dz = tz - a.z, l = Math.hypot(dx, dz);
+  a.moving = spd > 0 && l > .05;
+  if (a.moving) { a.dir = lerpAng(a.dir, Math.atan2(dx, dz), Math.min(1, dt * 6)); a.x += dx / l * spd * dt; a.z += dz / l * spd * dt; if (resolve(a, a.colR) && a.state === 'guard') a.timer = 0; }
+  a.phase += (a.moving ? spd : 0) * dt * .6;
+  pose(a.v, a.x, a.z, a.dir, a.phase, a.moving);
+  a.ring.position.set(a.x, .22, a.z); a.ring.material.opacity = a.state === 'chase' ? .85 : .45;
+}
+function randomPoint(zn, r, away, minD) {
+  for (let i = 0; i < 25; i++) {
+    const x = zn.x + 2 + Math.random() * (zn.w - 4), z = zn.z + 2 + Math.random() * (zn.h - 4);
+    if (collides(x, z, r + .3)) continue; if (away && Math.hypot(x - away.x, z - away.z) < minD) continue; return { x, z };
+  }
+  return null;
+}
+
+/* ========= プレイヤー ========= */
+const playerView = makeAnimal(LOOK.dachs); scene.add(playerView.g); playerView.g.visible = false;
+const marker = new THREE.Mesh(new THREE.ConeGeometry(.38, .8, 4), new THREE.MeshBasicMaterial({ color: 0xa9c94b, depthTest: false, transparent: true }));
+marker.rotation.x = Math.PI; marker.renderOrder = 999; marker.visible = false; scene.add(marker);
+const ringMat = c => new THREE.MeshBasicMaterial({ color: c, transparent: true, depthTest: false, side: THREE.DoubleSide });
+const aimMark = new THREE.Mesh(new THREE.ConeGeometry(.32, .6, 4), new THREE.MeshBasicMaterial({ color: 0xefebdc, transparent: true, depthTest: false }));
+aimMark.geometry.rotateX(Math.PI); aimMark.renderOrder = 998; aimMark.visible = false; scene.add(aimMark);
+const hideAim = () => { aimMark.visible = false; };
+
+/* 群れ（子ダックス） */
+const pack = [];
+function addPup(x, z) {
+  const v = makeAnimal(LOOK.pup); scene.add(v.g);
+  const m = { v, x, z, dir: P.dir, phase: Math.random() * 6, born: P.years, hp: CONFIG.pack.pupHP, rush: null, moving: false };
+  pack.push(m); P.maxPack = Math.max(P.maxPack, pack.length + 1); return m;
+}
+function clearPack() { pack.forEach(m => scene.remove(m.v.g)); pack.length = 0; }
+function hurtPup(m, dmg) {
+  m.hp -= dmg; floatAt(m, 'キャン！', 'hit');
+  if (m.hp <= 0) { scene.remove(m.v.g); pack.splice(pack.indexOf(m), 1); toast('群れの1匹がやられた', '残り ' + (pack.length + 1) + '匹'); }
+}
+function updatePack(dt) {
+  const fx = Math.sin(P.dir), fz = Math.cos(P.dir);
+  pack.forEach((m, i) => {
+    let tx, tz, spd;
+    if (m.rush && m.rush.t > 0) { m.rush.t -= dt; tx = m.rush.x; tz = m.rush.z; spd = CONFIG.attack.lungeSpeed * .6; }
+    else { m.rush = null; const row = 1 + Math.floor(i / 2), side = (i % 2 ? 1 : -1) * 1.1; tx = P.x - fx * (1.6 * row) + fz * side; tz = P.z - fz * (1.6 * row) - fx * side; spd = CONFIG.player.speed * 1.25; }
+    const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz);
+    if (d > 40) { m.x = P.x - fx * 2; m.z = P.z - fz * 2; }
+    m.moving = d > .6;
+    if (m.moving) { const s = Math.min(spd, d * 4); m.x += dx / d * s * dt; m.z += dz / d * s * dt; m.dir = lerpAng(m.dir, Math.atan2(dx, dz), Math.min(1, dt * 10)); resolve(m, .4); m.phase += s * dt * 1.2; }
+    else m.dir = lerpAng(m.dir, P.dir, Math.min(1, dt * 4));
+    m.v.g.scale.setScalar(.7 + .3 * Math.min(1, (P.years - m.born) / CONFIG.pack.growYears));
+    pose(m.v, m.x, m.z, m.dir, m.phase, m.moving);
+  });
+}
+function succeed() {
+  const L = CONFIG.player.lifespan; let best = 0;
+  pack.forEach((m, i) => { const ag = P.years - m.born, bg = P.years - pack[best].born; if ((ag < L && (bg >= L || ag > bg)) || (bg >= L && ag < bg)) best = i; });
+  const m = pack.splice(best, 1)[0]; scene.remove(m.v.g);
+  P.x = m.x; P.z = m.z; P.hp = P.maxHP; P.age = P.years - m.born; P.hunger = Math.max(P.hunger, 40); P.hurtT = 0;
+  toast('リーダーが倒れた', '群れの最年長が引き継ぐ（残り ' + (pack.length + 1) + '匹）');
+}
+
+function resetRun(mode) {
+  G.mode = mode; G.state = 'play'; G.playT = 0; G.mateT = CONFIG.mate.respawnSeconds;
+  P = { x: 286, z: 215, dir: Math.PI, hp: CONFIG.player.maxHP, maxHP: CONFIG.player.maxHP, hunger: 80, stamina: CONFIG.player.staminaMax, age: 0, gen: 1, kcal: 0, atkCd: 0, hurtT: 0, lungeT: 0, lungeDir: 0, lungeTarget: null, lungePerfect: false, perfect: 0, moving: false, zone: null, phase: 0, years: 0, maxPack: 1 };
+  clearPack();
+  MARKS.forEach(z => { z.claimed = false; z.prog = 0; z.markMesh.pole.material.color.setHex(0xe8a23d); z.markMesh.ring.material.color.setHex(0xe8a23d); });
+  animals.filter(a => a.role === 'mate').forEach(removeAnimal);
+  animals.forEach(a => { a.provoked = false; a.state = 'wander'; a.aware = 0; });
+  spawnBosses(); G.cleared = false; G.evT = CONFIG.chain.eventInterval; G.mapPeekT = 5; G.zoneShowT = 3; adv.last = {}; adv.t = 0; $('hint').classList.remove('on');
+  seen.clear(); huntTarget = null;
+  cam.yaw = 0.35; cam.tx = P.x; cam.tz = P.z;
+  playerView.g.visible = true; marker.visible = true;
+  show('hud', true); show('title', false); show('over', false); show('pause', false);
+  if (coarse) show('touch', true);
+  toast(CONFIG.modes[mode].label + 'モード', mode === 'survival' ? '気づかれる前に背後か草むらから飛びかかれば一撃' : '急がなくていい。街を歩いて動物を見つけよう');
+}
+function hurtPlayer(dmg, src, cause) {
+  if (G.state !== 'play') return;
+  P.hp -= dmg; P.hurtT = .35;
+  if (src) { const dx = P.x - src.x, dz = P.z - src.z, d = Math.hypot(dx, dz) || 1; P.x += dx / d * 1.1; P.z += dz / d * 1.1; resolve(P, CONFIG.player.radius); }
+  if (!CONFIG.modes[G.mode].canDie) P.hp = Math.max(P.hp, 15);
+  if (P.hp <= 0) { if (pack.length) succeed(); else gameOver(cause || 'ライオンに倒された'); }
+}
+function noiseMul() { const s = CONFIG.stealth; let m = 1; if (P.lungeT > 0) m *= s.lungeMul; else if (!P.moving) m *= s.stillMul; if (inGrass(P.x, P.z)) m *= s.grassMul; return m; }
+function isOld() { return CONFIG.modes[G.mode].aging && P.age >= CONFIG.player.lifespan; }
+const reach = () => CONFIG.attack.lungeSpeed * CONFIG.attack.lungeTime + .5;
+
+function tryAttack(mvx, mvz) {
+  const A = CONFIG.attack;
+  if (P.atkCd > 0) return;
+  if (P.stamina < A.staminaCost) { floatAt(P, '息切れ…', 'hit', .8); P.atkCd = .3; return; }
+  let dir = Math.hypot(mvx, mvz) > .1 ? Math.atan2(mvx, mvz) : P.dir, target = null;
+  if (huntTarget) target = huntTarget;
+  else {
+    let bd = 1e9; const cx = Math.sin(dir), cz = Math.cos(dir);
+    for (const a of animals) {
+      if (!a.alive || a.role === 'mate') continue;
+      const dx = a.x - P.x, dz = a.z - P.z, d = Math.hypot(dx, dz);
+      if (d < reach() + a.sp.radius && (dx * cx + dz * cz) / (d || 1) > A.autoAimCos && d < bd) { bd = d; target = a; }
+    }
+  }
+  if (target) dir = Math.atan2(target.x - P.x, target.z - P.z);
+  P.lungeT = A.lungeTime; P.lungeDir = dir; P.dir = dir; P.lungeTarget = target; P.lungePerfect = !!(target && target === huntTarget && huntPerfect);
+  P.stamina -= A.staminaCost; P.atkCd = A.cooldown;
+}
+function hit(a) {
+  const perfect = a === P.lungeTarget && P.lungePerfect;
+  const near = pack.filter(m => Math.hypot(m.x - a.x, m.z - a.z) < CONFIG.pack.assistRange);
+  near.forEach(m => { m.rush = { x: a.x, z: a.z, t: .45 }; });
+  const assist = Math.floor(near.length * CONFIG.pack.assistPerMember);
+  if (a.role === 'prey') {
+    if (perfect) return killEat(a, true);
+    a.hp -= CONFIG.player.biteDamage + assist; a.aware = 1; a.state = 'flee'; a.fleeT = 3.5; a.from = null;
+    if (a.hp <= 0) killEat(a, false); else floatAt(a, assist ? 'ガブッ ×' + (1 + assist) : 'ガブッ', 'hit');
+  } else {
+    a.hp -= (perfect ? (a.role === 'boss' ? CONFIG.hunt.bossAmbushDamage : CONFIG.hunt.ambushDamage) : 1) + assist; a.provoked = true; if (!['flee', 'exiled', 'fight'].includes(a.state)) a.state = 'chase';
+    if (a.hp <= 0) killEat(a, perfect); else floatAt(a, perfect ? '不意打ち！' : (assist ? '群れで噛みつく ×' + (1 + assist) : 'ガブッ'), 'hit');
+  }
+}
+function killEat(a, perfect) {
+  removeAnimal(a);
+  if (!isOld()) P.hunger = Math.min(CONFIG.hunger.max, P.hunger + a.sp.hunger);
+  P.kcal += a.sp.kcal; if (perfect) P.perfect++;
+  if (a.role === 'boss') toast(a.sp.name + 'を倒した', a.home.name + 'の主がいなくなった');
+  floatAt(a, (perfect ? '一撃！ ' : '') + '+' + a.sp.kcal + 'kcal', perfect ? 'perfect' : 'eat');
+  if (isOld()) floatAt(P, 'もう満たされない…', 'hit', 1.2);
+}
+function claim(zn) {
+  zn.claimed = true; zn.markMesh.pole.material.color.setHex(0xa9c94b); zn.markMesh.ring.material.color.setHex(0xa9c94b);
+  toast('縄張りを占拠', zn.name + 'が巣になった'); G.mapPeekT = 5;
+  const b = bossOf(zn); if (b) { b.state = 'exiled'; b.fleeT = 7; floatAt(b, '追い出された', 'q', 1.4); }
+  if (MARKS.filter(z => z.claimed).length === 1 && !animals.some(a => a.alive && a.role === 'mate')) spawnMate(zn);
+  if (!G.cleared && MARKS.every(z => z.claimed)) { G.cleared = true; setTimeout(showClear, 1200); }
+}
+function showClear() {
+  if (G.state !== 'play') return;
+  G.state = 'clear'; const sc = score(), key = 'sw-best-' + G.mode; let best = 0;
+  try { best = +localStorage.getItem(key) || 0; if (sc > best) { best = sc; localStorage.setItem(key, sc); } } catch (e) { best = Math.max(best, sc); }
+  fillRecord('新宿制覇', '全エリアの縄張りを手に入れた', sc, best); show('btnContinue', true); show('over', true); show('touch', false);
+}
+function fillRecord(head, cause, sc, best) {
+  $('overHead').textContent = head; $('overCause').textContent = cause; $('overScore').firstChild.textContent = sc.toLocaleString();
+  $('oYears').textContent = P.years.toFixed(1) + '年'; $('oKcal').textContent = P.kcal.toLocaleString() + 'kcal'; $('oGen').textContent = P.gen; $('oTerr').textContent = MARKS.filter(z => z.claimed).length + '/' + MARKS.length; $('oPerf').textContent = P.maxPack + '匹'; $('oBest').textContent = best.toLocaleString();
+}
+function spawnMate(zn) {
+  let p = null;
+  for (let i = 0; i < 12 && !p; i++) { const an = Math.random() * 6.28, r = 2.5 + Math.random() * 2.5, x = zn.cx + Math.cos(an) * r, z = zn.cz + Math.sin(an) * r; if (!collides(x, z, .6)) p = { x, z }; }
+  p = p || { x: zn.cx + 1, z: zn.cz + 1 };
+  const m = spawnAnimal('mate', zn, p.x, p.z); m.state = 'wait'; floatAt(m, '♀', 'mate', 1.4);
+  setTimeout(() => { if (G.state === 'play' && m.alive) toast('巣にメスが現れた', zn.name + 'の巣で待っている'); }, 2600);
+}
+function generation(m) {
+  removeAnimal(m); P.gen++; P.age = 0; P.maxHP += CONFIG.mate.hpBonus; P.hp = P.maxHP; P.hunger = Math.max(P.hunger, 60);
+  for (let i = 0; i < CONFIG.pack.litter; i++) { const p = addPup(P.x + (i ? 1 : -1), P.z); floatAt(p, '誕生', 'mate', 1.2); }
+  G.mateT = CONFIG.mate.respawnSeconds; toast('世代交代', '子が' + CONFIG.pack.litter + '匹生まれた。群れは ' + (pack.length + 1) + '匹');
+}
+function score() { const s = CONFIG.score; const terr = MARKS.filter(z => z.claimed).length; return Math.round(P.years * s.perYear + P.kcal * s.perKcal + (P.gen - 1) * s.perGen + terr * s.perTerritory + P.perfect * s.perPerfect + P.maxPack * s.perPack); }
+function gameOver(cause) {
+  if (G.state !== 'play') return; G.state = 'over';
+  const sc = score(), key = 'sw-best-' + G.mode; let best = 0;
+  try { best = +localStorage.getItem(key) || 0; if (sc > best) { best = sc; localStorage.setItem(key, sc); } } catch (e) { best = Math.max(best, sc); }
+  fillRecord('生存記録', cause, sc, best); show('btnContinue', false);
+  show('over', true); show('touch', false); hideAim(); $('hint').classList.remove('on');
+}
+
+/* ========= 更新 ========= */
+const input = { k: {}, bite: false, joy: { x: 0, y: 0 } };
+const lerpAng = (a, b, t) => { let d = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI; return a + d * t; };
+
+function updatePlayer(dt) {
+  const C = CONFIG.player, M = CONFIG.modes[G.mode], k = input.k;
+  let ix = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0) + input.joy.x;
+  let iy = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0) + input.joy.y;
+  const im = Math.hypot(ix, iy); if (im > 1) { ix /= im; iy /= im; }
+  const yaw = G.view === '3d' ? cam.yaw : 0;
+  const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
+  const vx = fx * iy + rx * ix, vz = fz * iy + rz * ix, mag = Math.hypot(vx, vz);
+  P.moving = mag > .1;
+  P.atkCd -= dt; P.hurtT -= dt;
+  if (input.bite) tryAttack(vx, vz); input.bite = false;
+  let spd = C.speed * (P.hunger <= 0 ? .6 : 1);
+  if (P.lungeT > 0) {
+    const A = CONFIG.attack, steps = 3, sd = dt / steps;
+    for (let s = 0; s < steps && P.lungeT > 0; s++) {
+      P.lungeT -= sd; P.x += Math.sin(P.lungeDir) * A.lungeSpeed * sd; P.z += Math.cos(P.lungeDir) * A.lungeSpeed * sd;
+      if (resolve(P, C.radius)) P.lungeT = Math.min(P.lungeT, sd);
+      for (const a of animals) {
+        if (!a.alive || a.role === 'mate') continue;
+        if (Math.hypot(a.x - P.x, a.z - P.z) < a.sp.radius + C.radius + A.hitPad) { P.lungeT = 0; hit(a); break; }
+      }
+    }
+    spd = A.lungeSpeed; P.moving = true;
+  } else if (P.moving) { P.x += vx * spd * dt; P.z += vz * spd * dt; P.dir = lerpAng(P.dir, Math.atan2(vx, vz), Math.min(1, dt * 12)); resolve(P, C.radius); }
+  P.stamina = clamp(P.stamina + (P.lungeT > 0 ? 0 : C.staminaRegen) * dt, 0, C.staminaMax);
+  const old = isOld();
+  P.hunger = Math.max(0, P.hunger - CONFIG.hunger.decayPerSec * M.hungerMul * (1 + pack.length * CONFIG.pack.hungerPerMember) * (old ? CONFIG.hunger.oldAgeMul : 1) * dt);
+  if (P.hunger <= 0) hurtPlayer(CONFIG.hunger.starveDamagePerSec * dt, null, old ? '寿命を迎えた' : '飢えに倒れた');
+  P.age += dt / CONFIG.yearSeconds; P.years += dt / CONFIG.yearSeconds;
+  P.phase += (P.moving ? Math.min(spd, C.speed * 1.5) : 0) * dt * 1.2;
+  const zn = zoneAt(P.x, P.z); if (zn !== P.zone) { P.zone = zn; $('zoneName').textContent = zn ? zn.name : '路上'; G.zoneShowT = 3; }
+  G.zoneShowT -= dt; G.mapPeekT -= dt;
+  if (adv.t > 0) { adv.t -= dt; if (adv.t <= 0) $('hint').classList.remove('on'); }
+  for (const a of animals) if (a.alive && a.role !== 'mate' && !seen.has(a.type) && Math.hypot(a.x - P.x, a.z - P.z) < 14) { seen.add(a.type); floatAt(a, a.sp.name + ' 発見', 'q', 1.2); }
+}
+
+function updateTerritory(dt) {
+  let ui = null; const T = CONFIG.territory, hostile = CONFIG.modes[G.mode].hostile;
+  for (const zn of MARKS) {
+    const d = Math.hypot(P.x - zn.cx, P.z - zn.cz);
+    if (!zn.claimed) {
+      if (d < T.claimRadius) {
+        const threat = animals.some(a => a.alive && a.role === 'predator' && (hostile || a.provoked) && a.state === 'chase' && Math.hypot(a.x - P.x, a.z - P.z) < T.safeRadius);
+        const boss = bossHome(zn) ? bossOf(zn) : null;
+        if (boss) { zn.prog = Math.max(0, zn.prog - dt); ui = { t: boss.sp.name + 'がいる。エリアの外へ誘い出せ', p: 0 }; }
+        else if (threat) { zn.prog = Math.max(0, zn.prog - dt); ui = { t: '近くに敵がいて落ち着けない', p: zn.prog / T.claimSeconds }; }
+        else if (!P.moving) { zn.prog += dt; ui = { t: zn.name + 'を占拠中', p: zn.prog / T.claimSeconds }; if (zn.prog >= T.claimSeconds) { claim(zn); ui = null; } }
+        else ui = { t: '印の上でじっとして占拠', p: zn.prog / T.claimSeconds };
+      } else zn.prog = Math.max(0, zn.prog - dt * .5);
+    } else if (d < T.claimRadius) {
+      P.hp = Math.min(P.maxHP, P.hp + T.nestHealPerSec * dt);
+      const m = animals.find(a => a.alive && a.role === 'mate' && a.zone === zn);
+      if (m) generation(m);
+    }
+    zn.markMesh.ring.material.opacity = .55 + .25 * Math.sin(G.t * 3);
+  }
+  show('claim', !!ui); if (ui) { $('claimText').textContent = ui.t; $('claimBar').style.width = Math.min(100, ui.p * 100) + '%'; }
+  if (MARKS.some(z => z.claimed) && !animals.some(a => a.alive && a.role === 'mate')) {
+    G.mateT -= dt * (1 + CONFIG.mate.perTerritorySpeedup * (MARKS.filter(z => z.claimed).length - 1)) / (1 + CONFIG.mate.perPackSlowdown * pack.length); if (G.mateT <= 0) { const own = MARKS.filter(z => z.claimed); spawnMate(own[Math.floor(Math.random() * own.length)]); G.mateT = CONFIG.mate.respawnSeconds; }
+  }
+}
+
+function updateAnimal(a, dt) {
+  a.cd -= dt;
+  const play = G.state === 'play'; let dx = 0, dz = 0, spd = 0;
+  const d = play ? Math.hypot(P.x - a.x, P.z - a.z) : 999;
+  if (a.role === 'prey') {
+    if (play && a.state !== 'flee') {
+      const eff = a.sp.detect * G.noise;
+      if (d < eff) { const fx = Math.sin(a.dir), fz = Math.cos(a.dir); const facing = ((P.x - a.x) * fx + (P.z - a.z) * fz) / (d || 1) > .2 ? 1.4 : .55; a.aware += dt * ((1 - d / eff) * 1.6 + .15) * facing; }
+      else a.aware = Math.max(0, a.aware - dt * .25);
+      if (a.aware > .5 && !a.q) { a.q = true; floatAt(a, '?', 'q'); } if (a.aware < .3) a.q = false;
+      if (a.aware >= 1) { a.state = 'flee'; a.fleeT = 3 + Math.random() * 2; }
+    }
+    if (a.state === 'flee') {
+      a.fleeT -= dt; const f = a.from || (play ? P : null);
+      dx = f ? a.x - f.x : 1; dz = f ? a.z - f.z : 0; spd = a.sp.speed;
+      if (a.fleeT <= 0 || (!play && !a.from)) { a.state = 'wander'; a.aware = .55; a.timer = 0; a.from = null; }
+    }
+  } else if (a.role === 'predator') {
+    const hostile = CONFIG.modes[G.mode].hostile || a.provoked, CH = CONFIG.chain;
+    if (a.state === 'eat' || a.state === 'hunt' || a.state === 'raid') {
+      if (play && hostile && d < 5) { a.state = 'chase'; floatAt(a, '!', 'alert'); }
+      else if (a.state === 'eat') { a.eatT -= dt; if (a.eatT <= 0) { a.state = 'wander'; a.timer = 0; } else if (play && hostile && d < a.sp.detect * G.noise * CH.eatDetectMul) { a.state = 'chase'; floatAt(a, '!', 'alert'); } }
+      else if (a.state === 'hunt') {
+        const t = a.prey; a.huntT -= dt;
+        if (!t || !t.alive || a.huntT <= 0) { a.state = 'wander'; a.timer = 0; }
+        else {
+          dx = t.x - a.x; dz = t.z - a.z; spd = a.sp.speed;
+          if (Math.hypot(dx, dz) < a.sp.radius + t.sp.radius + .4) { removeAnimal(t); a.state = 'eat'; a.eatT = CH.eatSeconds; spd = 0; if (play && d < 45) floatAt(a, t.sp.name + 'を捕食', 'hit', 1.2); }
+        }
+      } else {
+        const b = a.raid;
+        if (!b || !b.alive || b.state === 'exiled') { a.state = 'wander'; a.timer = 0; }
+        else {
+          dx = b.x - a.x; dz = b.z - a.z; spd = a.sp.speed;
+          if (Math.hypot(dx, dz) < a.sp.radius + b.sp.radius + .5) {
+            spd = 0; a.dir = lerpAng(a.dir, Math.atan2(dx, dz), Math.min(1, dt * 8));
+            if (b.state !== 'fight') { b.state = 'fight'; b.foe = a; a.fightT = CH.fightSeconds; if (play && d < 70) floatAt(b, '縄張り争い', 'alert', 1.6); }
+            a.fightT -= dt; if (a.fightT <= 0) { resolveRaid(a, b); return; }
+          }
+        }
+      }
+    }
+    else if (a.state === 'flee') { a.fleeT -= dt; if (play) { dx = a.x - P.x; dz = a.z - P.z; } spd = a.sp.speed; if (a.fleeT <= 0) { a.state = 'wander'; a.timer = 0; } }
+    else if (play && hostile) {
+      let tgt = P, td = d;
+      for (const m of pack) { const dm = Math.hypot(m.x - a.x, m.z - a.z); if (dm < td) { td = dm; tgt = m; } }
+      if (a.state !== 'chase' && (d < a.sp.detect * G.noise || td < a.sp.detect * .7)) { a.state = 'chase'; floatAt(a, '!', 'alert'); }
+      if (a.state === 'chase') {
+        if (td > a.sp.detect * 2.4) { a.state = 'wander'; a.timer = 0; }
+        else {
+          dx = tgt.x - a.x; dz = tgt.z - a.z; spd = a.sp.speed;
+          if (td < a.sp.radius + CONFIG.player.radius + .55) { spd = 0; a.dir = lerpAng(a.dir, Math.atan2(dx, dz), Math.min(1, dt * 10)); if (a.cd <= 0) { if (tgt === P) hurtPlayer(a.sp.damage, a); else hurtPup(tgt, a.sp.damage); a.cd = a.sp.attackCooldown; } }
+        }
+        if (a.hp <= 2) { a.state = 'flee'; a.fleeT = 4; }
+      }
+    } else if (play && d < 4) { dx = a.x - P.x; dz = a.z - P.z; spd = a.sp.speed * .4; }
+    if (!play && a.state === 'chase') a.state = 'wander';
+    if (a.state === 'wander') {
+      a.scanT = (a.scanT || 0) - dt;
+      if (a.scanT <= 0) {
+        a.scanT = 1 + Math.random(); let best = null, bd = CH.huntRange;
+        for (const o of animals) if (o.alive && o.role === 'prey') { const dd = Math.hypot(o.x - a.x, o.z - a.z); if (dd < bd) { bd = dd; best = o; } }
+        if (best && Math.random() < CH.huntChance) { a.state = 'hunt'; a.prey = best; a.huntT = CH.huntGiveUp; best.state = 'flee'; best.from = a; best.fleeT = 3 + Math.random() * 2; }
+      }
+    }
+  } else if (a.role === 'mate') {
+    a.dir += dt * .4;
+  }
+  if (spd === 0 && a.state === 'wander' && !(a.role === 'predator' && a.state === 'chase')) {
+    a.timer -= dt;
+    if (a.timer <= 0) {
+      if (Math.random() < .35) { a.idle = true; a.timer = 1 + Math.random() * 2.5; }
+      else { a.idle = false; const zn = a.zone; a.tx = clamp(a.x + (Math.random() * 2 - 1) * 14, zn.x + 1, zn.x + zn.w - 1); a.tz = clamp(a.z + (Math.random() * 2 - 1) * 14, zn.z + 1, zn.z + zn.h - 1); a.timer = 4 + Math.random() * 4; }
+    }
+    if (!a.idle) { dx = a.tx - a.x; dz = a.tz - a.z; if (dx * dx + dz * dz < 1) a.idle = true; else spd = a.role === 'mate' ? 4.4 : a.sp.speed * .3; }
+  }
+  a.moving = spd > 0 && (dx || dz);
+  if (a.moving) {
+    const l = Math.hypot(dx, dz); a.dir = lerpAng(a.dir, Math.atan2(dx, dz), Math.min(1, dt * 8));
+    a.x += dx / l * spd * dt; a.z += dz / l * spd * dt;
+    if (resolve(a, a.sp.radius) && a.state === 'wander') a.timer = 0;
+  }
+  a.phase += (a.moving ? spd : 0) * dt * (a.v.look.hop ? .8 : 1.2);
+  pose(a.v, a.x, a.z, a.dir, a.phase, a.moving);
+}
+function pose(v, x, z, dir, ph, moving) {
+  v.g.position.set(x, 0, z); v.g.rotation.y = dir;
+  const amp = moving ? .7 : 0; v.legs.forEach((l, i) => { l.rotation.x = Math.sin(ph + (i === 0 || i === 3 ? 0 : Math.PI)) * amp; });
+  v.body.position.y = moving ? Math.abs(Math.sin(ph)) * (v.look.hop ? .18 : .04) : 0;
+}
+
+/* 不意打ち：気づかれていない相手に、背後か草むらから飛びかかると会心 */
+function unaware(a) {
+  if (a.role === 'prey') return a.state === 'wander' && a.aware < CONFIG.hunt.awareLimit;
+  if (a.role === 'predator') return a.state === 'wander' || a.state === 'eat' || a.state === 'hunt';
+  if (a.role === 'boss') return a.state === 'guard' || a.state === 'return' || a.state === 'fight';
+  return false;
+}
+function ambushKind(a) {
+  if (!unaware(a)) return null;
+  const dx = P.x - a.x, dz = P.z - a.z, d = Math.hypot(dx, dz) || 1;
+  if ((dx * Math.sin(a.dir) + dz * Math.cos(a.dir)) / d < CONFIG.hunt.backCos) return '背後';
+  if (inGrass(P.x, P.z)) return '草むら';
+  return null;
+}
+function updateHunt(dt) {
+  let ht = null, hd = 1e9;
+  if (P.lungeT > 0 && huntTarget && huntTarget.alive) return;
+  for (const a of animals) {
+    if (!a.alive || a.role === 'mate') continue;
+    const d = Math.hypot(a.x - P.x, a.z - P.z) - a.sp.radius; if (d < reach() && d < hd) { hd = d; ht = a; }
+  }
+  huntTarget = ht; huntKind = ht ? ambushKind(ht) : null; huntPerfect = !!huntKind;
+  aimMark.visible = !!ht; if (!ht) return;
+  const L = ht.v.look, s = ht.v.g.scale.x;
+  aimMark.position.set(ht.x, (L.leg + L.H * 1.4 + L.head * (L.neck ? 2.2 : 1.2)) * s + .7 + Math.sin(G.t * 6) * .12, ht.z);
+  aimMark.rotation.y = G.t * 3;
+  aimMark.material.color.setHex(huntPerfect ? 0xda4a3d : 0xefebdc); aimMark.material.opacity = huntPerfect ? 1 : .55;
+  aimMark.scale.setScalar(huntPerfect ? 1.25 : .85);
+}
+
+function updateSpawner() {
+  const play = G.state === 'play', away = play ? P : null;
+  for (const zid in CONFIG.spawn) {
+    const zn = ZMAP[zid];
+    for (const [type, base] of CONFIG.spawn[zid]) {
+      const target = Math.round(base * CONFIG.population.preyMul);
+      const list = animals.filter(a => a.alive && a.role !== 'boss' && a.type === type && a.zone === zn);
+      if (list.length < target) { const p = randomPoint(zn, CONFIG.species[type].radius, away, 28); if (p) spawnAnimal(type, zn, p.x, p.z); }
+      else if (list.length > target) { const far = list.find(a => !play || Math.hypot(a.x - P.x, a.z - P.z) > 40); if (far) removeAnimal(far); }
+    }
+  }
+  const preds = animals.filter(a => a.alive && a.role === 'predator'), want = CONFIG.population.predators;
+  if (preds.length < want) { const pz = predZones(), zn = pz[Math.floor(Math.random() * pz.length)]; const p = randomPoint(zn, .8, away, 35); if (p) spawnAnimal('lion', zn, p.x, p.z); }
+  else if (preds.length > want) { const far = preds.find(a => !play || Math.hypot(a.x - P.x, a.z - P.z) > 40); if (far) removeAnimal(far); }
+  for (let i = animals.length - 1; i >= 0; i--) if (!animals[i].alive) animals.splice(i, 1);
+}
+
+/* ========= カメラ ========= */
+function updateCamera(dt) {
+  const k = input.k;
+  if (G.state === 'title') { cam.titleYaw += dt * .05; cam.tx = 182; cam.tz = 160; }
+  else if (P) { cam.tx += (P.x - cam.tx) * Math.min(1, dt * 6); cam.tz += (P.z - cam.tz) * Math.min(1, dt * 6); }
+  if (G.state === 'play') { if (k.KeyQ) cam.yaw -= dt * 1.8; if (k.KeyE) cam.yaw += dt * 1.8; }
+  const yaw = G.state === 'title' ? cam.titleYaw : cam.yaw, dist = G.state === 'title' ? 175 : cam.dist, pitch = G.state === 'title' ? .78 : cam.pitch;
+  if (G.view === '3d' || G.state === 'title') {
+    cam3.position.set(cam.tx + Math.sin(yaw) * Math.cos(pitch) * dist, Math.sin(pitch) * dist, cam.tz + Math.cos(yaw) * Math.cos(pitch) * dist);
+    cam3.lookAt(cam.tx, 1, cam.tz); fog.near = dist * 1.25; fog.far = dist * 3.6 + 80; scene.fog = fog;
+  } else {
+    const a = innerWidth / innerHeight, h = cam.zoom2; Object.assign(cam2, { left: -h * a, right: h * a, top: h, bottom: -h }); cam2.updateProjectionMatrix();
+    cam2.position.set(cam.tx, 300, cam.tz); cam2.lookAt(cam.tx, 0, cam.tz); scene.fog = null;
+  }
+  sun.position.set(cam.tx + 32, 70, cam.tz + 24); sun.target.position.set(cam.tx, 0, cam.tz); sun.target.updateMatrixWorld();
+}
+const activeCam = () => (G.view === '3d' || G.state === 'title') ? cam3 : cam2;
+
+/* ========= UI ========= */
+const $ = id => document.getElementById(id);
+const show = (id, on) => { $(id).hidden = !on; };
+let toastTimer = 0;
+function toast(t, sub) { const el = $('toast'); el.innerHTML = ''; el.append(t); if (sub) { const s = document.createElement('small'); s.textContent = sub; el.append(s); } el.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2600); }
+const floaters = []; const V3 = new THREE.Vector3();
+function floatAt(o, text, cls, life) { const el = document.createElement('div'); el.className = 'fl ' + (cls || ''); el.textContent = text; $('floaters').append(el); floaters.push({ el, x: o.x, z: o.z, y: 1.6, t: 0, life: life || 1 }); }
+function updateFloaters(dt) {
+  const W = innerWidth, H = innerHeight, c = activeCam();
+  for (let i = floaters.length - 1; i >= 0; i--) {
+    const f = floaters[i]; f.t += dt;
+    if (f.t > f.life) { f.el.remove(); floaters.splice(i, 1); continue; }
+    V3.set(f.x, f.y + f.t * 1.2, f.z).project(c);
+    f.el.style.left = (V3.x * .5 + .5) * W + 'px'; f.el.style.top = (-V3.y * .5 + .5) * H - f.t * 20 + 'px';
+    f.el.style.opacity = V3.z > 1 ? 0 : 1 - Math.max(0, (f.t - f.life * .6) / (f.life * .4));
+  }
+}
+function updateHUD() {
+  const C = CONFIG.player, M = CONFIG.modes[G.mode];
+  const bar = (b, n, v, m) => { $(b).style.width = clamp(v / m * 100, 0, 100) + '%'; $(n).textContent = Math.ceil(v); };
+  bar('hpBar', 'hpNum', P.hp, P.maxHP); bar('hgBar', 'hgNum', P.hunger, CONFIG.hunger.max); bar('stBar', 'stNum', P.stamina, C.staminaMax);
+  const hg = $('hungry'); hg.classList.toggle('low', P.hunger < 25); hg.classList.toggle('old', isOld());
+  $('pack').textContent = pack.length + 1; $('kcal').textContent = P.kcal.toLocaleString() + 'kcal'; $('modeName').textContent = M.label;
+  $('gen').textContent = '第' + P.gen;
+  const age = $('age'); age.textContent = M.aging ? P.age.toFixed(1) + '/' + C.lifespan + '年' : P.age.toFixed(1) + '年';
+  age.classList.toggle('warn', M.aging && P.age > C.lifespan - 2);
+  $('terr').textContent = MARKS.filter(z => z.claimed).length + '/' + MARKS.length;
+  $('dex').textContent = seen.size + '/3';
+  adviceTick();
+  $('vig').style.opacity = P.hurtT > 0 ? .8 : (P.hp / P.maxHP < .25 ? .3 : 0);
+  // コンパス：一番近い未占拠エリア
+  const yaw = G.view === '3d' ? cam.yaw : 0;
+  const aim = (el, x, z) => { const dx = x - P.x, dz = z - P.z, sx = dx * Math.cos(yaw) - dz * Math.sin(yaw), sy = -dx * Math.sin(yaw) - dz * Math.cos(yaw); $(el).style.transform = 'rotate(' + Math.atan2(sx, sy) + 'rad)'; return Math.round(Math.hypot(dx, dz)); };
+  const tz = nextTarget();
+  const peek = G.mapPeekT > 0 && !G.mapOpen, mapVis = G.mapOpen || G.mapPeekT > 0;
+  show('mapPanel', mapVis); $('mapPanel').classList.toggle('intro', peek && !!tz);
+  $('zone').classList.toggle('on', mapVis || G.zoneShowT > 0);
+  if (mapVis) {
+    if (peek && tz) { const b = bossOf(tz); $('mpMode').textContent = '次の縄張り'; $('mpZone').textContent = (ROUTE.indexOf(tz.id) + 1) + '. ' + tz.name + '・' + (b ? b.sp.name : '主なし'); }
+    else { $('mpMode').textContent = '現在地'; $('mpZone').textContent = P.zone ? P.zone.name : '路上'; }
+  }
+  show('compass', !!tz);
+  if (tz && mapVis) {
+    const dist = aim('cmpArrow', tz.cx, tz.cz);
+    const b = bossOf(tz), st = !b ? '主なし' : (inRect(tz, b.x, b.z) ? '主あり' : '主は留守');
+    $('cmpName').textContent = (ROUTE.indexOf(tz.id) + 1) + '. ' + tz.name; $('cmpInfo').textContent = '格' + tz.rank + '・' + st + '・' + dist + 'm';
+    $('compass').classList.toggle('away', st !== '主あり');
+  }
+  const mate = animals.find(a => a.alive && a.role === 'mate');
+  show('mateCmp', !!mate);
+  if (mate) { const dist = aim('mateArrow', mate.x, mate.z); $('mateTxt').textContent = mate.zone.name + 'の巣でメスが待つ・' + dist + 'm'; }
+  drawMini(tz, mate);
+}
+/* アドバイス：場面ごとに5秒だけ表示。同じ助言は一定時間（既定は1プレイ1回）出さない */
+const adv = { last: {}, t: 0, prio: 0, key: null };
+function advise(key, text, o) {
+  o = o || {}; const cd = o.cd == null ? Infinity : o.cd, last = adv.last[key];
+  if (last != null && G.playT - last < cd) return false;
+  if (adv.t > 0 && adv.key !== key && (o.prio || 0) < adv.prio) return false;
+  adv.last[key] = G.playT; adv.key = key; adv.prio = o.prio || 0; adv.t = o.dur || 5;
+  const el = $('hint'); el.textContent = text; el.classList.toggle('go', !!o.go); el.classList.add('on'); return true;
+}
+function adviceTick() {
+  if (G.playT < 1) return;
+  const C = CONFIG.player, M = CONFIG.modes[G.mode], k = coarse ? '攻撃ボタン' : 'Space', near = (a, r) => Math.hypot(a.x - P.x, a.z - P.z) < r;
+  advise('ctrl', coarse ? '左のスティックで移動、画面ドラッグで回転。攻撃ボタンは連打でダッシュにもなる' : 'WASDで移動、ドラッグで回転。Spaceで飛びかかり、連打でダッシュにもなる', { prio: 1 });
+  if (huntTarget && huntPerfect) advise('crit', huntKind + 'を取った！ ' + k + 'で不意打ち', { cd: 25, prio: 4, go: true, dur: 3 });
+  else if (huntTarget && huntTarget.role === 'prey' && unaware(huntTarget)) advise('stalk', '気づかれる前に、背後か草むらから飛びかかれば一撃。頭上の印が赤くなれば成功', { cd: 90, prio: 2 });
+  if (P.hp / P.maxHP < .3) advise('lowhp', '体力が少ない。占拠した縄張りの輪の中にいると回復する', { cd: 40, prio: 3 });
+  if (P.hunger < 10) advise('starve', '飢え死に寸前。小さな獲物でもいいので何か食べよう', { cd: 30, prio: 3 });
+  else if (P.hunger < 30) advise('hungry', '空腹になってきた。ウサギやシカを狩ろう', { cd: 60, prio: 2 });
+  if (P.stamina < CONFIG.attack.staminaCost) advise('stam', 'スタミナ切れ。少し歩けば回復する', { cd: 60, prio: 1 });
+  if (animals.some(a => a.alive && a.role === 'predator' && a.state === 'chase')) advise('lion', 'ライオンに追われている。飛びかかり連打で距離を取るか、群れで迎え撃て', { cd: 45, prio: 3 });
+  if (animals.some(a => a.alive && a.role === 'predator' && a.state === 'eat' && near(a, 25))) advise('eat', '食事中のライオンは気づくのが遅い。背後からなら不意打ちできる', { prio: 2 });
+  if (animals.some(a => a.alive && a.role === 'boss' && a.state === 'chase')) advise('bosschase', '主に追われている。エリアの外まで引きつければ、諦めて戻っていく', { cd: 60, prio: 3 });
+  if (animals.some(a => a.alive && a.role === 'boss' && a.state === 'return' && Math.hypot(a.home.cx - P.x, a.home.cz - P.z) < 70)) advise('away', '主が留守だ。今のうちに印の輪へ入って、じっとしていよう', { cd: 30, prio: 3 });
+  if (!$('claim').hidden) advise('claim', '輪の中でじっとしていると縄張りになる。動くと進まない', { prio: 2 });
+  if (animals.some(a => a.alive && a.role === 'mate')) advise('mate', 'メスが巣で待っている。ピンクの矢印の方へ戻れば子が生まれる', { cd: 45, prio: 2 });
+  if (pack.length) advise('pup', '子は後ろをついてきて、攻撃すると一緒に噛みつく。ライオンには狙われるので注意', { prio: 2 });
+  if (M.aging && P.age > C.lifespan - 3 && !isOld()) advise('agenear', '寿命が近い。リーダーが倒れても、群れの子が引き継げる', { cd: 60, prio: 2 });
+  if (isOld()) advise('old', '寿命を越えた。もう食べても満たされない', { cd: 60, prio: 3 });
+  if (G.playT > 25) advise('map', coarse ? '右の「地図」で行き先を確認できる' : 'Mキーか右上の「地図」で行き先を確認できる', { prio: 1 });
+  if (G.playT > 50) advise('stats', '上のメーターをタップすると、年齢や世代などの詳細が見られる', { prio: 1 });
+}
+const nextTarget = () => { for (const id of ROUTE) if (!ZMAP[id].claimed) return ZMAP[id]; return null; };
+function drawMini(tz, mate) {
+  const c = $('mini'); if (!c.offsetParent) return;
+  const W = c.clientWidth, H = c.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+  if (c.width !== Math.round(W * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const sx = W / (BOUNDS.maxx - BOUNDS.minx), sz = H / (BOUNDS.maxz - BOUNDS.minz), X = x => (x - BOUNDS.minx) * sx, Z = z => (z - BOUNDS.minz) * sz;
+  ZONES.forEach(zn => {
+    ctx.fillStyle = zn.mark ? (zn.claimed ? 'rgba(169,201,75,.7)' : zn.eco === 'carn' ? 'rgba(218,74,61,.45)' : 'rgba(239,235,220,.22)') : zn.kind === 'forest' ? 'rgba(90,120,55,.4)' : 'rgba(239,235,220,.08)';
+    ctx.fillRect(X(zn.x) + .5, Z(zn.z) + .5, zn.w * sx - 1, zn.h * sz - 1);
+  });
+  ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(232,162,61,.85)'; ctx.lineWidth = 1.2; ctx.beginPath();
+  ROUTE.forEach((id, i) => { const z = ZMAP[id]; i ? ctx.lineTo(X(z.cx), Z(z.cz)) : ctx.moveTo(X(z.cx), Z(z.cz)); }); ctx.stroke(); ctx.setLineDash([]);
+  ctx.font = '700 9px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ROUTE.forEach((id, i) => {
+    const z = ZMAP[id], x = X(z.cx), y = Z(z.cz);
+    ctx.beginPath(); ctx.arc(x, y, 6.5, 0, 6.29); ctx.fillStyle = z.claimed ? '#a9c94b' : '#11140f'; ctx.fill();
+    ctx.lineWidth = z === tz ? 2 : 1; ctx.strokeStyle = z === tz ? '#e8a23d' : 'rgba(239,235,220,.5)'; ctx.stroke();
+    ctx.fillStyle = z.claimed ? '#11140f' : '#efebdc'; ctx.fillText(String(i + 1), x, y + .5);
+  });
+  animals.forEach(a => { if (!a.alive || a.role !== 'boss') return; ctx.beginPath(); ctx.arc(X(a.x), Z(a.z), 2.6, 0, 6.29); ctx.fillStyle = '#da4a3d'; ctx.fill(); });
+  if (mate) { ctx.beginPath(); ctx.arc(X(mate.x), Z(mate.z), 3.2, 0, 6.29); ctx.fillStyle = '#f39bb0'; ctx.fill(); }
+  ctx.fillStyle = '#efebdc'; pack.forEach(m => ctx.fillRect(X(m.x) - 1, Z(m.z) - 1, 2, 2));
+  const px = X(P.x), py = Z(P.z), fx = Math.sin(P.dir), fz = Math.cos(P.dir);
+  ctx.beginPath(); ctx.moveTo(px + fx * 6, py + fz * 6); ctx.lineTo(px - fx * 3 + fz * 3.5, py - fz * 3 - fx * 3.5); ctx.lineTo(px - fx * 3 - fz * 3.5, py - fz * 3 + fx * 3.5); ctx.closePath();
+  ctx.fillStyle = '#a9c94b'; ctx.fill(); ctx.strokeStyle = '#11140f'; ctx.lineWidth = 1; ctx.stroke();
+}
+function setView(v) { G.view = v; $('btnView').textContent = v === '3d' ? '3D' : '2D'; $('btnView').classList.toggle('on', v === '2d'); }
+function zoom(f) { if (G.view === '3d') cam.dist = clamp(cam.dist * f, 14, 95); else cam.zoom2 = clamp(cam.zoom2 * f, 12, 130); }
+function pause(on) { if (G.state === 'play' && on) { G.state = 'paused'; show('pause', true); } else if (G.state === 'paused' && !on) { G.state = 'play'; show('pause', false); } }
+function toTitle() {
+  G.state = 'title'; show('hud', false); show('over', false); show('pause', false); show('title', true); show('touch', false);
+  playerView.g.visible = false; marker.visible = false; hideAim(); refreshBest();
+  animals.filter(a => a.role === 'mate').forEach(removeAnimal); clearPack();
+}
+function refreshBest() { let s = 0, r = 0; try { s = +localStorage.getItem('sw-best-survival') || 0; r = +localStorage.getItem('sw-best-relax') || 0; } catch (e) {} $('bestLine').textContent = s ? '自己ベスト（サバイバル） ' + s.toLocaleString() + 'pt' : ''; }
+
+/* 調整パネル */
+/* 「芯」= Unity版へ持っていく値 / 「短時間版専用」= フリー版のテンポ用、Unity版では作り直す */
+const SESSION_PATHS = ['yearSeconds', 'player.lifespan', 'hunger', 'modes', 'territory', 'mate', 'boss', 'bosses', 'bossRank', 'score', 'spawn', 'chain.eventInterval', 'chain.protectSeconds'];
+const isSession = p => SESSION_PATHS.some(s => p === s || p.startsWith(s + '.'));
+function delPath(o, p) { const ks = p.split('.'), l = ks.pop(); const t = ks.reduce((a, k) => a && a[k], o); if (t) delete t[l]; }
+function exportSplit() {
+  const core = JSON.parse(JSON.stringify(CONFIG)), session = {};
+  delete core.version;
+  SESSION_PATHS.forEach(p => { const v = getPath(CONFIG, p); if (v === undefined) return; const ks = p.split('.'), l = ks.pop(); ks.reduce((a, k) => a[k] || (a[k] = {}), session)[l] = JSON.parse(JSON.stringify(v)); delPath(core, p); });
+  return { version: CONFIG.version, core, session };
+}
+function buildTune() {
+  const root = $('tuneRows'); root.innerHTML = '';
+  const groups = [
+    { title: '芯（Unity版へ持っていく）', note: '狩り・群れ・食物連鎖の手触り。ここで決めた値が基準になる', list: TUNABLES.filter(t => !isSession(t.p)) },
+    { title: '短時間版専用', note: 'フリー版のテンポ用。Unity版では大きく作り直す前提', list: TUNABLES.filter(t => isSession(t.p)) }
+  ];
+  groups.forEach(g => {
+    const h = document.createElement('div'); h.className = 'tune-group';
+    const ht = document.createElement('h3'); ht.textContent = g.title; const hn = document.createElement('p'); hn.textContent = g.note;
+    h.append(ht, hn); root.append(h);
+    g.list.forEach(t => addTuneRow(root, t, TUNABLES.indexOf(t)));
+  });
+}
+function addTuneRow(root, t, i) {
+  {
+    const row = document.createElement('div'); row.className = 'tr-row';
+    const id = 'tune' + i, v = getPath(CONFIG, t.p);
+    row.innerHTML = '<label for="' + id + '"><span></span><output></output></label><input type="range" id="' + id + '">';
+    row.querySelector('span').textContent = t.label; const inp = row.querySelector('input'), out = row.querySelector('output');
+    Object.assign(inp, { min: t.min, max: t.max, step: t.step, value: v }); out.textContent = v;
+    inp.addEventListener('input', () => { const nv = +inp.value; setPath(CONFIG, t.p, nv); out.textContent = nv; saveTune(); });
+    root.append(row);
+  }
+}
+function saveTune() { const o = {}; TUNABLES.forEach(t => o[t.p] = getPath(CONFIG, t.p)); try { localStorage.setItem('sw-tune', JSON.stringify(o)); } catch (e) {} }
+$('btnCopy').addEventListener('click', () => {
+  const txt = JSON.stringify(exportSplit(), null, 2), ta = $('jsonOut'); ta.value = txt;
+  const fallback = () => { ta.hidden = false; ta.focus(); ta.select(); $('btnCopy').textContent = '下の欄から手動でコピー'; };
+  try { navigator.clipboard.writeText(txt).then(() => { $('btnCopy').textContent = 'コピーしました'; setTimeout(() => $('btnCopy').textContent = 'JSONをコピー', 1800); }, fallback); } catch (e) { fallback(); }
+});
+$('btnReset').addEventListener('click', () => { TUNABLES.forEach(t => setPath(CONFIG, t.p, getPath(DEFAULTS, t.p))); saveTune(); buildTune(); });
+function toggleMap(on) {
+  G.mapOpen = on == null ? !G.mapOpen : on; G.mapPeekT = 0; $('btnMap').classList.toggle('on', G.mapOpen);
+  try { localStorage.setItem('sw-map', G.mapOpen ? '1' : '0'); } catch (e) {}
+  if (P && G.state === 'play') updateHUD();
+}
+try { G.mapOpen = localStorage.getItem('sw-map') === '1'; } catch (e) { G.mapOpen = false; }
+$('btnMap').classList.toggle('on', G.mapOpen);
+$('btnMap').addEventListener('click', () => toggleMap());
+$('vitals').addEventListener('click', () => { const on = $('vitals').getAttribute('aria-expanded') !== 'true'; $('vitals').setAttribute('aria-expanded', String(on)); show('vtMore', on); });
+$('btnTune').addEventListener('click', () => { const on = $('tune').hidden; show('tune', on); $('btnTune').classList.toggle('on', on); });
+$('btnView').addEventListener('click', () => setView(G.view === '3d' ? '2d' : '3d'));
+$('btnIn').addEventListener('click', () => zoom(.82)); $('btnOut').addEventListener('click', () => zoom(1.22));
+$('btnPause').addEventListener('click', () => pause(true));
+$('btnResume').addEventListener('click', () => pause(false)); $('btnQuit').addEventListener('click', toTitle);
+$('btnSurvival').addEventListener('click', () => resetRun('survival')); $('btnRelax').addEventListener('click', () => resetRun('relax'));
+$('btnAgain').addEventListener('click', () => resetRun(G.mode));
+$('btnContinue').addEventListener('click', () => { G.state = 'play'; show('over', false); if (coarse) show('touch', true); }); $('btnToTitle').addEventListener('click', toTitle);
+
+/* 入力 */
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (G.state === 'play' && ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+  input.k[e.code] = true;
+  if (e.repeat) return;
+  if ((e.code === 'Space' || e.code === 'KeyJ') && G.state === 'play') input.bite = true;
+  if (e.code === 'KeyV') setView(G.view === '3d' ? '2d' : '3d');
+  if (e.code === 'KeyM') toggleMap();
+  if (e.code === 'KeyZ') zoom(.85); if (e.code === 'KeyX') zoom(1.18);
+  if (e.code === 'Escape' || e.code === 'KeyP') pause(G.state === 'play');
+});
+addEventListener('keyup', e => { input.k[e.code] = false; });
+addEventListener('blur', () => { input.k = {}; });
+document.addEventListener('visibilitychange', () => { if (document.hidden) pause(true); });
+canvas.addEventListener('wheel', e => { e.preventDefault(); zoom(1 + clamp(e.deltaY, -100, 100) * .0012); }, { passive: false });
+let drag = null;
+canvas.addEventListener('pointerdown', e => { drag = { id: e.pointerId, x: e.clientX }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => { if (!drag || drag.id !== e.pointerId) return; if (G.view === '3d' && G.state === 'play') cam.yaw -= (e.clientX - drag.x) * .006; drag.x = e.clientX; });
+const endDrag = e => { if (drag && drag.id === e.pointerId) drag = null; };
+canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag);
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+(function joystick() {
+  const base = $('joy'), knob = $('knob'); let id = null, cx = 0, cy = 0;
+  const set = (x, y) => { const r = 46, dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy), m = d > r ? r / d : 1; knob.style.transform = 'translate(' + dx * m + 'px,' + dy * m + 'px)'; input.joy.x = dx * m / r; input.joy.y = -dy * m / r; };
+  base.addEventListener('pointerdown', e => { id = e.pointerId; const b = base.getBoundingClientRect(); cx = b.left + b.width / 2; cy = b.top + b.height / 2; base.setPointerCapture(id); set(e.clientX, e.clientY); });
+  base.addEventListener('pointermove', e => { if (e.pointerId === id) set(e.clientX, e.clientY); });
+  const up = e => { if (e.pointerId !== id) return; id = null; knob.style.transform = ''; input.joy.x = input.joy.y = 0; };
+  base.addEventListener('pointerup', up); base.addEventListener('pointercancel', up);
+  $('tBite').addEventListener('pointerdown', e => { e.preventDefault(); if (G.state === 'play') input.bite = true; });
+})();
+
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); cam3.aspect = w / h; cam3.updateProjectionMatrix(); }
+addEventListener('resize', resize);
+
+/* ========= ループ ========= */
+buildWorld(); buildTune(); refreshBest(); resize();
+for (const zid in CONFIG.spawn) for (const [type, base] of CONFIG.spawn[zid]) for (let i = 0; i < Math.round(base * CONFIG.population.preyMul); i++) { const p = randomPoint(ZMAP[zid], CONFIG.species[type].radius); if (p) spawnAnimal(type, ZMAP[zid], p.x, p.z); }
+spawnBosses();
+for (let i = 0; i < CONFIG.population.predators; i++) { const pz = predZones(), zn = pz[i % pz.length]; const p = randomPoint(zn, .8); if (p) spawnAnimal('lion', zn, p.x, p.z); }
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  if (G.state !== 'paused' && G.state !== 'clear') {
+    G.t += dt;
+    if (G.state === 'play') { G.playT += dt; G.noise = noiseMul(); updatePlayer(dt); }
+    for (const a of animals) if (a.alive) { if (a.role === 'boss') updateBoss(a, dt); else updateAnimal(a, dt); }
+    if (G.state === 'play') {
+      updateHunt(dt); updateTerritory(dt);
+      G.evT = (G.evT || CONFIG.chain.eventInterval) - dt; if (G.evT <= 0) { G.evT = CONFIG.chain.eventInterval; ecoEvents(); }
+      updatePack(dt); pose(playerView, P.x, P.z, P.dir, P.phase, P.moving);
+      marker.position.set(P.x, 2.3 + Math.sin(G.t * 4) * .15, P.z); marker.rotation.y = G.t * 2;
+      G.hudT -= dt; if (G.hudT <= 0) { updateHUD(); G.hudT = .08; }
+    }
+    G.spawnT -= dt; if (G.spawnT <= 0) { updateSpawner(); G.spawnT = 1.2; }
+    updateFloaters(dt);
+  }
+  updateCamera(dt);
+  renderer.render(scene, activeCam());
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+
+</html>
