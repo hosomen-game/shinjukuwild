@@ -229,7 +229,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 
 <div id="title" class="screen">
   <div class="card">
-    <p class="eyebrow">試作版 v0.3.2 ・ HTMLプロトタイプ</p>
+    <p class="eyebrow">試作版 v0.3.3 ・ HTMLプロトタイプ</p>
     <h1>新宿ワイルド</h1>
     <p class="goal-line"><b>目的</b>群れが尽きるまで、できるだけ長く生き延びる</p>
     <ol class="steps">
@@ -238,7 +238,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
       <li><b>群れ＝残機</b><span>リーダーが倒れても子が引き継ぐ</span></li>
     </ol>
     <div class="modes">
-      <button class="mode" id="btnSurvival"><span class="mode-name">延命</span><span class="mode-desc">30秒ごとに危険度が上がる。群れの数が残機。どこまで生き延びられるか。</span></button>
+      <button class="mode" id="btnSurvival"><span class="mode-name">延命</span><span class="mode-desc">30秒ごとに危険度が上がり、弱い肉食から順に現れる。最後はライオンの群れ。群れの数が残機。どこまで生き延びられるか。</span></button>
       <button class="mode" id="btnRelax"><span class="mode-name">のんびり</span><span class="mode-desc">危険度は上がらず、敵はこちらから噛まない限りおとなしい。倒れない。好きなだけ狩って群れを育てる。</span></button>
     </div>
     <dl class="keys desk">
@@ -290,33 +290,37 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 'use strict';
 /* ========= バランスデータ ========= */
 const CONFIG = {
-  version: 'proto-0.3.2',
+  version: 'proto-0.3.3',
   world: { half: 84, denRadius: 7, meadow: 30, ruins: 58 },
   player: { speed: 13, staminaMax: 100, staminaRegen: 18, maxHP: 100, biteDamage: 1, radius: 0.45, swapInvuln: 1.5 },
   attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, staminaCost: 16, hitPad: 0.4, assistDeg: 18 },
-  hunger: { max: 100, start: 70, decayPerSec: 1.5, starveDamagePerSec: 6, perPup: 0.1 },
-  breed: { need: 110, needGrowth: 1.25, maxPack: 10 },
+  hunger: { max: 100, start: 70, decayPerSec: 1.7, starveDamagePerSec: 6, perPup: 0.1 },
+  breed: { need: 120, needGrowth: 1.25, maxPack: 10 },
   pack: { pupHP: 55, assistRange: 14, assistPerMember: 0.5, growSeconds: 25 },
   den: { healPerSec: 6 },
   hunt: { awareLimit: 0.5, backCos: -0.25, ambushDamage: 3 },
   stealth: { grassMul: 0.45, lungeMul: 1.7, stillMul: 0.55 },
-  danger: { levelSeconds: 30, hungerPerLevel: 0.05, lionsBase: 2, lionsPerLevel: 1, lionsMax: 14, alphaLevel: 5, alphaEvery: 3, crouchPerLevel: 0.03, crouchMin: 0.65, closeInPerLevel: 0.06, hearPerLevel: 0.8, wolfLevel: 3, wolfLevel2: 7, wolfPack: 3, wolfRespawn: 30 },
+  danger: { levelSeconds: 30, hungerPerLevel: 0.05, lionsBase: 2, lionsMax: 8, alphaLevel: 7, alphaEvery: 3, foxAt: 5, foxMax: 4, leopardLevel: 3, bearLevel: 5, crouchPerLevel: 0.03, crouchMin: 0.65, closeInPerLevel: 0.06, hearPerLevel: 0.8, wolfLevel: 2, wolfLevel2: 5, wolfPack: 3, wolfRespawn: 30 },
   events: { firstAt: 40, interval: 45, nightSeconds: 25, stampedeSize: 10, raidBase: 2 },
   population: { burrows: 18, rabbitsPerBurrow: 3, rabbitRespawn: 24, herds: 5, herdSize: 5, flocks: 7, boars: 3, nearRabbits: 5 },
   species: {
     rabbit: { name: 'ウサギ', hp: 1, speed: 15, radius: 0.45, sight: 9, cone: 170, hear: 4, alertRadius: 9, safeDist: 12, rebolt: 9, pressDist: 5, maxScares: 3, kcal: 120, hunger: 12 },
     deer:   { name: 'シカ', hp: 3, speed: 20, radius: 0.85, nearSense: 4.5, sentinelRange: 20, sentinelCone: 140, kcal: 420, hunger: 45 },
-    lion:   { name: 'ライオン', scale: 1.3, hp: 14, walk: 4, stalk: 8, run: 14.5, radius: 1.0, loseDist: 44, sight: 20, cone: 160, hear: 6, damage: 25, pounceRange: 9, crouch: 0.6, lockLead: 0.22, lead: 0.75, chargeSpeed: 30, chargeTime: 0.45, recover: 1.3, hitRecover: 0.9, crashRecover: 2.6, kcal: 500, hunger: 35 },
-    alpha:  { name: '主', hp: 45, walk: 5, stalk: 9, run: 13.5, radius: 1.65, loseDist: 9999, sight: 9999, cone: 360, hear: 9999, damage: 40, pounceRange: 11, crouch: 0.7, lockLead: 0.2, lead: 0.85, chargeSpeed: 32, chargeTime: 0.55, recover: 1.5, hitRecover: 0.9, crashRecover: 2.6, kcal: 2000, hunger: 100, scale: 2.1 },
+    lion:   { name: 'ライオン', scale: 1.3, hp: 16, walk: 4, stalk: 8, run: 15, radius: 1.0, loseDist: 44, sight: 20, cone: 160, hear: 6, damage: 34, pounceRange: 9, crouch: 0.6, lockLead: 0.22, lead: 0.75, chargeSpeed: 30, chargeTime: 0.45, recover: 1.3, hitRecover: 0.9, crashRecover: 2.6, kcal: 500, hunger: 35 },
+    alpha:  { name: '主', hp: 45, walk: 5, stalk: 9, run: 13.5, radius: 1.65, loseDist: 9999, sight: 9999, cone: 360, hear: 9999, damage: 45, pounceRange: 11, crouch: 0.7, lockLead: 0.2, lead: 0.85, chargeSpeed: 32, chargeTime: 0.55, recover: 1.5, hitRecover: 0.9, crashRecover: 2.6, kcal: 2000, hunger: 100, scale: 2.1 },
     boar:   { name: 'イノシシ', hp: 8, walk: 3, stalk: 3, run: 7, radius: 0.85, loseDist: 20, sight: 9, cone: 150, hear: 4.5, damage: 18, pounceRange: 10, crouch: 0.55, lockLead: 0.2, lead: 0.5, chargeSpeed: 24, chargeTime: 0.5, recover: 1.5, hitRecover: 1, crashRecover: 2.6, kcal: 700, hunger: 60 },
-    wolf:   { name: 'オオカミ', hp: 5, run: 15.5, radius: 0.6, sight: 22, cone: 200, hear: 7, damage: 10, orbit: 9, crouch: 0.38, lockLead: 0.14, lead: 0.7, chargeSpeed: 26, chargeTime: 0.34, recover: 1.0, dartEvery: 1.9, kcal: 300, hunger: 22 }
+    fox:    { name: 'キツネ', hp: 2, run: 14, radius: 0.45, sight: 20, cone: 200, hear: 6, damage: 6, orbit: 7, crouch: 0.34, lockLead: 0.14, lead: 0.6, chargeSpeed: 24, chargeTime: 0.3, recover: 1.1, dartEvery: 2.2, kcal: 60, hunger: 5 },
+    young:  { name: '若いライオン', hp: 9, walk: 4, stalk: 7, run: 13.5, radius: 0.75, loseDist: 32, sight: 16, cone: 150, hear: 5, damage: 20, pounceRange: 8, crouch: 0.65, lockLead: 0.22, lead: 0.65, chargeSpeed: 27, chargeTime: 0.42, recover: 1.4, hitRecover: 0.9, crashRecover: 2.6, kcal: 350, hunger: 28 },
+    leopard:{ name: 'ヒョウ', hp: 9, walk: 4.5, stalk: 9, run: 16, radius: 0.7, loseDist: 40, sight: 18, cone: 150, hear: 6, damage: 22, pounceRange: 10, crouch: 0.42, lockLead: 0.16, lead: 0.8, chargeSpeed: 36, chargeTime: 0.36, recover: 1.1, hitRecover: 0.8, crashRecover: 2.2, kcal: 400, hunger: 30 },
+    bear:   { name: 'クマ', scale: 1.45, hp: 24, walk: 3, stalk: 5, run: 10, radius: 1.4, loseDist: 30, sight: 14, cone: 150, hear: 6, damage: 30, pounceRange: 13, crouch: 0.85, lockLead: 0.25, lead: 0.6, chargeSpeed: 24, chargeTime: 0.7, recover: 1.9, hitRecover: 1.1, crashRecover: 3, kcal: 1200, hunger: 80 },
+    wolf:   { name: 'オオカミ', hp: 5, run: 15.5, radius: 0.6, sight: 22, cone: 200, hear: 7, damage: 12, orbit: 9, crouch: 0.38, lockLead: 0.14, lead: 0.7, chargeSpeed: 26, chargeTime: 0.34, recover: 1.0, dartEvery: 1.7, kcal: 300, hunger: 22 }
   },
   chain: { huntRange: 14, huntChance: 0.3, huntGiveUp: 6, eatSeconds: 5, eatDetectMul: 0.35 },
   modes: {
     survival: { label: '延命', hungerMul: 1, hostile: true, canDie: true, escalate: true },
     relax: { label: 'のんびり', hungerMul: 0.4, hostile: false, canDie: false, escalate: false }
   },
-  score: { perSecond: 10, perKcal: 0.1, perPup: 300, perLion: 150, perWolf: 80, perAlpha: 1000 }
+  score: { perSecond: 10, perKcal: 0.1, perPup: 300, perLion: 150, perWolf: 80, perFox: 30, perLeopard: 120, perBear: 250, perAlpha: 1000 }
 };
 const DEFAULTS = JSON.parse(JSON.stringify(CONFIG));
 const getPath = (o, p) => p.split('.').reduce((a, k) => a[k], o);
@@ -346,7 +350,10 @@ const TUNABLES = [
   { p: 'danger.levelSeconds', label: '危険度が上がる間隔（秒）', min: 10, max: 120, step: 5 },
   { p: 'danger.lionsPerLevel', label: '危険度ごとのライオン増加', min: 0, max: 3, step: 0.5 },
   { p: 'danger.hungerPerLevel', label: '危険度ごとの空腹加速', min: 0, max: 0.2, step: 0.01 },
-  { p: 'danger.alphaLevel', label: '主が現れる危険度', min: 2, max: 15, step: 1 },
+  { p: 'danger.alphaLevel', label: 'ライオンの群れ（主）が現れる危険度', min: 2, max: 15, step: 1 },
+  { p: 'danger.foxAt', label: 'キツネが出はじめる秒数', min: 0, max: 60, step: 1 },
+  { p: 'danger.leopardLevel', label: 'ヒョウが現れる危険度', min: 1, max: 15, step: 1 },
+  { p: 'danger.bearLevel', label: 'クマが現れる危険度', min: 1, max: 15, step: 1 },
   { p: 'danger.wolfLevel', label: 'オオカミが現れる危険度', min: 1, max: 15, step: 1 },
   { p: 'population.boars', label: 'イノシシの数', min: 0, max: 8, step: 1 },
   { p: 'population.nearRabbits', label: '近くに保つウサギの数', min: 0, max: 12, step: 1 },
@@ -531,7 +538,11 @@ const LOOK = {
   lion:   { L: 1.8, W: .72, H: .78, leg: .72, head: .56, c1: 0xc99a52, c2: 0x6b3f1c, ear: 'round', tail: .9, thin: true, mane: true, tuft: true, legC: 0xb88a48 },
   alpha:  { L: 1.8, W: .72, H: .78, leg: .72, head: .56, c1: 0x9c7440, c2: 0x2a1a10, ear: 'round', tail: .9, thin: true, mane: true, tuft: true, legC: 0x8a6436 },
   boar:   { L: 1.45, W: .78, H: .8, leg: .38, head: .6, c1: 0x4a3a30, c2: 0x2c221c, ear: 'pointy', tail: .2, thin: true, tusk: true, ridge: true, legC: 0x33281f },
-  wolf:   { L: 1.5, W: .46, H: .5, leg: .62, head: .44, c1: 0x8d9299, c2: 0xd9dcdf, ear: 'pointy', tail: .7, legC: 0x767b82 }
+  wolf:   { L: 1.5, W: .46, H: .5, leg: .62, head: .44, c1: 0x8d9299, c2: 0xd9dcdf, ear: 'pointy', tail: .7, legC: 0x767b82 },
+  fox:    { L: 1.0, W: .34, H: .36, leg: .36, head: .34, c1: 0xd9742c, c2: 0xf3ead8, ear: 'pointy', tail: .75, legC: 0x3a2a22 },
+  young:  { L: 1.5, W: .58, H: .62, leg: .6, head: .48, c1: 0xd9ad62, c2: 0xc99a52, ear: 'round', tail: .8, thin: true, tuft: true, legC: 0xc79c55 },
+  leopard:{ L: 1.65, W: .5, H: .5, leg: .58, head: .44, c1: 0xdcb44e, c2: 0x33261a, ear: 'round', tail: 1.05, thin: true, spots: true, legC: 0xc9a244 },
+  bear:   { L: 1.7, W: .95, H: .95, leg: .5, head: .62, c1: 0x4b3424, c2: 0x8a6a48, ear: 'round', tail: .12, thin: true, legC: 0x3a281c }
 };
 function part(c, w, h, d, x, y, z, parent) { const m = new THREE.Mesh(BOXG, mat(c)); m.scale.set(w, h, d); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m; }
 function makeAnimal(L) {
@@ -542,6 +553,7 @@ function makeAnimal(L) {
   if (L.neck) { const n = part(L.c1, L.W * .5, L.H * 1.2, L.W * .5, 0, by + L.H * .75, L.L / 2 - .05, body); n.rotation.x = .35; }
   if (L.mane) part(L.c2, hd * 1.75, hd * 1.75, hd * .9, 0, hy + hd * .05, hz - hd * .35, body);
   if (L.puff) part(0xffffff, L.W * .5, L.W * .5, .2, 0, by + L.H * .2, -L.L / 2 - .08, body);
+  if (L.spots) for (let i = 0; i < 4; i++) part(L.c2, L.W * .26, .05, L.L * .1, (i % 2 ? 1 : -1) * L.W * .2, by + L.H * .5, -L.L * .36 + i * L.L * .21, body);
   if (L.ridge) part(L.c2, L.W * .3, L.H * .28, L.L * .8, 0, by + L.H * .58, -L.L * .05, body);
   part(L.c1, hd, hd, hd, 0, hy, hz, body);
   part(L.c2, hd * .55, hd * .45, hd * .55, 0, hy - hd * .15, hz + hd * .6, body);
@@ -642,7 +654,7 @@ const playing = () => G.state === 'play';
 
 function spawn(type, x, z) {
   const sp = CONFIG.species[type], v = makeAnimal(LOOK[type]); if (sp.scale) v.g.scale.setScalar(sp.scale); scene.add(v.g);
-  const a = { type, kind: type === 'alpha' ? 'lion' : type, alpha: type === 'alpha', sp, x, z, dir: Math.random() * 6.283, hp: sp.hp, state: 'wander', phase: Math.random() * 6, alive: true, v, aware: 0, timer: 0, idle: true, moving: false, tx: x, tz: z, colR: Math.min(.9, sp.radius), seed: Math.random() * 6.283 };
+  const a = { type, kind: type === 'alpha' || type === 'young' ? 'lion' : type, alpha: type === 'alpha', sp, x, z, dir: Math.random() * 6.283, hp: sp.hp, state: 'wander', phase: Math.random() * 6, alive: true, v, aware: 0, timer: 0, idle: true, moving: false, tx: x, tz: z, colR: Math.min(.9, sp.radius), seed: Math.random() * 6.283 };
   v.g.position.set(x, 0, z); animals.push(a); return a;
 }
 function removeAnimal(a) { if (!a.alive) return; a.alive = false; scene.remove(a.v.g); if (a.lane) { scene.remove(a.lane); a.lane.material.dispose(); a.lane = null; } if (a.fan) { scene.remove(a.fan); a.fan.geometry.dispose(); a.fan.material.dispose(); a.fan = null; } }
@@ -811,8 +823,8 @@ function updateHerd(h, dt) {
 const lerp = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
 
 /* ---- ライオン：身を低くする → 突進 → 外すと隙 ---- */
-function spawnLion(type, x, z) { const a = spawn(type, x, z); a.state = 'prowl'; a.sx = x; a.sz = z; a.hx = x * .85; a.hz = z * .85; if (type === 'boar') { a.hx = x; a.hz = z; a.raidHome = true; } return a; }
-const charger = a => a.kind === 'lion' || a.kind === 'boar' || a.kind === 'wolf';
+function spawnLion(type, x, z) { const a = spawn(type, x, z); a.state = 'prowl'; a.sx = x; a.sz = z; a.hx = x * .85; a.hz = z * .85; if (type !== 'lion' && type !== 'alpha') { a.hx = x; a.hz = z; a.raidHome = true; } return a; }
+const charger = a => !!a.sp.damage;
 function laneShow(a, on, len, wd) {
   if (!on) { if (a.lane) a.lane.visible = false; return; }
   const lane = laneFor(a); lane.visible = true; if (a.state === 'crouch') { a.lx0 = a.x; a.lz0 = a.z; }
@@ -897,19 +909,19 @@ function updateLion(a, dt) {
 
 /* ---- オオカミ：囲んで、交代で噛みに来る。1頭になると逃げる ---- */
 const wolfPacks = [];
-function spawnWolfPack(x, z, n) {
-  const w = { x, z, tx: x, tz: z, moveT: 3, members: [], tgt: null, state: 'roam', dartCd: 1.5, lostT: 0, size0: n };
-  for (let i = 0; i < n; i++) { const p = { x: x + Math.random() * 6 - 3, z: z + Math.random() * 6 - 3 }; resolve(p, 1); const a = spawn('wolf', p.x, p.z); a.wpack = w; a.state = 'prowl'; a.ox = p.x - x; a.oz = p.z - z; a.ang = i / n * 6.283; a.osign = Math.random() < .5 ? 1 : -1; w.members.push(a); }
+function spawnWolfPack(x, z, n, type) {
+  type = type || 'wolf'; const w = { type, sp: CONFIG.species[type], x, z, tx: x, tz: z, moveT: 3, members: [], tgt: null, state: 'roam', dartCd: 1.5, lostT: 0, size0: n };
+  for (let i = 0; i < n; i++) { const p = { x: x + Math.random() * 6 - 3, z: z + Math.random() * 6 - 3 }; resolve(p, 1); const a = spawn(type, p.x, p.z); a.wpack = w; a.state = 'prowl'; a.ox = p.x - x; a.oz = p.z - z; a.ang = i / n * 6.283; a.osign = Math.random() < .5 ? 1 : -1; w.members.push(a); }
   wolfPacks.push(w); return w;
 }
 function updateWolfPack(w, dt) {
-  const S = CONFIG.species.wolf; w.members = w.members.filter(m => m.alive); if (!w.members.length) return false;
+  const S = w.sp; w.members = w.members.filter(m => m.alive); if (!w.members.length) return false;
   const lone = w.members.length === 1 && w.size0 > 1;
   let cx = 0, cz = 0; w.members.forEach(m => { cx += m.x; cz += m.z; }); cx /= w.members.length; cz /= w.members.length;
   if (w.state === 'roam') {
     w.moveT -= dt; if (w.moveT <= 0) { const p = freeSpot(CONFIG.world.meadow * .6, H - 8, 2); if (p) { w.tx = p.x; w.tz = p.z; } w.moveT = 7 + Math.random() * 6; }
     const ax = w.tx - w.x, az = w.tz - w.z, al = Math.hypot(ax, az); if (al > 1) { w.x += ax / al * 4.5 * dt; w.z += az / al * 4.5 * dt; }
-    if (!lone && G.t - (w.scanAt || 0) > .25) { w.scanAt = G.t; for (const m of w.members) { const t = lionTarget(m); if (t) { w.tgt = t; w.state = 'hunt'; w.lostT = 0; w.dartCd = 1 + Math.random(); floatAt(m, '!', 'alert'); if (dist(P, m) < 45) sfx('howl'); break; } } }
+    if (!lone && G.t - (w.scanAt || 0) > .25) { w.scanAt = G.t; for (const m of w.members) { const t = lionTarget(m); if (t) { w.tgt = t; w.state = 'hunt'; w.lostT = 0; w.dartCd = 1 + Math.random(); floatAt(m, '!', 'alert'); if (w.type === 'wolf' && dist(P, m) < 45) sfx('howl'); break; } } }
   } else {
     const t = w.tgt;
     if (!tgtAlive(t)) { w.state = 'roam'; w.x = w.tx = cx; w.z = w.tz = cz; }
@@ -944,7 +956,7 @@ function updateWolfPack(w, dt) {
       for (let i = 0; i < steps && m.state === 'charge'; i++) {
         m.chargeT -= sd; m.x += Math.sin(m.cdir) * S.chargeSpeed * sd; m.z += Math.cos(m.cdir) * S.chargeSpeed * sd;
         let done = resolve(m, m.colR);
-        if (playing()) { if (dist(P, m) < S.radius + CONFIG.player.radius + .45) { hurtPlayer(S.damage, m, 'オオカミに倒された'); done = true; } for (const q of pack.slice()) if (Math.hypot(q.x - m.x, q.z - m.z) < S.radius + .8) { hurtPup(q, S.damage, m); done = true; } }
+        if (playing()) { if (dist(P, m) < S.radius + CONFIG.player.radius + .45) { hurtPlayer(S.damage, m, S.name + 'に倒された'); done = true; } for (const q of pack.slice()) if (Math.hypot(q.x - m.x, q.z - m.z) < S.radius + .8) { hurtPup(q, S.damage, m); done = true; } }
         if (done || m.chargeT <= 0) { m.state = 'recover'; m.recT = S.recover; }
       }
     } else if (m.state === 'recover') {
@@ -1043,15 +1055,15 @@ function hit(a) {
   if (a.hp <= 0) return killed(a, crit);
   floatAt(a, (crit ? '会心 ' : '') + '−' + dmg, crit ? 'perfect' : 'hit');
   if (a.kind === 'deer') boltHerd(a.herd, P);
-  if (a.kind === 'lion' || a.kind === 'boar') { a.provoked = true; if (a.state === 'prowl' || a.state === 'eat' || a.state === 'hunt') { a.state = 'stalk'; a.tgt = P; a.lostT = 0; a.lx = P.x; a.lz = P.z; } }
-  if (a.kind === 'wolf') { a.wpack.members.forEach(m => { m.provoked = true; }); if (a.wpack.state === 'roam') { a.wpack.state = 'hunt'; a.wpack.tgt = P; a.wpack.lostT = 0; } }
+  if (charger(a) && !a.wpack) { a.provoked = true; if (a.state === 'prowl' || a.state === 'eat' || a.state === 'hunt') { a.state = 'stalk'; a.tgt = P; a.lostT = 0; a.lx = P.x; a.lz = P.z; } }
+  if (a.wpack) { a.wpack.members.forEach(m => { m.provoked = true; }); if (a.wpack.state === 'roam') { a.wpack.state = 'hunt'; a.wpack.tgt = P; a.wpack.lostT = 0; } }
 }
 function killed(a, crit, byCrash) {
   const S = a.sp; removeAnimal(a);
   burst(a.x, .8, a.z, 18, 0xb8402f, 7, .26); burst(a.x, .8, a.z, 8, 0xefe1c6, 5, .2); ringFx(a.x, a.z, 0xefebdc, 3.5 * (S.scale || 1), .4);
   if (a.kind === 'rabbit' && a.burrow) { a.burrow.count--; a.burrow.respT = CONFIG.population.rabbitRespawn * (1 + Math.random() * .6); scareRabbits(a.x, a.z, P); }
   if (a.kind === 'deer') boltHerd(a.herd, P);
-  if (a.kind === 'wolf') a.wpack.dartCd += 2.5; // 仲間がやられると、ひるむ
+  if (a.wpack) a.wpack.dartCd += 2.5; // 仲間がやられると、ひるむ
   if (!playing()) return;
   sfx('kill'); G.freeze = Math.max(G.freeze, .06); G.shake = Math.max(G.shake, .3);
   P.hunger = Math.min(CONFIG.hunger.max, P.hunger + S.hunger);
@@ -1118,7 +1130,14 @@ function updateAim() {
 }
 
 /* ========= 進行：危険度・出現・出来事 ========= */
-function lionCount() { return animals.filter(a => a.alive && a.kind === 'lion' && !a.alpha).length; }
+function lionCount() { return animals.filter(a => a.alive && a.type === 'lion').length; }
+const typeCount = t => animals.filter(a => a.alive && a.type === t).length;
+function nearSpot(dmin, dmax, r) { // 操作キャラの周りの空いた場所
+  for (let i = 0; i < 30; i++) { const an = Math.random() * 6.283, d = dmin + Math.random() * (dmax - dmin), x = P.x + Math.cos(an) * d, z = P.z + Math.sin(an) * d; if (Math.abs(x) > LIM - 3 || Math.abs(z) > LIM - 3 || Math.hypot(x, z) < CONFIG.world.denRadius + 6 || collides(x, z, r + .5)) continue; return { x, z }; }
+  return null;
+}
+function sic(a, secs) { a.state = 'stalk'; a.tgt = P; a.lostT = 0; a.lx = P.x; a.lz = P.z; a.raidT = secs; a.provoked = true; }
+function announce(key, title, sub, snd) { if (G.seen[key]) return; G.seen[key] = 1; toast(title, sub); if (snd) sfx(snd); }
 function director(dt) {
   const D = CONFIG.danger, M = CONFIG.modes[G.mode], play = playing();
   if (play && M.escalate) {
@@ -1130,18 +1149,31 @@ function director(dt) {
     G.spawnT = 1;
     for (const b of world.burrows) if (b.count < CONFIG.population.rabbitsPerBurrow) { b.respT -= 1; if (b.respT <= 0 && (!play || dist(P, b) > 22)) { spawnRabbit(b); b.respT = CONFIG.population.rabbitRespawn * (.5 + Math.random() * .5); } }
     if (herds.filter(h => !h.stampede).length < CONFIG.population.herds) { const p = freeSpot(CONFIG.world.meadow * .8, H - 10, 2, play ? P : null, 34); if (p) spawnHerd(p.x, p.z, CONFIG.population.herdSize); }
-    const want = Math.min(D.lionsMax, Math.round(D.lionsBase + D.lionsPerLevel * (G.level - 1))), have = lionCount();
-    if (have < want) { const rmin = Math.max(CONFIG.world.meadow + 6, H - 16 - G.level * 4), p = freeSpot(rmin, H - 5, 1.2, play ? P : null, 40); if (p) spawnLion('lion', p.x, p.z); }
-    else if (have > want + 3) { const far = animals.find(a => a.alive && a.kind === 'lion' && !a.alpha && a.state === 'prowl' && (!play || dist(P, a) > 46)); if (far) removeAnimal(far); }
+    const esc = play && M.escalate, L = G.level, pride = esc && L >= D.alphaLevel;
+    const want = pride ? Math.min(D.lionsMax, D.lionsBase + (L - D.alphaLevel)) : 0, have = lionCount();
+    if (have < want) { G.lionCd -= 1; if (G.lionCd <= 0) { const p = freeSpot(CONFIG.world.meadow + 6, H - 5, 1.2, P, 40); if (p) { spawnLion('lion', p.x, p.z); G.lionCd = 6; } } }
+    else if (have > want + 3) { const far = animals.find(a => a.alive && a.type === 'lion' && a.state === 'prowl' && (!play || dist(P, a) > 46)); if (far) removeAnimal(far); }
     const PO = CONFIG.population;
     if (animals.filter(a => a.alive && a.kind === 'boar').length < PO.boars) { const p = freeSpot(CONFIG.world.meadow, H - 10, 1.2, play ? P : null, 30); if (p) spawnLion('boar', p.x, p.z); }
     // ウサギは操作キャラの近くに保つ：周りが寂しくなったら、近くの巣穴から出す
     if (play) { let n = 0; for (const a of animals) if (a.alive && a.kind === 'rabbit' && dist(P, a) < 42) n++; if (n < PO.nearRabbits) { const c = world.burrows.filter(b => b.count < PO.rabbitsPerBurrow && dist(P, b) > 18 && dist(P, b) < 46); if (c.length) spawnRabbit(c[Math.floor(Math.random() * c.length)]); } }
-    const wantW = !(play && M.escalate) ? 0 : G.level >= D.wolfLevel2 ? 2 : G.level >= D.wolfLevel ? 1 : 0;
-    if (wolfPacks.length < wantW) { G.wolfCd -= 1; if (G.wolfCd <= 0) { const p = freeSpot(H - 22, H - 5, 1.2, P, 44); if (p) { const w = spawnWolfPack(p.x, p.z, D.wolfPack); G.wolfCd = D.wolfRespawn; toast('オオカミの群れが現れた', '囲んで、交代で噛みに来る。飛び込んできた直後が隙'); sfx('howl'); setEvent(() => w.members.find(m => m.alive) || null, 'オオカミ', true); } } }
+    // 若いライオン：最初から1〜2頭。縄張りからあまり離れない
+    if (typeCount('young') < (G.youngN || 1)) { G.youngCd -= 1; if (!(G.youngCd > 0)) { const p = freeSpot(CONFIG.world.meadow + 4, H - 8, 1.2, play ? P : null, 40); if (p) { spawnLion('young', p.x, p.z); G.youngCd = 45; } } }
+    // キツネ：開始すぐから。1頭ずつ寄ってきて、周りを回って噛みに来る
+    const foxWant = esc ? (G.playT >= D.foxAt ? Math.min(D.foxMax, 2 + Math.floor((L - 1) / 2)) : 0) : play ? 1 : 0;
+    if (wolfPacks.filter(w => w.type === 'fox').length < foxWant) { G.foxCd -= 1; if (!(G.foxCd > 0)) { const p = nearSpot(24, 36, 1); if (p) { const w = spawnWolfPack(p.x, p.z, 1, 'fox'); if (esc) { w.state = 'hunt'; w.tgt = P; w.dartCd = 2.5; } G.foxCd = 7; } } }
+    // ヒョウ、クマ：現れたらまずこちらへ向かってくる
+    const leoWant = esc && L >= D.leopardLevel ? Math.min(3, 1 + Math.floor((L - D.leopardLevel) / 3)) : 0;
+    if (typeCount('leopard') < leoWant) { G.leoCd -= 1; if (!(G.leoCd > 0)) { const p = nearSpot(40, 52, 1.2); if (p) { const a = spawnLion('leopard', p.x, p.z); sic(a, 15); G.leoCd = 20; if (!G.seen.leopard) setEvent(() => a.alive ? a : null, 'ヒョウ', true); announce('leopard', 'ヒョウが現れた', '予兆が短く、速い。帯が出たらすぐ横へ', 'growl'); } } }
+    const bearWant = esc && L >= D.bearLevel ? Math.min(2, 1 + Math.floor((L - D.bearLevel) / 3)) : 0;
+    if (typeCount('bear') < bearWant) { G.bearCd -= 1; if (!(G.bearCd > 0)) { const p = nearSpot(40, 52, 2); if (p) { const a = spawnLion('bear', p.x, p.z); sic(a, 15); G.bearCd = 30; if (!G.seen.bear) setEvent(() => a.alive ? a : null, 'クマ', true); announce('bear', 'クマが現れた', '突進は長くて太い。大きく避けろ。外した後の隙も長い', 'roar'); } } }
+    const wantW = !esc ? 0 : L >= D.wolfLevel2 ? 2 : L >= D.wolfLevel ? 1 : 0;
+    if (wolfPacks.filter(w => w.type === 'wolf').length < wantW) { G.wolfCd -= 1; if (G.wolfCd <= 0) { const p = nearSpot(40, 52, 1.2); if (p) { const w = spawnWolfPack(p.x, p.z, D.wolfPack); w.state = 'hunt'; w.tgt = P; G.wolfCd = D.wolfRespawn; sfx('howl'); if (!G.seen.wolf) setEvent(() => w.members.find(m => m.alive) || null, 'オオカミ', true); announce('wolf', 'オオカミの群れが現れた', '囲んで、交代で噛みに来る。飛び込んできた直後が隙'); } } }
     if (play && M.escalate && G.level >= Math.max(D.alphaLevel, G.alphaNext) && !animals.some(a => a.alive && a.alpha)) {
       const an = Math.atan2(-P.x, -P.z) + (Math.random() - .5), p = { x: clamp(Math.sin(an) * (H - 8), -LIM + 3, LIM - 3), z: clamp(Math.cos(an) * (H - 8), -LIM + 3, LIM - 3) }; resolve(p, 1.5);
-      const a = spawnLion('alpha', p.x, p.z); a.provoked = true; a.hp = Math.round(a.sp.hp * (1 + .5 * G.kills.alpha)); toast('主が現れた', '逃げ場はない。柱に激突させて、隙に噛め'); sfx('roar'); setEvent(() => a.alive ? a : null, '主', true); G.alphaNext = 1e9;
+      const a = spawnLion('alpha', p.x, p.z); a.provoked = true; a.hp = Math.round(a.sp.hp * (1 + .5 * G.kills.alpha)); sfx('roar'); setEvent(() => a.alive ? a : null, '主', true); G.alphaNext = 1e9;
+      if (!G.seen.pride) { for (let i = 0; i < 2; i++) { const q = { x: clamp(p.x + (i ? 4 : -4), -LIM + 2, LIM - 2), z: clamp(p.z + 3, -LIM + 2, LIM - 2) }; resolve(q, 1.2); sic(spawnLion('lion', q.x, q.z), 25); } announce('pride', 'ライオンの群れが現れた', '主と大人のライオン。ここからが本番だ'); }
+      else toast('主が現れた', '逃げ場はない。柱に激突させて、隙に噛め');
     }
     for (let i = animals.length - 1; i >= 0; i--) if (!animals[i].alive) animals.splice(i, 1);
   }
@@ -1163,26 +1195,30 @@ function runEvent() {
     const an = Math.random() * 6.283, sx = Math.cos(an) * (H - 8), sz = Math.sin(an) * (H - 8), off = (Math.random() - .5) * 40;
     const txx = -Math.cos(an) * H - Math.sin(an) * off, tzz = -Math.sin(an) * H + Math.cos(an) * off, l = Math.hypot(txx - sx, tzz - sz);
     const h = spawnHerd(sx, sz, E.stampedeSize, true); h.bx = (txx - sx) / l; h.bz = (tzz - sz) / l; h.state = 'stampede';
-    if (M.hostile && G.level >= 3) for (let i = 0; i < 2; i++) { const p = { x: sx - h.bx * 4 + i * 3, z: sz - h.bz * 4 }; resolve(p, 1); const li = spawnLion('lion', p.x, p.z); li.state = 'hunt'; li.prey = h.members[h.members.length - 1 - i] || h.members[0]; li.huntT = 12; }
+    if (M.hostile && G.level >= CONFIG.danger.alphaLevel) for (let i = 0; i < 2; i++) { const p = { x: sx - h.bx * 4 + i * 3, z: sz - h.bz * 4 }; resolve(p, 1); const li = spawnLion('lion', p.x, p.z); li.state = 'hunt'; li.prey = h.members[h.members.length - 1 - i] || h.members[0]; li.huntT = 12; }
     toast('シカの大移動', '群れが駆け抜ける。横から飛びかかれば一噛みで仕留められる');
     setEvent(() => { const m = h.members.find(q => q.alive); return m || null; }, 'シカの大移動', false);
   } else if (kind === 'raid') {
+    if (G.level < CONFIG.danger.alphaLevel) {
+      const n = 3 + Math.floor(G.level / 3), p = nearSpot(40, 52, 1.2) || { x: 0, z: H - 8 }, w = spawnWolfPack(p.x, p.z, n); w.state = 'hunt'; w.tgt = P;
+      toast('オオカミの大群が来る', n + '頭がこちらへ向かっている'); sfx('howl'); setEvent(() => w.members.find(m => m.alive) || null, 'オオカミの大群', true); return;
+    }
     const n = E.raidBase + Math.floor(G.level / 4), an = Math.random() * 6.283; let first = null;
     for (let i = 0; i < n; i++) { const p = { x: clamp(Math.cos(an) * (H - 6) + i * 3, -LIM + 2, LIM - 2), z: clamp(Math.sin(an) * (H - 6) - i * 3, -LIM + 2, LIM - 2) }; resolve(p, 1.2); const li = spawnLion('lion', p.x, p.z); li.state = 'stalk'; li.tgt = P; li.lostT = 0; li.lx = P.x; li.lz = P.z; li.raidT = 22; li.raidHome = true; li.hx = 0; li.hz = 0; first = first || li; }
     toast('ライオンの群れが来る', n + '頭がこちらへ向かっている'); sfx('roar');
     const group = animals.filter(a => a.alive && a.raidT > 0); setEvent(() => group.find(a => a.alive && a.raidT > 0) || null, 'ライオンの群れ', true);
   } else {
-    G.nightT = E.nightSeconds; toast('夜が来た', '獲物は気づきにくい。ただしライオンは鼻が利く');
+    G.nightT = E.nightSeconds; toast('夜が来た', '獲物は気づきにくい。ただし肉食は遠くから気づく');
   }
 }
-function score() { const s = CONFIG.score; return Math.round(G.playT * s.perSecond + G.kcal * s.perKcal + G.born * s.perPup + G.kills.lion * s.perLion + G.kills.wolf * s.perWolf + G.kills.alpha * s.perAlpha); }
+function score() { const s = CONFIG.score; return Math.round(G.playT * s.perSecond + G.kcal * s.perKcal + G.born * s.perPup + G.kills.lion * s.perLion + G.kills.wolf * s.perWolf + G.kills.fox * s.perFox + G.kills.leopard * s.perLeopard + G.kills.bear * s.perBear + G.kills.alpha * s.perAlpha); }
 const fmtT = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
 
 function resetRun(mode) {
   audioInit();
   animals.slice().forEach(removeAnimal); animals.length = 0; herds.length = 0; wolfPacks.length = 0; clearPack();
   buildWorld((Math.random() * 1e9) | 0);
-  Object.assign(G, { mode, state: 'play', playT: 0, level: 1, night: 0, nightT: 0, shake: 0, freeze: 0, grow: 0, need: CONFIG.breed.need, born: 0, kcal: 0, kills: { rabbit: 0, deer: 0, lion: 0, alpha: 0, boar: 0, wolf: 0 }, wolfCd: 0, maxPack: 1, swaps: 0, eventT: CONFIG.events.firstAt, evQueue: [], evCount: 0, ev: null, alphaNext: 0, spawnT: 0, crashSeen: false, atDen: true });
+  Object.assign(G, { mode, state: 'play', playT: 0, level: 1, night: 0, nightT: 0, shake: 0, freeze: 0, grow: 0, need: CONFIG.breed.need, born: 0, kcal: 0, kills: { rabbit: 0, deer: 0, lion: 0, alpha: 0, boar: 0, wolf: 0, fox: 0, leopard: 0, bear: 0 }, wolfCd: 0, foxCd: 0, lionCd: 0, youngCd: 30, leoCd: 0, bearCd: 0, seen: {}, youngN: 1 + (Math.random() < .5 ? 1 : 0), maxPack: 1, swaps: 0, eventT: CONFIG.events.firstAt, evQueue: [], evCount: 0, ev: null, alphaNext: 0, spawnT: 0, crashSeen: false, atDen: true });
   P = { x: 0, z: 2, dir: 0, hp: CONFIG.player.maxHP, maxHP: CONFIG.player.maxHP, hunger: CONFIG.hunger.start, stamina: CONFIG.player.staminaMax, atkCd: 0, hurtT: 0, lungeT: 0, lungeDir: 0, lungeCrit: null, moving: false, phase: 0, invuln: 0, vx: 0, vz: 0 };
   populate(); initFlocks();
   cam.yaw = 0.35; cam.tx = P.x; cam.tz = P.z; huntTarget = null;
@@ -1195,7 +1231,7 @@ function populate() {
   world.burrows.forEach(b => { b.count = 0; for (let i = 0; i < CONFIG.population.rabbitsPerBurrow; i++) spawnRabbit(b); });
   for (let i = 0; i < CONFIG.population.herds; i++) { const p = freeSpot(CONFIG.world.meadow * .8, H - 10, 2, P, 30); if (p) spawnHerd(p.x, p.z, CONFIG.population.herdSize); }
   for (let i = 0; i < CONFIG.population.boars; i++) { const p = freeSpot(CONFIG.world.meadow, H - 10, 1.2, P, 34); if (p) spawnLion('boar', p.x, p.z); }
-  for (let i = 0; i < CONFIG.danger.lionsBase; i++) { const p = freeSpot(H - 24, H - 5, 1.2, P, 48); if (p) spawnLion('lion', p.x, p.z); }
+  for (let i = 0; i < (G.youngN || 1); i++) { const p = freeSpot(CONFIG.world.meadow + 8, H - 8, 1.2, P, 44); if (p) spawnLion('young', p.x, p.z); }
 }
 function gameOver(cause, manual) {
   if (!playing()) return; G.state = 'over';
@@ -1206,7 +1242,7 @@ function gameOver(cause, manual) {
   const D = CONFIG.danger, toNext = Math.ceil(G.level * D.levelSeconds - G.playT);
   $('overNear').textContent = sc > prev && prev > 0 ? '新記録！ これまでのベストを ' + (sc - prev).toLocaleString() + ' 上回った' : prev > sc ? '自己ベストまであと ' + (prev - sc).toLocaleString() + ' ポイント。危険度' + (G.level + 1) + 'まであと' + toNext + '秒だった' : '最初の記録。危険度' + (G.level + 1) + 'まであと' + toNext + '秒だった';
   $('oTime').textContent = fmtT(G.playT); $('oLevel').textContent = G.level; $('oPack').textContent = G.maxPack + '匹'; $('oBorn').textContent = G.born + '匹';
-  $('oKills').textContent = 'ウサギ ' + G.kills.rabbit + '・シカ ' + G.kills.deer + '・イノシシ ' + G.kills.boar; $('oLion').textContent = 'ライオン ' + G.kills.lion + '・オオカミ ' + G.kills.wolf + (G.kills.alpha ? '・主 ' + G.kills.alpha : ''); $('oBest').textContent = best.toLocaleString();
+  $('oKills').textContent = 'ウサギ ' + G.kills.rabbit + '・シカ ' + G.kills.deer + '・イノシシ ' + G.kills.boar; $('oLion').textContent = [['キツネ', 'fox'], ['オオカミ', 'wolf'], ['ヒョウ', 'leopard'], ['クマ', 'bear'], ['ライオン', 'lion'], ['主', 'alpha']].filter(e => G.kills[e[1]]).map(e => e[0] + ' ' + G.kills[e[1]]).join('・') || 'なし'; $('oBest').textContent = best.toLocaleString();
   show('over', true); show('touch', false); show('pause', false); aimMark.visible = false; $('hint').classList.remove('on'); sfx('over');
 }
 
@@ -1257,9 +1293,12 @@ function adviceTick() {
   const k = coarse ? '攻撃ボタン' : 'Space', near = (a, r) => dist(P, a) < r;
   advise('goal', '目的は、群れが尽きるまで生き延びること。食べて子育てゲージを貯め、巣に戻ると子（残機）が増える', { prio: 4, dur: 7 });
   advise('ctrl', coarse ? '左のスティックで移動、画面ドラッグで回転。攻撃ボタンは倒した方向へ飛び、連打でダッシュにもなる' : 'WASDで移動、ドラッグで回転。Spaceで入力方向へ飛びかかり、連打でダッシュにもなる', { prio: 1 });
-  const foe = animals.find(a => a.alive && (a.kind === 'boar' || a.kind === 'wolf') && near(a, 26) && (a.state === 'crouch' || a.state === 'stalk' || a.state === 'recover'));
+  const foe = animals.find(a => a.alive && charger(a) && a.kind !== 'lion' && near(a, 26) && (a.state === 'crouch' || a.state === 'stalk' || a.state === 'recover'));
   if (foe && foe.state === 'recover') advise('punish', '隙だらけだ！ 今のうちに' + k + 'で噛め', { cd: 20, prio: 5, go: true, dur: 2.5 });
   else if (foe && foe.kind === 'boar') advise('boar', 'イノシシは近づくと突進してくる。避けて、外した直後に噛め。背後から忍び寄れば先手を取れる', { cd: 90, prio: 3 });
+  else if (foe && foe.kind === 'fox') advise('fox', 'キツネは周りを回って、隙を見て噛みに来る。弱いので、飛び込んできた直後に噛めば倒せる', { cd: 90, prio: 3 });
+  else if (foe && foe.kind === 'leopard') advise('leopard', 'ヒョウは予兆が短く、速い。帯が出たらすぐ横へ。外した直後が噛むチャンス', { cd: 90, prio: 3 });
+  else if (foe && foe.kind === 'bear') advise('bear', 'クマの突進は長くて太い。大きく横へ避けろ。体力は多いが、外した後の隙も長い', { cd: 90, prio: 3 });
   else if (foe) advise('wolf', 'オオカミは囲んで交代で飛び込んでくる。赤い帯が出たら横へ。1頭まで減らすと逃げる', { cd: 90, prio: 3 });
   const lion = animals.find(a => a.alive && a.kind === 'lion' && near(a, 30) && (a.state === 'crouch' || a.state === 'stalk' || a.state === 'recover'));
   if (lion && lion.state === 'recover') advise('punish', '隙だらけだ！ 今のうちに' + k + 'で噛め', { cd: 20, prio: 5, go: true, dur: 2.5 });
@@ -1285,7 +1324,7 @@ function updateHUD() {
   bar('hpBar', 'hpNum', P.hp, P.maxHP); bar('hgBar', 'hgNum', P.hunger, CONFIG.hunger.max); bar('stBar', 'stNum', P.stamina, C.staminaMax);
   const ready = G.grow >= G.need; bar('grBar', null, G.grow, G.need); $('grNum').textContent = ready ? '巣へ' : Math.floor(G.grow / G.need * 100) + '%'; $('grRow').classList.toggle('ready', ready);
   $('hungry').classList.toggle('low', P.hunger < 25);
-  $('pack').textContent = pack.length + 1; $('kcal').textContent = G.kcal.toLocaleString() + 'kcal'; $('born').textContent = G.born; $('kRabbit').textContent = G.kills.rabbit; $('kDeer').textContent = G.kills.deer; $('kLion').textContent = G.kills.lion + G.kills.alpha + G.kills.wolf; $('kBoar').textContent = G.kills.boar; $('ptNum').textContent = score().toLocaleString() + ' pt';
+  $('pack').textContent = pack.length + 1; $('kcal').textContent = G.kcal.toLocaleString() + 'kcal'; $('born').textContent = G.born; $('kRabbit').textContent = G.kills.rabbit; $('kDeer').textContent = G.kills.deer; $('kLion').textContent = G.kills.lion + G.kills.alpha + G.kills.wolf + G.kills.fox + G.kills.leopard + G.kills.bear; $('kBoar').textContent = G.kills.boar; $('ptNum').textContent = score().toLocaleString() + ' pt';
   $('lvNum').textContent = M.escalate ? '危険度 ' + G.level : 'のんびり'; $('timeNum').textContent = fmtT(G.playT); $('lvBar').style.width = (M.escalate ? (G.playT % D.levelSeconds) / D.levelSeconds * 100 : 0) + '%'; $('status').classList.toggle('night', G.night > .5);
   $('vig').style.opacity = P.hurtT > 0 ? .8 : (P.hp / P.maxHP < .25 ? .3 : 0); $('hungerVig').style.opacity = P.hunger < 15 ? .55 : P.hunger < 25 ? .25 : 0;
   const yaw = G.view === '3d' ? cam.yaw : 0;
@@ -1397,7 +1436,7 @@ function simulate(dt) {
     G.playT += dt; G.noise = noiseMul(); updatePlayer(dt);
     if (adv.t > 0) { adv.t -= dt; if (adv.t <= 0) $('hint').classList.remove('on'); }
   }
-  for (const a of animals) { if (!a.alive) continue; if (a.kind === 'rabbit') updateRabbit(a, dt); else if (a.kind === 'lion' || a.kind === 'boar') updateLion(a, dt); }
+  for (const a of animals) { if (!a.alive) continue; if (a.kind === 'rabbit') updateRabbit(a, dt); else if (a.sp.damage && !a.wpack) updateLion(a, dt); }
   director(dt); updateFlocks(dt);
   if (playing()) {
     updateAim(); updatePack(dt);
