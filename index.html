@@ -248,7 +248,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
       <dt>Esc</dt><dd>メニュー（視点・音・調整）</dd>
     </dl>
     <dl class="keys">
-      <dt>狩り</dt><dd>地面の扇形は動物の視界。入ると気づかれる。背後か草むら、柱の陰から近づいて飛びかかれ</dd>
+      <dt>狩り</dt><dd>獲物は正面から近づくと気づいて逃げる。背後か草むら、柱の陰から近づいて飛びかかれ。地面の扇形は敵の視界</dd>
       <dt>敵</dt><dd>赤い帯は攻撃の通り道。帯が赤くなった瞬間に横へ飛んで避け、外した直後の隙に噛む。危険は30秒ごとに増す</dd>
     </dl>
     <p class="best" id="bestLine"></p>
@@ -649,6 +649,7 @@ function removeAnimal(a) { if (!a.alive) return; a.alive = false; scene.remove(a
 /* 視界の扇形：どの動物も「扇形の中＋ごく近く」で気づく。扇形は近くにいるときだけ地面に描く */
 const inCone = (a, t, range, deg) => dist(a, t) < range && (deg >= 360 || Math.cos(Math.atan2(t.x - a.x, t.z - a.z) - a.dir) > Math.cos(deg / 2 * Math.PI / 180));
 function fanShow(a, range, deg, level, on) {
+  if (!charger(a)) on = false; // 草食動物の視界は描かない（気づき方のルールはそのまま）
   if (!on) { if (a.fan) a.fan.visible = false; return; }
   if (!a.fan) { const half = deg / 2 * Math.PI / 180, geo = new THREE.CircleGeometry(1, 28, -Math.PI / 2 - half, half * 2); geo.rotateX(-Math.PI / 2); a.fan = new THREE.Mesh(geo, flatMat(0xfff2b0, .14)); a.fan.renderOrder = 2; scene.add(a.fan); }
   a.fan.visible = true; a.fan.position.set(a.x, .14, a.z); a.fan.rotation.y = a.dir; a.fan.scale.setScalar(range);
@@ -741,7 +742,7 @@ function updateFlocks(dt) {
   let idx = 0;
   for (const fl of flocks) {
     if (fl.state === 'ground') {
-      if (playing()) { const d = dist(P, fl); if (d < 7.5) { fl.state = 'fly'; fl.t = 0; const l = d || 1; fl.dx = (fl.x - P.x) / l; fl.dz = (fl.z - P.z) / l; if (AC && !muted) noise(.25, .035, 3800); } else if (d > 62) placeFlock(fl); }
+      if (playing()) { const d = dist(P, fl); if (d < 12) { fl.state = 'fly'; fl.t = 0; const l = d || 1; fl.dx = (fl.x - P.x) / l; fl.dz = (fl.z - P.z) / l; if (AC && !muted) noise(.25, .035, 3800); } else if (d > 62) placeFlock(fl); }
     } else { fl.t += dt; if (fl.t > 2.4) placeFlock(fl); }
     for (const b of fl.birds) {
       let x, y, z, yaw, s = 1, peck = 0, flap = 0;
@@ -1265,9 +1266,9 @@ function adviceTick() {
   else if (lion && lion.state === 'crouch') advise('dodge', '身を低くした！ 帯が赤くなった瞬間、横に飛べ', { cd: 25, prio: 5, go: true, dur: 2 });
   else if (lion) advise('lion', 'ライオンに狙われている。突進は柱を挟むと激突する。外した直後が噛むチャンス', { cd: 60, prio: 3 });
   if (huntTarget && huntKind && !charger(huntTarget)) advise('crit', huntKind + 'を取った！ ' + k + 'で会心', { cd: 30, prio: 4, go: true, dur: 2.5 });
-  else if (animals.some(a => a.alive && a.kind === 'rabbit' && a.state === 'wander' && near(a, 24))) advise('rabbit', 'ウサギは気づくと少し逃げてこちらを見張る。追い詰めると巣穴へ消える。扇形の視界の外、背後から飛びかかれ', { prio: 2 });
+  else if (animals.some(a => a.alive && a.kind === 'rabbit' && a.state === 'wander' && near(a, 24))) advise('rabbit', 'ウサギは気づくと少し逃げてこちらを見張る。追い詰めると巣穴へ消える。顔の向きを見て、背後から飛びかかれ', { prio: 2 });
   const herd = herds.find(h => !h.stampede && h.state === 'graze' && h.sentinel && near(h.sentinel, 32));
-  if (herd) advise('deer', 'シカは見張りが1頭いる。扇形の視界の外か、柱の陰から近づけ', { cd: 120, prio: 2 });
+  if (herd) advise('deer', 'シカは顔を上げた見張りが1頭いる。その背後か、柱の陰から近づけ', { cd: 120, prio: 2 });
   if (G.grow >= G.need && !G.atDen) advise('breed', '子育てゲージが満タン。巣に戻ると子が生まれ、群れ（残機）が増える', { cd: 30, prio: 3 });
   if (P.hp / P.maxHP < .35) advise('lowhp', '体力が少ない。巣の輪の中にいると回復する', { cd: 40, prio: 3 });
   if (P.hunger < 10) advise('starve', '飢え死に寸前。ウサギでもいいので何か食べよう', { cd: 30, prio: 3 });
