@@ -218,7 +218,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 
 <div id="title" class="screen">
   <div class="card">
-    <p class="eyebrow">試作版 v0.3 ・ HTMLプロトタイプ</p>
+    <p class="eyebrow">試作版 v0.3.1 ・ HTMLプロトタイプ</p>
     <h1>新宿ワイルド</h1>
     <p class="lede">群れが尽きるまで生き延びろ。狩って、満たして、巣で子を増やす。時間とともに、危険は増していく。</p>
     <div class="modes">
@@ -275,21 +275,21 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 'use strict';
 /* ========= バランスデータ ========= */
 const CONFIG = {
-  version: 'proto-0.3',
-  world: { half: 128, denRadius: 7, meadow: 44, ruins: 90 },
+  version: 'proto-0.3.1',
+  world: { half: 84, denRadius: 7, meadow: 30, ruins: 58 },
   player: { speed: 13, staminaMax: 100, staminaRegen: 18, maxHP: 100, biteDamage: 1, radius: 0.45, swapInvuln: 1.5 },
   attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, staminaCost: 16, hitPad: 0.4, assistDeg: 18 },
   hunger: { max: 100, start: 70, decayPerSec: 1.25, starveDamagePerSec: 6, perPup: 0.1 },
-  breed: { need: 90, needGrowth: 1.25, maxPack: 10 },
+  breed: { need: 110, needGrowth: 1.25, maxPack: 10 },
   pack: { pupHP: 55, assistRange: 14, assistPerMember: 0.5, growSeconds: 25 },
   den: { healPerSec: 6 },
   hunt: { awareLimit: 0.5, backCos: -0.25, ambushDamage: 3 },
   stealth: { grassMul: 0.45, lungeMul: 1.7, stillMul: 0.55 },
   danger: { levelSeconds: 30, hungerPerLevel: 0.05, lionsBase: 2, lionsPerLevel: 1, lionsMax: 14, alphaLevel: 5, alphaEvery: 3, crouchPerLevel: 0.03, crouchMin: 0.65, closeInPerLevel: 0.06, hearPerLevel: 0.8 },
   events: { firstAt: 40, interval: 45, nightSeconds: 25, stampedeSize: 10, raidBase: 2 },
-  population: { burrows: 12, rabbitsPerBurrow: 2, rabbitRespawn: 24, herds: 4, herdSize: 5 },
+  population: { burrows: 18, rabbitsPerBurrow: 3, rabbitRespawn: 24, herds: 5, herdSize: 5, flocks: 14 },
   species: {
-    rabbit: { name: 'ウサギ', hp: 1, speed: 15, radius: 0.45, sight: 12, cone: 200, hear: 4, alertRadius: 9, kcal: 120, hunger: 18 },
+    rabbit: { name: 'ウサギ', hp: 1, speed: 15, radius: 0.45, sight: 9, cone: 170, hear: 4, alertRadius: 9, safeDist: 12, rebolt: 9, pressDist: 5, maxScares: 3, kcal: 120, hunger: 12 },
     deer:   { name: 'シカ', hp: 3, speed: 20, radius: 0.85, nearSense: 4.5, sentinelRange: 20, sentinelCone: 140, kcal: 420, hunger: 45 },
     lion:   { name: 'ライオン', hp: 14, walk: 4, stalk: 8, run: 14.5, radius: 0.8, sight: 20, cone: 160, hear: 6, damage: 25, pounceRange: 9, crouch: 0.6, lockLead: 0.22, lead: 0.75, chargeSpeed: 30, chargeTime: 0.45, recover: 1.3, hitRecover: 0.9, crashRecover: 2.6, kcal: 500, hunger: 35 },
     alpha:  { name: '主', hp: 45, walk: 5, stalk: 9, run: 13.5, radius: 1.35, sight: 9999, cone: 360, hear: 9999, damage: 40, pounceRange: 11, crouch: 0.7, lockLead: 0.2, lead: 0.85, chargeSpeed: 32, chargeTime: 0.55, recover: 1.5, hitRecover: 0.9, crashRecover: 2.6, kcal: 2000, hunger: 100, scale: 1.7 }
@@ -419,9 +419,9 @@ function buildWorld(seed) {
     m.castShadow = cast !== false; m.receiveShadow = true; g.add(m); return m;
   };
   // 草むら
-  for (let i = 0; i < 6; i++) { const p = polar(12, WC.meadow); world.grass.push({ x: p.x, z: p.z, r: R(4, 7) }); }
-  for (let i = 0; i < 12; i++) { const p = polar(WC.meadow, WC.ruins); world.grass.push({ x: p.x, z: p.z, r: R(4, 7.5) }); }
-  for (let i = 0; i < 16; i++) { const p = polar(WC.ruins, H - 10); world.grass.push({ x: p.x, z: p.z, r: R(5, 9) }); }
+  for (let i = 0; i < 4; i++) { const p = polar(12, WC.meadow); world.grass.push({ x: p.x, z: p.z, r: R(4, 7) }); }
+  for (let i = 0; i < 8; i++) { const p = polar(WC.meadow, WC.ruins); world.grass.push({ x: p.x, z: p.z, r: R(4, 7.5) }); }
+  for (let i = 0; i < 9; i++) { const p = polar(WC.ruins, H - 10); world.grass.push({ x: p.x, z: p.z, r: R(5, 9) }); }
   // 太い柱（廃墟）：視線を遮る
   const pillars = [], caps = [], ivy = [];
   const tryPillar = (rmin, rmax, hmin, hmax) => {
@@ -442,33 +442,33 @@ function buildWorld(seed) {
       return;
     }
   };
-  for (let i = 0; i < 44; i++) tryPillar(WC.meadow + 2, WC.ruins - 2, 3.5, 10);
-  for (let i = 0; i < 4; i++) tryPillar(WC.meadow + 10, WC.ruins - 6, 15, 22);
-  for (let i = 0; i < 8; i++) tryPillar(WC.ruins + 4, H - 16, 3, 7);
-  for (let i = 0; i < 4; i++) tryPillar(22, WC.meadow - 5, 2.5, 4.5);
+  for (let i = 0; i < 20; i++) tryPillar(WC.meadow + 2, WC.ruins - 2, 3.5, 10);
+  for (let i = 0; i < 3; i++) tryPillar(WC.meadow + 6, WC.ruins - 6, 14, 20);
+  for (let i = 0; i < 5; i++) tryPillar(WC.ruins + 4, H - 12, 3, 7);
+  for (let i = 0; i < 2; i++) tryPillar(18, WC.meadow - 5, 2.5, 4.5);
   // 細い柱（木）
   const trees = [];
   const tryTree = (rmin, rmax) => { const p = polar(rmin, rmax); if (collides(p.x, p.z, 1.6)) return; const s = R(.8, 1.4); trees.push({ x: p.x, z: p.z, s, c: pick(TREE_C) }); addCircle(p.x, p.z, .42 * s + .1); };
-  for (let i = 0; i < 190; i++) tryTree(WC.ruins, H - 4);
-  for (let i = 0; i < 34; i++) tryTree(WC.meadow, WC.ruins);
-  for (let i = 0; i < 8; i++) tryTree(16, WC.meadow);
+  for (let i = 0; i < 90; i++) tryTree(WC.ruins, H - 4);
+  for (let i = 0; i < 16; i++) tryTree(WC.meadow, WC.ruins);
+  for (let i = 0; i < 4; i++) tryTree(16, WC.meadow);
   const wall = [];
   for (let v = -H - 4; v <= H + 4; v += 4.5) [[v, -H - 3], [v, H + 3], [-H - 3, v], [H + 3, v]].forEach(([x, z]) => wall.push({ x: x + R(-1.5, 1.5), z: z + R(-1.5, 1.5), s: R(1.3, 2), c: pick(TREE_C) }));
   // ウサギの巣穴
   for (let i = 0; i < CONFIG.population.burrows; i++) for (let t = 0; t < 30; t++) {
-    const p = polar(i < 3 ? 27 : WC.meadow, i < 3 ? WC.meadow : WC.ruins + 24);
-    if (collides(p.x, p.z, 2.5) || world.burrows.some(b => Math.hypot(b.x - p.x, b.z - p.z) < 16)) continue;
+    const p = polar(i < 4 ? 20 : WC.meadow, i < 4 ? WC.meadow : H - 8);
+    if (collides(p.x, p.z, 2.5) || world.burrows.some(b => Math.hypot(b.x - p.x, b.z - p.z) < 13)) continue;
     world.burrows.push({ x: p.x, z: p.z, count: 0, respT: 0 }); break;
   }
   // 地面のテクスチャ
-  const cv = document.createElement('canvas'); cv.width = cv.height = 1024; const x2 = cv.getContext('2d'), SP = 300, S = 1024 / SP, px = v => (v + SP / 2) * S;
+  const cv = document.createElement('canvas'); cv.width = cv.height = 1024; const x2 = cv.getContext('2d'), SP = H * 2 + 44, S = 1024 / SP, px = v => (v + SP / 2) * S;
   x2.fillStyle = '#3d5a2b'; x2.fillRect(0, 0, 1024, 1024);
   const blob = (x, z, r, col, a) => { x2.globalAlpha = a; x2.fillStyle = col; x2.beginPath(); x2.arc(px(x), px(z), r * S, 0, 6.283); x2.fill(); };
-  for (let i = 0; i < 260; i++) { const a = rnd() * 6.283, r = WC.ruins + R(-7, 5); blob(Math.cos(a) * r, Math.sin(a) * r, R(5, 11), '#6f6c5f', 1); } blob(0, 0, WC.ruins - 3, '#6f6c5f', 1);
-  for (let i = 0; i < 200; i++) { const a = rnd() * 6.283, r = WC.meadow + R(-5, 6); blob(Math.cos(a) * r, Math.sin(a) * r, R(4, 9), '#6a9440', 1); } blob(0, 0, WC.meadow - 2, '#6a9440', 1);
+  for (let i = 0; i < 200; i++) { const a = rnd() * 6.283, r = WC.ruins + R(-6, 4); blob(Math.cos(a) * r, Math.sin(a) * r, R(5, 11), '#6f6c5f', 1); } blob(0, 0, WC.ruins - 3, '#6f6c5f', 1);
+  for (let i = 0; i < 150; i++) { const a = rnd() * 6.283, r = WC.meadow + R(-4, 5); blob(Math.cos(a) * r, Math.sin(a) * r, R(4, 9), '#6a9440', 1); } blob(0, 0, WC.meadow - 2, '#6a9440', 1);
   for (let i = 0; i < 1100; i++) { const x = R(-SP / 2, SP / 2), z = R(-SP / 2, SP / 2), rr = Math.hypot(x, z); blob(x, z, R(1.5, 6), rr < WC.meadow ? pick(['#76a348', '#5f8a3a', '#7fab50']) : rr < WC.ruins ? pick(['#7a776a', '#646256', '#5f7a3c', '#86826f', '#5b7a3a']) : pick(['#36522a', '#476a30', '#2f4a24']), .35); }
   x2.globalAlpha = .55; x2.strokeStyle = '#4d6b33'; x2.lineWidth = 2;
-  for (let i = 0; i < 80; i++) { const p = polar(WC.meadow + 3, WC.ruins - 3); let x = p.x, z = p.z; x2.beginPath(); x2.moveTo(px(x), px(z)); for (let k = 0; k < 4; k++) { x += R(-7, 7); z += R(-7, 7); x2.lineTo(px(x), px(z)); } x2.stroke(); }
+  for (let i = 0; i < 45; i++) { const p = polar(WC.meadow + 3, WC.ruins - 3); let x = p.x, z = p.z; x2.beginPath(); x2.moveTo(px(x), px(z)); for (let k = 0; k < 4; k++) { x += R(-7, 7); z += R(-7, 7); x2.lineTo(px(x), px(z)); } x2.stroke(); }
   x2.globalAlpha = .28; x2.strokeStyle = '#d8d2bf'; x2.lineWidth = 3; x2.setLineDash([14, 18]);
   for (let i = 0; i < 5; i++) { const a = rnd() * 6.283; x2.beginPath(); x2.moveTo(px(Math.cos(a) * (WC.meadow + 4)), px(Math.sin(a) * (WC.meadow + 4))); x2.lineTo(px(Math.cos(a + .25) * (WC.ruins - 4)), px(Math.sin(a + .25) * (WC.ruins - 4))); x2.stroke(); }
   x2.setLineDash([]);
@@ -650,7 +650,7 @@ const losCached = (a, t) => { if (G.t - (a.losAt || -9) > .2) { a.losAt = G.t; a
 
 /* ---- ウサギ：巣穴に逃げ込む ---- */
 function spawnRabbit(b) { const p = { x: b.x + (Math.random() * 6 - 3), z: b.z + (Math.random() * 6 - 3) }; if (collides(p.x, p.z, .6)) { p.x = b.x; p.z = b.z; } const a = spawn('rabbit', p.x, p.z); a.burrow = b; b.count++; return a; }
-function scareRabbits(x, z, from) { for (const q of animals) if (q.alive && q.kind === 'rabbit' && q.state === 'wander' && Math.hypot(q.x - x, q.z - z) < q.sp.alertRadius) { q.state = 'flee'; q.fleeT = 0; q.from = from; q.aware = 1; } }
+function scareRabbits(x, z, from) { for (const q of animals) if (q.alive && q.kind === 'rabbit' && q.state === 'wander' && Math.hypot(q.x - x, q.z - z) < q.sp.alertRadius) { q.state = 'flee'; q.fleeT = 0; q.from = from; q.aware = 1; q.scares = (q.scares || 0) + 1; } }
 function updateRabbit(a, dt) {
   const S = a.sp, b = a.burrow; let spd = 0;
   if (a.state === 'wander') {
@@ -659,7 +659,7 @@ function updateRabbit(a, dt) {
       const rate = d < S.hear * G.noise ? 4 : (inCone(a, P, sightR, S.cone) && losCached(a, P)) ? 3 : 0;
       a.aware = clamp(a.aware + (rate > 0 ? rate : -.5) * dt, 0, 1);
       if (a.aware > .4 && !a.q) { a.q = true; floatAt(a, '?', 'q'); } if (a.aware < .2) a.q = false;
-      if (a.aware >= 1) { a.state = 'flee'; a.fleeT = 0; a.from = P; floatAt(a, '!', 'alert', .7); scareRabbits(a.x, a.z, P); }
+      if (a.aware >= 1) { a.state = 'flee'; a.fleeT = 0; a.from = P; a.scares = (a.scares || 0) + 1; floatAt(a, '!', 'alert', .7); scareRabbits(a.x, a.z, P); }
       fanShow(a, sightR, S.cone, a.aware, a.state === 'wander' && d < 32);
     } else fanShow(a, 0, S.cone, 0, false);
     if (a.state === 'wander') {
@@ -667,17 +667,59 @@ function updateRabbit(a, dt) {
       if (!spd) { a.lookT = (a.lookT || 0) - dt; if (a.lookT <= 0) { a.lookDir = Math.random() * 6.283; a.lookT = 1.6 + Math.random() * 2.2; } a.dir = lerpAng(a.dir, a.lookDir, Math.min(1, dt * 4)); }
     }
   } else fanShow(a, 0, S.cone, 0, false);
+  /* 気づいても、まずは少し離れて立ち止まり、こちらを見張る。追い詰められたとき（近い・3回目）だけ巣穴へ飛び込む */
+  let o = null; const f = a.from || P;
   if (a.state === 'flee') {
-    a.fleeT += dt; const f = a.from || P; let tx = b.x - a.x, tz = b.z - a.z; const db = Math.hypot(tx, tz) || 1;
-    if (db < 1.3) { burst(a.x, .3, a.z, 8, 0x8d7650, 3, .22, 3); sfx('hole'); b.count--; b.respT = CONFIG.population.rabbitRespawn * (.6 + Math.random() * .5); removeAnimal(a); return; }
-    const fx = f.x - a.x, fz = f.z - a.z, df = Math.hypot(fx, fz) || 1;
-    if (a.fleeT < 2.5 && df < db && (tx * fx + tz * fz) / (db * df) > .5) { tx = -fx; tz = -fz; }
-    const l = Math.hypot(tx, tz) || 1, zig = Math.sin(a.fleeT * 11 + a.seed) * .75;
-    a.mx = tx / l - tz / l * zig; a.mz = tz / l + tx / l * zig; spd = S.speed;
-    if (a.fleeT > 8) { a.state = 'wander'; a.aware = .4; a.timer = 0; }
+    a.fleeT += dt; let fx = a.x - f.x, fz = a.z - f.z; const df = Math.hypot(fx, fz) || 1;
+    if ((df < S.pressDist && a.fleeT > .3) || a.scares >= S.maxScares) a.state = 'dive';
+    else if (df > S.safeDist || a.fleeT > 2) { a.state = 'watch'; a.watchT = 3.5 + Math.random() * 2.5; }
+    else {
+      if (Math.abs(a.x) > LIM - 8 || Math.abs(a.z) > LIM - 8) { fx -= a.x * .08; fz -= a.z * .08; }
+      const l = Math.hypot(fx, fz) || 1, zig = Math.sin(a.fleeT * 11 + a.seed) * .6;
+      a.mx = fx / l - fz / l * zig; a.mz = fz / l + fx / l * zig; spd = S.speed;
+    }
+  }
+  if (a.state === 'watch') {
+    a.watchT -= dt; a.dir = lerpAng(a.dir, Math.atan2(f.x - a.x, f.z - a.z), Math.min(1, dt * 8)); o = { rx: -.55, y: .12 };
+    if (playing() && dist(P, a) < S.rebolt * (G.noise > 1 ? 1.4 : 1)) { a.state = 'flee'; a.fleeT = 0; a.from = P; a.scares++; }
+    else if (a.watchT <= 0) { a.state = 'wander'; a.aware = .3; a.timer = 0; a.scares = Math.max(0, a.scares - 1); }
+  }
+  if (a.state === 'dive') {
+    const tx = b.x - a.x, tz = b.z - a.z, db = Math.hypot(tx, tz) || 1;
+    if (db < 1.3) { burst(a.x, .3, a.z, 8, 0x8d7650, 3, .22, 3); if (playing() && dist(P, a) < 40) sfx('hole'); b.count--; b.respT = 8 + Math.random() * 5; removeAnimal(a); return; }
+    const zig = Math.sin(G.t * 11 + a.seed) * .35; a.mx = tx / db - tz / db * zig; a.mz = tz / db + tx / db * zig; spd = S.speed * 1.08;
   }
   moveA(a, spd, dt, 12);
-  pose(a.v, a.x, a.z, a.dir, a.phase, a.moving);
+  pose(a.v, a.x, a.z, a.dir, a.phase, a.moving, o);
+}
+
+/* ---- 小鳥：近づくと飛び立つだけの、にぎやかし ---- */
+const BIRDS_PER = 6, birdMesh = new THREE.InstancedMesh(BOXG, new THREE.MeshLambertMaterial({ color: 0x7a644c }), 16 * BIRDS_PER);
+birdMesh.frustumCulled = false; birdMesh.castShadow = true; birdMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(birdMesh);
+const flocks = [], bObj = new THREE.Object3D();
+function placeFlock(fl, first) {
+  const c = playing() ? P : { x: 0, z: 0 };
+  for (let i = 0; i < 24; i++) { const an = Math.random() * 6.283, r = first ? 12 + Math.random() * 60 : 20 + Math.random() * 30, x = clamp(c.x + Math.cos(an) * r, -LIM + 4, LIM - 4), z = clamp(c.z + Math.sin(an) * r, -LIM + 4, LIM - 4); if (collides(x, z, 2.5) || Math.hypot(x, z) < 9) continue; fl.x = x; fl.z = z; break; }
+  fl.state = 'ground'; fl.t = 0;
+}
+function initFlocks() {
+  flocks.length = 0; const n = Math.min(16, CONFIG.population.flocks);
+  for (let i = 0; i < n; i++) { const fl = { x: 0, z: 0, state: 'ground', t: 0, dx: 0, dz: 0, birds: [] }; for (let k = 0; k < BIRDS_PER; k++) fl.birds.push({ ox: Math.random() * 4 - 2, oz: Math.random() * 4 - 2, ph: Math.random() * 6.283, dir: Math.random() * 6.283, sp: .8 + Math.random() * .5 }); placeFlock(fl, true); flocks.push(fl); }
+  birdMesh.count = n * BIRDS_PER;
+}
+function updateFlocks(dt) {
+  let idx = 0;
+  for (const fl of flocks) {
+    if (fl.state === 'ground') {
+      if (playing()) { const d = dist(P, fl); if (d < 7.5) { fl.state = 'fly'; fl.t = 0; const l = d || 1; fl.dx = (fl.x - P.x) / l; fl.dz = (fl.z - P.z) / l; if (AC && !muted) noise(.25, .035, 3800); } else if (d > 62) placeFlock(fl); }
+    } else { fl.t += dt; if (fl.t > 2.4) placeFlock(fl); }
+    for (const b of fl.birds) {
+      if (fl.state === 'ground') { const hop = Math.abs(Math.sin(G.t * 7 * b.sp + b.ph)); bObj.position.set(fl.x + b.ox, .14 + hop * .12, fl.z + b.oz); bObj.rotation.set(hop > .8 ? .5 : 0, b.dir + Math.sin(G.t * .7 + b.ph) * .6, 0); bObj.scale.set(.34, .28, .52); }
+      else { const t = fl.t, k = 11 * b.sp; bObj.position.set(fl.x + b.ox * (1 + t) + fl.dx * t * k, .2 + Math.min(5.5, t * 4.5) * b.sp, fl.z + b.oz * (1 + t) + fl.dz * t * k); bObj.rotation.set(-.3, Math.atan2(fl.dx, fl.dz), 0); const s = Math.max(0, 1 - Math.max(0, t - 1.3) / 1.1); bObj.scale.set((.4 + .7 * Math.abs(Math.sin(t * 28 + b.ph))) * s, .2 * s, .52 * s); }
+      bObj.updateMatrix(); birdMesh.setMatrixAt(idx++, bObj.matrix);
+    }
+  }
+  birdMesh.instanceMatrix.needsUpdate = true;
 }
 
 /* ---- シカ：見張りが1頭、気づくと群れごと走る ---- */
@@ -692,7 +734,7 @@ function spawnHerd(x, z, n, stampede) {
 function boltHerd(h, from) {
   if (!h || h.stampede || h.state === 'bolt') return;
   let cx = 0, cz = 0; h.members.forEach(m => { cx += m.x; cz += m.z; }); cx /= h.members.length || 1; cz /= h.members.length || 1;
-  let dx = cx - from.x, dz = cz - from.z; const l = Math.hypot(dx, dz) || 1; h.bx = dx / l; h.bz = dz / l; h.state = 'bolt'; h.boltT = 4 + Math.random(); h.alarm = 1;
+  let dx = cx - from.x, dz = cz - from.z; const l = Math.hypot(dx, dz) || 1; h.bx = dx / l; h.bz = dz / l; h.state = 'bolt'; h.boltT = 2.4 + Math.random() * .8; h.alarm = 1;
   if (playing() && dist(P, { x: cx, z: cz }) < 45) floatAt(h.sentinel || h.members[0] || { x: cx, z: cz }, '!', 'alert');
 }
 function updateHerd(h, dt) {
@@ -705,7 +747,7 @@ function updateHerd(h, dt) {
     return true;
   }
   if (h.state === 'graze') {
-    h.moveT -= dt; if (h.moveT <= 0) { const p = freeSpot(48, 116, 2); if (p && Math.hypot(p.x - h.x, p.z - h.z) < 45) { h.tx = p.x; h.tz = p.z; } h.moveT = 9 + Math.random() * 8; }
+    h.moveT -= dt; if (h.moveT <= 0) { const p = freeSpot(CONFIG.world.meadow * .8, H - 10, 2); if (p && Math.hypot(p.x - h.x, p.z - h.z) < 36) { h.tx = p.x; h.tz = p.z; } h.moveT = 9 + Math.random() * 8; }
     const ax = h.tx - h.x, az = h.tz - h.z, al = Math.hypot(ax, az); if (al > 1) { h.x += ax / al * 1.5 * dt; h.z += az / al * 1.5 * dt; }
     h.lookT -= dt; if (h.lookT <= 0) { h.lookDir = Math.random() * 6.283; h.lookT = 2.4 + Math.random() * 1.8; }
     if (playing()) {
@@ -758,7 +800,7 @@ function updateLion(a, dt) {
   }
   if (a.state === 'prowl') {
     if (a.sx != null && !a.raidHome) { const f = clamp(.9 - CONFIG.danger.closeInPerLevel * lv(), .2, .9); a.hx = a.sx * f; a.hz = a.sz * f; }
-    spd = wanderStep(a, dt, a.hx, a.hz, 26, S.walk);
+    spd = wanderStep(a, dt, a.hx, a.hz, 20, S.walk);
     a.huntScan = (a.huntScan || 1) - dt;
     if (a.huntScan <= 0) {
       a.huntScan = 1.5 + Math.random();
@@ -982,12 +1024,12 @@ function director(dt) {
   if (G.spawnT <= 0) {
     G.spawnT = 1;
     for (const b of world.burrows) if (b.count < CONFIG.population.rabbitsPerBurrow) { b.respT -= 1; if (b.respT <= 0 && (!play || dist(P, b) > 22)) { spawnRabbit(b); b.respT = CONFIG.population.rabbitRespawn * (.5 + Math.random() * .5); } }
-    if (herds.filter(h => !h.stampede).length < CONFIG.population.herds) { const p = freeSpot(52, 116, 2, play ? P : null, 45); if (p) spawnHerd(p.x, p.z, CONFIG.population.herdSize); }
+    if (herds.filter(h => !h.stampede).length < CONFIG.population.herds) { const p = freeSpot(CONFIG.world.meadow * .8, H - 10, 2, play ? P : null, 34); if (p) spawnHerd(p.x, p.z, CONFIG.population.herdSize); }
     const want = Math.min(D.lionsMax, Math.round(D.lionsBase + D.lionsPerLevel * (G.level - 1))), have = lionCount();
-    if (have < want) { const rmin = Math.max(58, 112 - G.level * 6), p = freeSpot(rmin, 122, 1.2, play ? P : null, 50); if (p) spawnLion('lion', p.x, p.z); }
-    else if (have > want + 3) { const far = animals.find(a => a.alive && a.kind === 'lion' && !a.alpha && a.state === 'prowl' && (!play || dist(P, a) > 60)); if (far) removeAnimal(far); }
+    if (have < want) { const rmin = Math.max(CONFIG.world.meadow + 6, H - 16 - G.level * 4), p = freeSpot(rmin, H - 5, 1.2, play ? P : null, 40); if (p) spawnLion('lion', p.x, p.z); }
+    else if (have > want + 3) { const far = animals.find(a => a.alive && a.kind === 'lion' && !a.alpha && a.state === 'prowl' && (!play || dist(P, a) > 46)); if (far) removeAnimal(far); }
     if (play && M.escalate && G.level >= Math.max(D.alphaLevel, G.alphaNext) && !animals.some(a => a.alive && a.alpha)) {
-      const an = Math.atan2(-P.x, -P.z) + (Math.random() - .5), p = { x: clamp(Math.sin(an) * 118, -LIM + 3, LIM - 3), z: clamp(Math.cos(an) * 118, -LIM + 3, LIM - 3) }; resolve(p, 1.5);
+      const an = Math.atan2(-P.x, -P.z) + (Math.random() - .5), p = { x: clamp(Math.sin(an) * (H - 8), -LIM + 3, LIM - 3), z: clamp(Math.cos(an) * (H - 8), -LIM + 3, LIM - 3) }; resolve(p, 1.5);
       const a = spawnLion('alpha', p.x, p.z); a.provoked = true; a.hp = Math.round(a.sp.hp * (1 + .5 * G.kills.alpha)); toast('主が現れた', '逃げ場はない。柱に激突させて、隙に噛め'); sfx('roar'); setEvent(() => a.alive ? a : null, '主', true); G.alphaNext = 1e9;
     }
     for (let i = animals.length - 1; i >= 0; i--) if (!animals[i].alive) animals.splice(i, 1);
@@ -1006,7 +1048,7 @@ function runEvent() {
   if (!G.evQueue.length) { G.evQueue = (M.hostile ? ['stampede', 'raid', 'night'] : ['stampede', 'night']).sort(() => Math.random() - .5); if (!G.evCount) { const i = G.evQueue.indexOf('stampede'); G.evQueue.splice(i, 1); G.evQueue.unshift('stampede'); } }
   const kind = G.evQueue.shift(); G.evCount++; sfx('event');
   if (kind === 'stampede') {
-    const an = Math.random() * 6.283, sx = Math.cos(an) * (H - 8), sz = Math.sin(an) * (H - 8), off = (Math.random() - .5) * 50;
+    const an = Math.random() * 6.283, sx = Math.cos(an) * (H - 8), sz = Math.sin(an) * (H - 8), off = (Math.random() - .5) * 40;
     const txx = -Math.cos(an) * H - Math.sin(an) * off, tzz = -Math.sin(an) * H + Math.cos(an) * off, l = Math.hypot(txx - sx, tzz - sz);
     const h = spawnHerd(sx, sz, E.stampedeSize, true); h.bx = (txx - sx) / l; h.bz = (tzz - sz) / l; h.state = 'stampede';
     if (M.hostile && G.level >= 3) for (let i = 0; i < 2; i++) { const p = { x: sx - h.bx * 4 + i * 3, z: sz - h.bz * 4 }; resolve(p, 1); const li = spawnLion('lion', p.x, p.z); li.state = 'hunt'; li.prey = h.members[h.members.length - 1 - i] || h.members[0]; li.huntT = 12; }
@@ -1014,7 +1056,7 @@ function runEvent() {
     setEvent(() => { const m = h.members.find(q => q.alive); return m || null; }, 'シカの大移動', false);
   } else if (kind === 'raid') {
     const n = E.raidBase + Math.floor(G.level / 4), an = Math.random() * 6.283; let first = null;
-    for (let i = 0; i < n; i++) { const p = { x: clamp(Math.cos(an) * 120 + i * 3, -LIM + 2, LIM - 2), z: clamp(Math.sin(an) * 120 - i * 3, -LIM + 2, LIM - 2) }; resolve(p, 1.2); const li = spawnLion('lion', p.x, p.z); li.state = 'stalk'; li.tgt = P; li.lostT = 0; li.lx = P.x; li.lz = P.z; li.raidT = 22; li.raidHome = true; li.hx = 0; li.hz = 0; first = first || li; }
+    for (let i = 0; i < n; i++) { const p = { x: clamp(Math.cos(an) * (H - 6) + i * 3, -LIM + 2, LIM - 2), z: clamp(Math.sin(an) * (H - 6) - i * 3, -LIM + 2, LIM - 2) }; resolve(p, 1.2); const li = spawnLion('lion', p.x, p.z); li.state = 'stalk'; li.tgt = P; li.lostT = 0; li.lx = P.x; li.lz = P.z; li.raidT = 22; li.raidHome = true; li.hx = 0; li.hz = 0; first = first || li; }
     toast('ライオンの群れが来る', n + '頭がこちらへ向かっている'); sfx('roar');
     const group = animals.filter(a => a.alive && a.raidT > 0); setEvent(() => group.find(a => a.alive && a.raidT > 0) || null, 'ライオンの群れ', true);
   } else {
@@ -1030,7 +1072,7 @@ function resetRun(mode) {
   buildWorld((Math.random() * 1e9) | 0);
   Object.assign(G, { mode, state: 'play', playT: 0, level: 1, night: 0, nightT: 0, shake: 0, freeze: 0, grow: 0, need: CONFIG.breed.need, born: 0, kcal: 0, kills: { rabbit: 0, deer: 0, lion: 0, alpha: 0 }, maxPack: 1, swaps: 0, eventT: CONFIG.events.firstAt, evQueue: [], evCount: 0, ev: null, alphaNext: 0, spawnT: 0, crashSeen: false, atDen: true });
   P = { x: 0, z: 2, dir: 0, hp: CONFIG.player.maxHP, maxHP: CONFIG.player.maxHP, hunger: CONFIG.hunger.start, stamina: CONFIG.player.staminaMax, atkCd: 0, hurtT: 0, lungeT: 0, lungeDir: 0, lungeCrit: null, moving: false, phase: 0, invuln: 0, vx: 0, vz: 0 };
-  populate();
+  populate(); initFlocks();
   cam.yaw = 0.35; cam.tx = P.x; cam.tz = P.z; huntTarget = null;
   playerView.g.visible = true; marker.visible = true;
   adv.last = {}; adv.t = 0; $('hint').classList.remove('on');
@@ -1039,8 +1081,8 @@ function resetRun(mode) {
 }
 function populate() {
   world.burrows.forEach(b => { b.count = 0; for (let i = 0; i < CONFIG.population.rabbitsPerBurrow; i++) spawnRabbit(b); });
-  for (let i = 0; i < CONFIG.population.herds; i++) { const p = freeSpot(52, 116, 2, P, 40); if (p) spawnHerd(p.x, p.z, CONFIG.population.herdSize); }
-  for (let i = 0; i < CONFIG.danger.lionsBase; i++) { const p = freeSpot(96, 122, 1.2, P, 60); if (p) spawnLion('lion', p.x, p.z); }
+  for (let i = 0; i < CONFIG.population.herds; i++) { const p = freeSpot(CONFIG.world.meadow * .8, H - 10, 2, P, 30); if (p) spawnHerd(p.x, p.z, CONFIG.population.herdSize); }
+  for (let i = 0; i < CONFIG.danger.lionsBase; i++) { const p = freeSpot(H - 24, H - 5, 1.2, P, 48); if (p) spawnLion('lion', p.x, p.z); }
 }
 function gameOver(cause, manual) {
   if (!playing()) return; G.state = 'over';
@@ -1061,7 +1103,7 @@ function updateCamera(dt) {
   if (G.state === 'title') { G.titleYaw += dt * .05; cam.tx = 0; cam.tz = 0; }
   else { cam.tx += (P.x - cam.tx) * Math.min(1, dt * 6); cam.tz += (P.z - cam.tz) * Math.min(1, dt * 6); }
   if (playing()) { if (k.KeyQ) cam.yaw -= dt * 1.8; if (k.KeyE) cam.yaw += dt * 1.8; }
-  const title = G.state === 'title', yaw = title ? G.titleYaw : cam.yaw, dst = title ? 120 : cam.dist, pitch = title ? .6 : cam.pitch;
+  const title = G.state === 'title', yaw = title ? G.titleYaw : cam.yaw, dst = title ? H * 1.05 : cam.dist, pitch = title ? .6 : cam.pitch;
   G.shake = Math.max(0, G.shake - dt * 2.2); const sh = G.shake * G.shake * 1.6, sx = (Math.random() - .5) * sh, sz = (Math.random() - .5) * sh;
   const n = G.night; skyC.copy(SKY_DAY).lerp(SKY_NIGHT, n); fog.color.copy(skyC); hemi.intensity = .72 - .42 * n; sun.intensity = .72 - .5 * n; hemi.color.copy(HEMI_DAY).lerp(HEMI_NIGHT, n); if (n !== G.nightShown) { G.nightShown = n; $('nightTint').style.opacity = n; } sun.color.copy(SUN_DAY).lerp(SUN_NIGHT, n);
   if (G.view === '3d' || title) {
@@ -1106,7 +1148,7 @@ function adviceTick() {
   else if (lion && lion.state === 'crouch') advise('dodge', '身を低くした！ 帯が赤くなった瞬間、横に飛べ', { cd: 25, prio: 5, go: true, dur: 2 });
   else if (lion) advise('lion', 'ライオンに狙われている。突進は柱を挟むと激突する。外した直後が噛むチャンス', { cd: 60, prio: 3 });
   if (huntTarget && huntKind && huntTarget.kind !== 'lion') advise('crit', huntKind + 'を取った！ ' + k + 'で会心', { cd: 30, prio: 4, go: true, dur: 2.5 });
-  else if (animals.some(a => a.alive && a.kind === 'rabbit' && a.state === 'wander' && near(a, 24))) advise('rabbit', 'ウサギは気づくと巣穴へ逃げ込む。扇形の視界に入らず、背後から飛びかかれ', { prio: 2 });
+  else if (animals.some(a => a.alive && a.kind === 'rabbit' && a.state === 'wander' && near(a, 24))) advise('rabbit', 'ウサギは気づくと少し逃げてこちらを見張る。追い詰めると巣穴へ消える。扇形の視界の外、背後から飛びかかれ', { prio: 2 });
   const herd = herds.find(h => !h.stampede && h.state === 'graze' && h.sentinel && near(h.sentinel, 32));
   if (herd) advise('deer', 'シカは見張りが1頭いる。扇形の視界の外か、柱の陰から近づけ', { cd: 120, prio: 2 });
   if (G.grow >= G.need && !G.atDen) advise('breed', '子育てゲージが満タン。巣に戻ると子が生まれ、群れ（残機）が増える', { cd: 30, prio: 3 });
@@ -1223,7 +1265,7 @@ document.addEventListener('touchmove', e => { if (e.touches.length > 1 || playin
 let lastTouchEnd = 0;
 document.addEventListener('touchend', e => { const now = Date.now(); if (now - lastTouchEnd < 350 && !(e.target.closest && e.target.closest('button,input,textarea'))) e.preventDefault(); lastTouchEnd = now; }, { passive: false });
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
-function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); cam3.aspect = w / h; cam3.updateProjectionMatrix(); if (coarse && h > w) cam.dist = Math.min(cam.dist, 28); }
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); cam3.aspect = w / h; cam3.fov = h > w ? 58 : 42; cam3.updateProjectionMatrix(); if (h > w) cam.dist = Math.min(cam.dist, 30); }
 addEventListener('resize', resize);
 
 /* ========= ループ ========= */
@@ -1234,7 +1276,7 @@ function simulate(dt) {
     if (adv.t > 0) { adv.t -= dt; if (adv.t <= 0) $('hint').classList.remove('on'); }
   }
   for (const a of animals) { if (!a.alive) continue; if (a.kind === 'rabbit') updateRabbit(a, dt); else if (a.kind === 'lion') updateLion(a, dt); }
-  director(dt);
+  director(dt); updateFlocks(dt);
   if (playing()) {
     updateAim(); updatePack(dt);
     pose(playerView, P.x, P.z, P.dir, P.phase, P.moving, P.lungeT > 0 ? { rx: -.2 } : null);
@@ -1245,7 +1287,7 @@ function simulate(dt) {
   }
   updateParticles(dt); updateRings(dt);
 }
-buildWorld((Math.random() * 1e9) | 0); populate(); buildTune(); refreshBest(); soundLabel(); setView('3d'); resize();
+buildWorld((Math.random() * 1e9) | 0); populate(); initFlocks(); buildTune(); refreshBest(); soundLabel(); setView('3d'); resize();
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now;
