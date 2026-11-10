@@ -302,7 +302,7 @@ const CONFIG = {
   stealth: { grassMul: 0.45, lungeMul: 1.7, stillMul: 0.55 },
   danger: { levelSeconds: 30, hungerPerLevel: 0.05, lionsBase: 2, lionsPerLevel: 1, lionsMax: 14, alphaLevel: 5, alphaEvery: 3, crouchPerLevel: 0.03, crouchMin: 0.65, closeInPerLevel: 0.06, hearPerLevel: 0.8, wolfLevel: 3, wolfLevel2: 7, wolfPack: 3, wolfRespawn: 30 },
   events: { firstAt: 40, interval: 45, nightSeconds: 25, stampedeSize: 10, raidBase: 2 },
-  population: { burrows: 18, rabbitsPerBurrow: 3, rabbitRespawn: 24, herds: 5, herdSize: 5, flocks: 14, boars: 3, nearRabbits: 5 },
+  population: { burrows: 18, rabbitsPerBurrow: 3, rabbitRespawn: 24, herds: 5, herdSize: 5, flocks: 7, boars: 3, nearRabbits: 5 },
   species: {
     rabbit: { name: 'ウサギ', hp: 1, speed: 15, radius: 0.45, sight: 9, cone: 170, hear: 4, alertRadius: 9, safeDist: 12, rebolt: 9, pressDist: 5, maxScares: 3, kcal: 120, hunger: 12 },
     deer:   { name: 'シカ', hp: 3, speed: 20, radius: 0.85, nearSense: 4.5, sentinelRange: 20, sentinelCone: 140, kcal: 420, hunger: 45 },
@@ -722,9 +722,9 @@ function updateRabbit(a, dt) {
 }
 
 /* ---- 小鳥：近づくと飛び立つだけの、にぎやかし。胴・頭・翼の3つの箱 ---- */
-const BIRDS_PER = 6, BIRD_MAX = 16 * BIRDS_PER * 3, birdMesh = new THREE.InstancedMesh(BOXG, new THREE.MeshLambertMaterial(), BIRD_MAX);
+const BIRDS_PER = 3, BIRD_MAX = 16 * BIRDS_PER * 3, birdMesh = new THREE.InstancedMesh(BOXG, new THREE.MeshLambertMaterial(), BIRD_MAX);
 birdMesh.frustumCulled = false; birdMesh.castShadow = true; birdMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(birdMesh);
-{ const c = new THREE.Color(), cols = [0x9a7d5c, 0x4f3d2f, 0x6b563f]; for (let i = 0; i < BIRD_MAX; i++) birdMesh.setColorAt(i, c.setHex(cols[i % 3])); }
+{ const c = new THREE.Color(0x7d6650); for (let i = 0; i < BIRD_MAX; i++) birdMesh.setColorAt(i, c); } // 3つの箱は同じ色。脇役らしく
 const flocks = [], bObj = new THREE.Object3D();
 function placeFlock(fl, first) {
   const c = playing() ? P : { x: 0, z: 0 };
@@ -733,8 +733,8 @@ function placeFlock(fl, first) {
 }
 function initFlocks() {
   flocks.length = 0; const n = Math.min(16, CONFIG.population.flocks);
-  for (let i = 0; i < n; i++) { const fl = { x: 0, z: 0, state: 'ground', t: 0, dx: 0, dz: 0, birds: [] }; for (let k = 0; k < BIRDS_PER; k++) fl.birds.push({ ox: Math.random() * 4 - 2, oz: Math.random() * 4 - 2, ph: Math.random() * 6.283, dir: Math.random() * 6.283, sp: .8 + Math.random() * .5 }); placeFlock(fl, true); flocks.push(fl); }
-  birdMesh.count = n * BIRDS_PER * 3;
+  for (let i = 0; i < n; i++) { const fl = { x: 0, z: 0, state: 'ground', t: 0, dx: 0, dz: 0, birds: [] }; for (let k = 0, nb = 1 + Math.floor(Math.random() * BIRDS_PER); k < nb; k++) fl.birds.push({ ox: Math.random() * 4 - 2, oz: Math.random() * 4 - 2, ph: Math.random() * 6.283, dir: Math.random() * 6.283, sp: .8 + Math.random() * .5 }); placeFlock(fl, true); flocks.push(fl); }
+  birdMesh.count = 0;
 }
 function birdPart(i, x, y, z, yaw, pitch, sx, sy, sz) { bObj.position.set(x, y, z); bObj.rotation.set(pitch, yaw, 0, 'YXZ'); bObj.scale.set(sx, sy, sz); bObj.updateMatrix(); birdMesh.setMatrixAt(i, bObj.matrix); }
 function updateFlocks(dt) {
@@ -753,7 +753,7 @@ function updateFlocks(dt) {
       birdPart(idx++, x - fx * .02, y + (fly ? .06 + flap * .12 : .05) * s, z - fz * .02, yaw, 0, (fly ? .7 + flap * .9 : .4) * s, .07 * s, .3 * s); // 翼
     }
   }
-  birdMesh.instanceMatrix.needsUpdate = true;
+  birdMesh.count = idx; birdMesh.instanceMatrix.needsUpdate = true;
 }
 
 /* ---- シカ：見張りが1頭、気づくと群れごと走る ---- */
