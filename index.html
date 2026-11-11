@@ -31,7 +31,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidd
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-offset:2px}
 
-/* 上段：体力・空腹・スタミナ・子育て。タップで詳細 */
+/* 上段：体力・空腹・スタミナ・繁栄。タップで詳細 */
 #vitals{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);width:min(460px,calc(100% - 32px));display:grid;grid-template-columns:1fr auto;gap:4px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px 4px;text-align:left;backdrop-filter:blur(6px)}
 #vitals:hover{border-color:rgba(239,235,220,.3)}
 .vt-bars{display:grid;gap:5px;min-width:0}
@@ -184,7 +184,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
         <span class="vt" id="hpRow"><span class="vt-label">体力</span><span class="vt-track"><i id="hpBar"></i></span><b id="hpNum">100</b></span>
         <span class="vt" id="hungry"><span class="vt-label">空腹</span><span class="vt-track"><i id="hgBar"></i></span><b id="hgNum">70</b></span>
         <span class="vt" id="stRow"><span class="vt-label">スタミナ</span><span class="vt-track"><i id="stBar"></i></span><b id="stNum">100</b></span>
-        <span class="vt" id="grRow"><span class="vt-label">子育て</span><span class="vt-track"><i id="grBar"></i></span><b id="grNum">0%</b></span>
+        <span class="vt" id="grRow"><span class="vt-label">繁栄</span><span class="vt-track"><i id="grBar"></i></span><b id="grNum">0%</b></span>
       </span>
       <span class="vt-pack"><small>群れ</small><strong id="pack">1</strong><small>残機</small></span>
       <span class="vt-more" id="vtMore" hidden>
@@ -233,7 +233,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
     <h1>新宿ワイルド</h1>
     <p class="goal-line"><b>目的</b>群れが尽きるまで、できるだけ長く生き延びる</p>
     <ol class="steps">
-      <li><b>狩って食べる</b><span>空腹が回復し、子育てゲージが貯まる</span></li>
+      <li><b>狩って食べる</b><span>空腹が回復し、繁栄ゲージが貯まる</span></li>
       <li><b>巣に戻る</b><span>ゲージ満タンで戻ると子が生まれる</span></li>
       <li><b>群れ＝残機</b><span>リーダーが倒れても子が引き継ぐ</span></li>
     </ol>
@@ -306,14 +306,14 @@ const CONFIG = {
   species: {
     rabbit: { name: 'ウサギ', hp: 1, speed: 15, radius: 0.45, sight: 9, cone: 170, hear: 4, alertRadius: 9, safeDist: 12, rebolt: 9, pressDist: 5, maxScares: 3, kcal: 120, hunger: 12 },
     deer:   { name: 'シカ', hp: 3, speed: 20, radius: 0.85, nearSense: 4.5, sentinelRange: 20, sentinelCone: 140, kcal: 420, hunger: 45 },
-    lion:   { name: 'ライオン', scale: 1.3, hp: 16, walk: 4, stalk: 8, run: 15, radius: 1.0, loseDist: 44, sight: 20, cone: 160, hear: 6, damage: 34, pounceRange: 9, crouch: 0.6, lockLead: 0.22, lead: 0.75, chargeSpeed: 30, chargeTime: 0.45, recover: 1.3, hitRecover: 0.9, crashRecover: 2.6, kcal: 500, hunger: 35 },
-    alpha:  { name: '主', hp: 45, walk: 5, stalk: 9, run: 13.5, radius: 1.65, loseDist: 9999, sight: 9999, cone: 360, hear: 9999, damage: 45, pounceRange: 11, crouch: 0.7, lockLead: 0.2, lead: 0.85, chargeSpeed: 32, chargeTime: 0.55, recover: 1.5, hitRecover: 0.9, crashRecover: 2.6, kcal: 2000, hunger: 100, scale: 2.1 },
-    boar:   { name: 'イノシシ', hp: 8, walk: 3, stalk: 3, run: 7, radius: 0.85, loseDist: 20, sight: 9, cone: 150, hear: 4.5, damage: 18, pounceRange: 10, crouch: 0.55, lockLead: 0.2, lead: 0.5, chargeSpeed: 24, chargeTime: 0.5, recover: 1.5, hitRecover: 1, crashRecover: 2.6, kcal: 700, hunger: 60 },
-    fox:    { name: 'キツネ', hp: 2, run: 14, radius: 0.45, sight: 20, cone: 200, hear: 6, damage: 6, orbit: 7, crouch: 0.34, lockLead: 0.14, lead: 0.6, chargeSpeed: 24, chargeTime: 0.3, recover: 1.1, dartEvery: 2.2, kcal: 60, hunger: 5 },
-    young:  { name: '若いライオン', hp: 9, walk: 4, stalk: 7, run: 13.5, radius: 0.75, loseDist: 32, sight: 16, cone: 150, hear: 5, damage: 20, pounceRange: 8, crouch: 0.65, lockLead: 0.22, lead: 0.65, chargeSpeed: 27, chargeTime: 0.42, recover: 1.4, hitRecover: 0.9, crashRecover: 2.6, kcal: 350, hunger: 28 },
-    leopard:{ name: 'ヒョウ', hp: 9, walk: 4.5, stalk: 9, run: 16, radius: 0.7, loseDist: 40, sight: 18, cone: 150, hear: 6, damage: 22, pounceRange: 10, crouch: 0.42, lockLead: 0.16, lead: 0.8, chargeSpeed: 36, chargeTime: 0.36, recover: 1.1, hitRecover: 0.8, crashRecover: 2.2, kcal: 400, hunger: 30 },
-    bear:   { name: 'クマ', scale: 1.45, hp: 24, walk: 3, stalk: 5, run: 10, radius: 1.4, loseDist: 30, sight: 14, cone: 150, hear: 6, damage: 30, pounceRange: 13, crouch: 0.85, lockLead: 0.25, lead: 0.6, chargeSpeed: 24, chargeTime: 0.7, recover: 1.9, hitRecover: 1.1, crashRecover: 3, kcal: 1200, hunger: 80 },
-    wolf:   { name: 'オオカミ', hp: 5, run: 15.5, radius: 0.6, sight: 22, cone: 200, hear: 7, damage: 12, orbit: 9, crouch: 0.38, lockLead: 0.14, lead: 0.7, chargeSpeed: 26, chargeTime: 0.34, recover: 1.0, dartEvery: 1.7, kcal: 300, hunger: 22 }
+    lion:   { name: 'ライオン', scale: 1.3, hp: 16, walk: 4, stalk: 8, run: 15, radius: 1.0, loseDist: 44, sight: 20, cone: 160, hear: 6, damage: 68, pounceRange: 9, crouch: 0.6, lockLead: 0.22, lead: 0.75, chargeSpeed: 30, chargeTime: 0.45, recover: 1.3, hitRecover: 0.9, crashRecover: 2.6, kcal: 500, hunger: 35 },
+    alpha:  { name: '主', hp: 45, walk: 5, stalk: 9, run: 13.5, radius: 1.65, loseDist: 9999, sight: 9999, cone: 360, hear: 9999, damage: 90, pounceRange: 11, crouch: 0.7, lockLead: 0.2, lead: 0.85, chargeSpeed: 32, chargeTime: 0.55, recover: 1.5, hitRecover: 0.9, crashRecover: 2.6, kcal: 2000, hunger: 100, scale: 2.1 },
+    boar:   { name: 'イノシシ', hp: 8, walk: 3, stalk: 3, run: 7, radius: 0.85, loseDist: 20, sight: 9, cone: 150, hear: 4.5, damage: 36, pounceRange: 10, crouch: 0.55, lockLead: 0.2, lead: 0.5, chargeSpeed: 24, chargeTime: 0.5, recover: 1.5, hitRecover: 1, crashRecover: 2.6, kcal: 700, hunger: 60 },
+    fox:    { name: 'キツネ', hp: 2, run: 14, radius: 0.45, sight: 20, cone: 200, hear: 6, damage: 12, orbit: 7, crouch: 0.34, lockLead: 0.14, lead: 0.6, chargeSpeed: 24, chargeTime: 0.3, recover: 1.1, dartEvery: 2.2, kcal: 60, hunger: 5 },
+    young:  { name: '若いライオン', hp: 9, walk: 4, stalk: 7, run: 13.5, radius: 0.75, loseDist: 32, sight: 16, cone: 150, hear: 5, damage: 40, pounceRange: 8, crouch: 0.65, lockLead: 0.22, lead: 0.65, chargeSpeed: 27, chargeTime: 0.42, recover: 1.4, hitRecover: 0.9, crashRecover: 2.6, kcal: 350, hunger: 28 },
+    leopard:{ name: 'ヒョウ', hp: 9, walk: 4.5, stalk: 9, run: 16, radius: 0.7, loseDist: 40, sight: 18, cone: 150, hear: 6, damage: 44, pounceRange: 10, crouch: 0.42, lockLead: 0.16, lead: 0.8, chargeSpeed: 36, chargeTime: 0.36, recover: 1.1, hitRecover: 0.8, crashRecover: 2.2, kcal: 400, hunger: 30 },
+    bear:   { name: 'クマ', scale: 1.45, hp: 24, walk: 3, stalk: 5, run: 10, radius: 1.4, loseDist: 30, sight: 14, cone: 150, hear: 6, damage: 60, pounceRange: 13, crouch: 0.85, lockLead: 0.25, lead: 0.6, chargeSpeed: 24, chargeTime: 0.7, recover: 1.9, hitRecover: 1.1, crashRecover: 3, kcal: 1200, hunger: 80 },
+    wolf:   { name: 'オオカミ', hp: 5, run: 15.5, radius: 0.6, sight: 22, cone: 200, hear: 7, damage: 24, orbit: 9, crouch: 0.38, lockLead: 0.14, lead: 0.7, chargeSpeed: 26, chargeTime: 0.34, recover: 1.0, dartEvery: 1.7, kcal: 300, hunger: 22 }
   },
   chain: { huntRange: 14, huntChance: 0.3, huntGiveUp: 6, eatSeconds: 5, eatDetectMul: 0.35 },
   modes: {
@@ -332,10 +332,10 @@ const TUNABLES = [
   { p: 'hunt.ambushDamage', label: '会心の威力', min: 1, max: 10, step: 1 },
   { p: 'pack.assistPerMember', label: '子1匹あたりの加勢', min: 0, max: 2, step: 0.1 },
   { p: 'species.lion.hp', label: 'ライオンの体力', min: 3, max: 40, step: 1 },
-  { p: 'species.boar.damage', label: 'イノシシの突進ダメージ', min: 5, max: 50, step: 1 },
-  { p: 'species.wolf.damage', label: 'オオカミの噛みつきダメージ', min: 2, max: 30, step: 1 },
+  { p: 'species.boar.damage', label: 'イノシシの突進ダメージ', min: 5, max: 100, step: 1 },
+  { p: 'species.wolf.damage', label: 'オオカミの噛みつきダメージ', min: 2, max: 60, step: 1 },
   { p: 'species.wolf.dartEvery', label: 'オオカミが飛び込む間隔（秒）', min: 0.6, max: 5, step: 0.1 },
-  { p: 'species.lion.damage', label: 'ライオンの突進ダメージ', min: 5, max: 60, step: 1 },
+  { p: 'species.lion.damage', label: 'ライオンの突進ダメージ', min: 5, max: 120, step: 1 },
   { p: 'species.lion.crouch', label: 'ライオンの予兆（秒）', min: 0.2, max: 1.5, step: 0.05 },
   { p: 'species.lion.recover', label: 'ライオンが外した後の隙（秒）', min: 0.3, max: 4, step: 0.1 },
   { p: 'species.lion.lead', label: 'ライオンの先読み（0〜1）', min: 0, max: 1, step: 0.05 },
@@ -1067,7 +1067,7 @@ function killed(a, crit, byCrash) {
   if (!playing()) return;
   sfx('kill'); G.freeze = Math.max(G.freeze, .06); G.shake = Math.max(G.shake, .3);
   P.hunger = Math.min(CONFIG.hunger.max, P.hunger + S.hunger);
-  const was = G.grow >= G.need; G.grow = Math.min(G.need, G.grow + S.hunger); if (!was && G.grow >= G.need) { sfx('ready'); toast('子育てゲージ満タン', '巣に戻ると子が生まれる'); }
+  const was = G.grow >= G.need; G.grow = Math.min(G.need, G.grow + S.hunger); if (!was && G.grow >= G.need) { sfx('ready'); toast('繁栄ゲージ満タン', '巣に戻ると子が生まれる'); }
   G.kcal += S.kcal; if (a.alpha) { G.kills.alpha++; toast('主を倒した', '+' + CONFIG.score.perAlpha + ' ポイント'); G.alphaNext = G.level + CONFIG.danger.alphaEvery; } else G.kills[a.kind]++;
   floatAt(a, (byCrash ? '激突で仕留めた ' : crit ? '会心！ ' : '') + '+' + S.kcal + 'kcal', crit || byCrash ? 'perfect' : 'eat', 1.1);
 }
@@ -1291,7 +1291,7 @@ function advise(key, text, o) {
 function adviceTick() {
   if (G.playT < 1) return;
   const k = coarse ? '攻撃ボタン' : 'Space', near = (a, r) => dist(P, a) < r;
-  advise('goal', '目的は、群れが尽きるまで生き延びること。食べて子育てゲージを貯め、巣に戻ると子（残機）が増える', { prio: 4, dur: 7 });
+  advise('goal', '目的は、群れが尽きるまで生き延びること。食べて繁栄ゲージを貯め、巣に戻ると子（残機）が増える', { prio: 4, dur: 7 });
   advise('ctrl', coarse ? '左のスティックで移動、画面ドラッグで回転。攻撃ボタンは倒した方向へ飛び、連打でダッシュにもなる' : 'WASDで移動、ドラッグで回転。Spaceで入力方向へ飛びかかり、連打でダッシュにもなる', { prio: 1 });
   const foe = animals.find(a => a.alive && charger(a) && a.kind !== 'lion' && near(a, 26) && (a.state === 'crouch' || a.state === 'stalk' || a.state === 'recover'));
   if (foe && foe.state === 'recover') advise('punish', '隙だらけだ！ 今のうちに' + k + 'で噛め', { cd: 20, prio: 5, go: true, dur: 2.5 });
@@ -1308,7 +1308,7 @@ function adviceTick() {
   else if (animals.some(a => a.alive && a.kind === 'rabbit' && a.state === 'wander' && near(a, 24))) advise('rabbit', 'ウサギは気づくと少し逃げてこちらを見張る。追い詰めると巣穴へ消える。顔の向きを見て、背後から飛びかかれ', { prio: 2 });
   const herd = herds.find(h => !h.stampede && h.state === 'graze' && h.sentinel && near(h.sentinel, 32));
   if (herd) advise('deer', 'シカは顔を上げた見張りが1頭いる。その背後か、柱の陰から近づけ', { cd: 120, prio: 2 });
-  if (G.grow >= G.need && !G.atDen) advise('breed', '子育てゲージが満タン。巣に戻ると子が生まれ、群れ（残機）が増える', { cd: 30, prio: 3 });
+  if (G.grow >= G.need && !G.atDen) advise('breed', '繁栄ゲージが満タン。巣に戻ると子が生まれ、群れ（残機）が増える', { cd: 30, prio: 3 });
   if (P.hp / P.maxHP < .35) advise('lowhp', '体力が少ない。巣の輪の中にいると回復する', { cd: 40, prio: 3 });
   if (P.hunger < 10) advise('starve', '飢え死に寸前。ウサギでもいいので何か食べよう', { cd: 30, prio: 3 });
   else if (P.hunger < 30) advise('hungry', '空腹になってきた。外へ行くほど獲物は多いが、危険も増える', { cd: 60, prio: 2 });
