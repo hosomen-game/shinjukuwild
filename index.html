@@ -241,7 +241,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
     </ol>
     <div class="modes">
       <button class="mode" id="btnSurvival"><span class="mode-name">延命</span><span class="mode-desc">30秒ごとに危険度が上がり、弱い肉食から順に現れる。外周からは野火が迫り、動ける範囲が狭まる。群れの数が残機。どこまで生き延びられるか。</span></button>
-      <button class="mode" id="btnDefense"><span class="mode-name">防衛</span><span class="mode-desc">巣にいる5匹の子犬を、食べに来る肉食から守る。食べるほど子犬が増え、貯めた食料を巣に持ち帰ると子犬が回復する。子犬が尽きたら終わり。</span></button>
+      <button class="mode" id="btnDefense"><span class="mode-name">防衛</span><span class="mode-desc">巣にいる10匹の子犬を、食べに来る肉食から守る。食べるほど子犬が増え、貯めた食料を巣に持ち帰ると子犬が回復する。子犬が尽きたら終わり。</span></button>
       <button class="mode" id="btnRelax"><span class="mode-name">のんびり</span><span class="mode-desc">危険度は上がらず、敵はこちらから噛まない限りおとなしい。倒れない。好きなだけ狩って群れを育てる。</span></button>
     </div>
     <dl class="keys desk">
@@ -304,7 +304,7 @@ const CONFIG = {
   hunt: { awareLimit: 0.5, backCos: -0.25, ambushDamage: 3 },
   stealth: { grassMul: 0.45, lungeMul: 1.7, stillMul: 0.55 },
   danger: { levelSeconds: 30, hungerPerLevel: 0.05, lionsBase: 2, lionsMax: 8, alphaLevel: 7, alphaEvery: 3, speedPerLevel: 0, speedMax: 1.5, foxAt: 5, foxMax: 4, leopardLevel: 3, bearLevel: 5, crouchPerLevel: 0.03, crouchMin: 0.65, closeInPerLevel: 0.06, hearPerLevel: 0.8, wolfLevel: 2, wolfLevel2: 5, wolfPack: 3, wolfRespawn: 30 },
-  defense: { pups: 5, penRadius: 9, pupHP: 60, pupDamageMul: 0.35, feedPerSec: 40, pupBite: 0.5, biteEvery: 1.1, fearHP: 0.4, tgtPupChance: 0.75, assistMax: 2, swarm: 5, maxFoes: 45 },
+  defense: { pups: 10, penRadius: 9, pupHP: 60, pupDamageMul: 0.35, feedPerSec: 40, pupBite: 0.5, biteEvery: 1.1, fearHP: 0.4, tgtPupChance: 0.75, assistMax: 2, swarm: 5, maxFoes: 45 },
   fire: { startAt: 30, endAt: 270, r0: 100, rMin: 26, dps: 14 },
   events: { firstAt: 40, interval: 45, nightSeconds: 25, stampedeSize: 10, raidBase: 2 },
   population: { burrows: 18, rabbitsPerBurrow: 3, rabbitRespawn: 24, herds: 5, herdSize: 5, flocks: 7, boars: 3, nearRabbits: 5 },
