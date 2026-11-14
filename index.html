@@ -229,7 +229,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 
 <div id="title" class="screen">
   <div class="card">
-    <p class="eyebrow">試作版 v0.3.3 ・ HTMLプロトタイプ</p>
+    <p class="eyebrow">試作版 v0.3.4 ・ HTMLプロトタイプ</p>
     <h1>新宿ワイルド</h1>
     <p class="goal-line"><b>目的</b>群れが尽きるまで、できるだけ長く生き延びる</p>
     <ol class="steps">
@@ -290,9 +290,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 'use strict';
 /* ========= バランスデータ ========= */
 const CONFIG = {
-  version: 'proto-0.3.3',
+  version: 'proto-0.3.4',
   world: { half: 84, denRadius: 7, meadow: 30, ruins: 58 },
-  player: { speed: 13, staminaMax: 100, staminaRegen: 18, maxHP: 100, biteDamage: 1, radius: 0.45, swapInvuln: 1.5 },
+  player: { speed: 13, staminaMax: 100, staminaRegen: 18, staminaDelay: 0.6, maxHP: 100, biteDamage: 1, radius: 0.45, swapInvuln: 1.5 },
   attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, staminaCost: 16, hitPad: 0.4, assistDeg: 18 },
   hunger: { max: 100, start: 70, decayPerSec: 1.7, starveDamagePerSec: 6, perPup: 0.1 },
   breed: { need: 120, needGrowth: 1.25, maxPack: 10 },
@@ -300,20 +300,20 @@ const CONFIG = {
   den: { healPerSec: 6 },
   hunt: { awareLimit: 0.5, backCos: -0.25, ambushDamage: 3 },
   stealth: { grassMul: 0.45, lungeMul: 1.7, stillMul: 0.55 },
-  danger: { levelSeconds: 30, hungerPerLevel: 0.05, lionsBase: 2, lionsMax: 8, alphaLevel: 7, alphaEvery: 3, foxAt: 5, foxMax: 4, leopardLevel: 3, bearLevel: 5, crouchPerLevel: 0.03, crouchMin: 0.65, closeInPerLevel: 0.06, hearPerLevel: 0.8, wolfLevel: 2, wolfLevel2: 5, wolfPack: 3, wolfRespawn: 30 },
+  danger: { levelSeconds: 30, hungerPerLevel: 0.05, lionsBase: 2, lionsMax: 8, alphaLevel: 7, alphaEvery: 3, speedPerLevel: 0.02, speedMax: 1.5, foxAt: 5, foxMax: 4, leopardLevel: 3, bearLevel: 5, crouchPerLevel: 0.03, crouchMin: 0.65, closeInPerLevel: 0.06, hearPerLevel: 0.8, wolfLevel: 2, wolfLevel2: 5, wolfPack: 3, wolfRespawn: 30 },
   events: { firstAt: 40, interval: 45, nightSeconds: 25, stampedeSize: 10, raidBase: 2 },
   population: { burrows: 18, rabbitsPerBurrow: 3, rabbitRespawn: 24, herds: 5, herdSize: 5, flocks: 7, boars: 3, nearRabbits: 5 },
   species: {
     rabbit: { name: 'ウサギ', hp: 1, speed: 15, radius: 0.45, sight: 9, cone: 170, hear: 4, alertRadius: 9, safeDist: 12, rebolt: 9, pressDist: 5, maxScares: 3, kcal: 120, hunger: 12 },
     deer:   { name: 'シカ', hp: 3, speed: 20, radius: 0.85, nearSense: 4.5, sentinelRange: 20, sentinelCone: 140, kcal: 420, hunger: 45 },
-    lion:   { name: 'ライオン', scale: 1.3, hp: 16, walk: 4, stalk: 8, run: 15, radius: 1.0, loseDist: 44, sight: 20, cone: 160, hear: 6, damage: 68, pounceRange: 9, crouch: 0.6, lockLead: 0.22, lead: 0.75, chargeSpeed: 30, chargeTime: 0.45, recover: 1.3, hitRecover: 0.9, crashRecover: 2.6, kcal: 500, hunger: 35 },
-    alpha:  { name: '主', hp: 45, walk: 5, stalk: 9, run: 13.5, radius: 1.65, loseDist: 9999, sight: 9999, cone: 360, hear: 9999, damage: 90, pounceRange: 11, crouch: 0.7, lockLead: 0.2, lead: 0.85, chargeSpeed: 32, chargeTime: 0.55, recover: 1.5, hitRecover: 0.9, crashRecover: 2.6, kcal: 2000, hunger: 100, scale: 2.1 },
+    lion:   { name: 'ライオン', scale: 1.3, hp: 16, walk: 4, stalk: 8, run: 16.5, radius: 1.0, loseDist: 44, sight: 20, cone: 160, hear: 6, damage: 68, pounceRange: 9, crouch: 0.6, lockLead: 0.22, lead: 0.75, chargeSpeed: 30, chargeTime: 0.45, recover: 1.3, hitRecover: 0.9, crashRecover: 2.6, kcal: 500, hunger: 35 },
+    alpha:  { name: '主', hp: 45, walk: 5, stalk: 9, run: 15.5, radius: 1.65, loseDist: 9999, sight: 9999, cone: 360, hear: 9999, damage: 90, pounceRange: 11, crouch: 0.7, lockLead: 0.2, lead: 0.85, chargeSpeed: 32, chargeTime: 0.55, recover: 1.5, hitRecover: 0.9, crashRecover: 2.6, kcal: 2000, hunger: 100, scale: 2.1 },
     boar:   { name: 'イノシシ', hp: 8, walk: 3, stalk: 3, run: 7, radius: 0.85, loseDist: 20, sight: 9, cone: 150, hear: 4.5, damage: 36, pounceRange: 10, crouch: 0.55, lockLead: 0.2, lead: 0.5, chargeSpeed: 24, chargeTime: 0.5, recover: 1.5, hitRecover: 1, crashRecover: 2.6, kcal: 700, hunger: 60 },
-    fox:    { name: 'キツネ', hp: 2, run: 14, radius: 0.45, sight: 20, cone: 200, hear: 6, damage: 12, orbit: 7, crouch: 0.34, lockLead: 0.14, lead: 0.6, chargeSpeed: 24, chargeTime: 0.3, recover: 1.1, dartEvery: 2.2, kcal: 60, hunger: 5 },
-    young:  { name: '若いライオン', hp: 9, walk: 4, stalk: 7, run: 13.5, radius: 0.75, loseDist: 32, sight: 16, cone: 150, hear: 5, damage: 40, pounceRange: 8, crouch: 0.65, lockLead: 0.22, lead: 0.65, chargeSpeed: 27, chargeTime: 0.42, recover: 1.4, hitRecover: 0.9, crashRecover: 2.6, kcal: 350, hunger: 28 },
-    leopard:{ name: 'ヒョウ', hp: 9, walk: 4.5, stalk: 9, run: 16, radius: 0.7, loseDist: 40, sight: 18, cone: 150, hear: 6, damage: 44, pounceRange: 10, crouch: 0.42, lockLead: 0.16, lead: 0.8, chargeSpeed: 36, chargeTime: 0.36, recover: 1.1, hitRecover: 0.8, crashRecover: 2.2, kcal: 400, hunger: 30 },
-    bear:   { name: 'クマ', scale: 1.45, hp: 24, walk: 3, stalk: 5, run: 10, radius: 1.4, loseDist: 30, sight: 14, cone: 150, hear: 6, damage: 60, pounceRange: 13, crouch: 0.85, lockLead: 0.25, lead: 0.6, chargeSpeed: 24, chargeTime: 0.7, recover: 1.9, hitRecover: 1.1, crashRecover: 3, kcal: 1200, hunger: 80 },
-    wolf:   { name: 'オオカミ', hp: 5, run: 15.5, radius: 0.6, sight: 22, cone: 200, hear: 7, damage: 24, orbit: 9, crouch: 0.38, lockLead: 0.14, lead: 0.7, chargeSpeed: 26, chargeTime: 0.34, recover: 1.0, dartEvery: 1.7, kcal: 300, hunger: 22 }
+    fox:    { name: 'キツネ', hp: 2, run: 16, radius: 0.45, sight: 20, cone: 200, hear: 6, damage: 12, orbit: 7, crouch: 0.34, lockLead: 0.14, lead: 0.6, chargeSpeed: 24, chargeTime: 0.3, recover: 1.1, dartEvery: 2.2, kcal: 60, hunger: 5 },
+    young:  { name: '若いライオン', hp: 9, walk: 4, stalk: 7, run: 15, radius: 0.75, loseDist: 32, sight: 16, cone: 150, hear: 5, damage: 40, pounceRange: 8, crouch: 0.65, lockLead: 0.22, lead: 0.65, chargeSpeed: 27, chargeTime: 0.42, recover: 1.4, hitRecover: 0.9, crashRecover: 2.6, kcal: 350, hunger: 28 },
+    leopard:{ name: 'ヒョウ', hp: 9, walk: 4.5, stalk: 9, run: 17, radius: 0.7, loseDist: 40, sight: 18, cone: 150, hear: 6, damage: 44, pounceRange: 10, crouch: 0.42, lockLead: 0.16, lead: 0.8, chargeSpeed: 36, chargeTime: 0.36, recover: 1.1, hitRecover: 0.8, crashRecover: 2.2, kcal: 400, hunger: 30 },
+    bear:   { name: 'クマ', scale: 1.45, hp: 24, walk: 3, stalk: 5, run: 11.5, radius: 1.4, loseDist: 30, sight: 14, cone: 150, hear: 6, damage: 60, pounceRange: 13, crouch: 0.85, lockLead: 0.25, lead: 0.6, chargeSpeed: 24, chargeTime: 0.7, recover: 1.9, hitRecover: 1.1, crashRecover: 3, kcal: 1200, hunger: 80 },
+    wolf:   { name: 'オオカミ', hp: 5, run: 16, radius: 0.6, sight: 22, cone: 200, hear: 7, damage: 24, orbit: 9, crouch: 0.38, lockLead: 0.14, lead: 0.7, chargeSpeed: 26, chargeTime: 0.34, recover: 1.0, dartEvery: 1.7, kcal: 300, hunger: 22 }
   },
   chain: { huntRange: 14, huntChance: 0.3, huntGiveUp: 6, eatSeconds: 5, eatDetectMul: 0.35 },
   modes: {
@@ -328,6 +328,8 @@ const setPath = (o, p, v) => { const ks = p.split('.'); const l = ks.pop(); ks.r
 const TUNABLES = [
   { p: 'player.speed', label: 'ダックスの移動速度', min: 5, max: 24, step: 0.5 },
   { p: 'attack.staminaCost', label: '攻撃1回のスタミナ', min: 4, max: 40, step: 1 },
+  { p: 'player.staminaDelay', label: '飛びかかり後、スタミナが戻りはじめるまで（秒）', min: 0, max: 2, step: 0.1 },
+  { p: 'danger.speedPerLevel', label: '危険度ごとの敵の追う速さの増加', min: 0, max: 0.08, step: 0.005 },
   { p: 'attack.assistDeg', label: '狙いの微補正（度、0で無し）', min: 0, max: 45, step: 1 },
   { p: 'hunt.ambushDamage', label: '会心の威力', min: 1, max: 10, step: 1 },
   { p: 'pack.assistPerMember', label: '子1匹あたりの加勢', min: 0, max: 2, step: 0.1 },
@@ -823,7 +825,7 @@ function updateHerd(h, dt) {
 const lerp = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
 
 /* ---- ライオン：身を低くする → 突進 → 外すと隙 ---- */
-function spawnLion(type, x, z) { const a = spawn(type, x, z); a.state = 'prowl'; a.sx = x; a.sz = z; a.hx = x * .85; a.hz = z * .85; if (type !== 'lion' && type !== 'alpha') { a.hx = x; a.hz = z; a.raidHome = true; } return a; }
+function spawnLion(type, x, z) { const a = spawn(type, x, z); a.state = 'prowl'; a.flank = Math.random() < .5; a.sx = x; a.sz = z; a.hx = x * .85; a.hz = z * .85; if (type !== 'lion' && type !== 'alpha') { a.hx = x; a.hz = z; a.raidHome = true; } return a; }
 const charger = a => !!a.sp.damage;
 function laneShow(a, on, len, wd) {
   if (!on) { if (a.lane) a.lane.visible = false; return; }
@@ -832,6 +834,7 @@ function laneShow(a, on, len, wd) {
   lane.material.opacity = a.state === 'charge' ? .55 : a.locked ? .5 : .1 + .2 * (1 - a.crouchT / a.crouchMax); lane.material.color.setHex(a.locked || a.state === 'charge' ? 0xff3b2a : 0xe8a23d);
 }
 const lv = () => (CONFIG.modes[G.mode].escalate ? G.level - 1 : 0);
+const chaseMul = () => Math.min(CONFIG.danger.speedMax, 1 + CONFIG.danger.speedPerLevel * lv()); // 追う速さは危険度で上がる
 function lionTarget(a) {
   if (!playing()) return null; const M = CONFIG.modes[G.mode]; if (!M.hostile && !a.provoked) return null;
   let best = null, bd = 1e9; const S = a.sp;
@@ -870,11 +873,15 @@ function updateLion(a, dt) {
     const t = a.tgt;
     if (!tgtAlive(t)) { a.state = 'prowl'; a.timer = 0; }
     else {
-      const d = dist(t, a); a.raidT = (a.raidT || 0) - dt; const vis = a.alpha || a.raidT > 0 || losCached(a, t);
+      const d = dist(t, a), flee = t === P && d > .1 && (P.vx * (t.x - a.x) + P.vz * (t.z - a.z)) / d > 6; a.raidT = (a.raidT || 0) - dt; const vis = a.alpha || a.raidT > 0 || losCached(a, t);
       if (vis) { a.lostT = 0; a.lx = t.x; a.lz = t.z; } else a.lostT += dt;
       if (a.lostT > 4 || (a.raidT <= 0 && d > S.loseDist)) { a.state = 'prowl'; a.timer = 0; floatAt(a, '?', 'q'); }
-      else if (d <= S.pounceRange && losClear(a.x, a.z, t.x, t.z)) { a.state = 'crouch'; a.locked = false; a.crouchT = a.crouchMax = S.crouch * Math.max(CONFIG.danger.crouchMin, 1 - CONFIG.danger.crouchPerLevel * lv()); a.cdir = Math.atan2(t.x - a.x, t.z - a.z); if (dist(P, a) < 30) sfx('growl'); }
-      else { a.mx = a.lx - a.x; a.mz = a.lz - a.z; spd = d > S.pounceRange * 1.8 ? S.run * (1 + .1 * G.night) : S.stalk; if (!vis && a.mx * a.mx + a.mz * a.mz < 3) spd = 0; }
+      else if (d <= S.pounceRange && losClear(a.x, a.z, t.x, t.z)) { a.state = 'crouch'; a.locked = false; a.crouchT = a.crouchMax = S.crouch * (flee ? .75 : 1) * Math.max(CONFIG.danger.crouchMin, 1 - CONFIG.danger.crouchPerLevel * lv()); a.cdir = Math.atan2(t.x - a.x, t.z - a.z); if (dist(P, a) < 30) sfx('growl'); }
+      else {
+        a.mx = a.lx - a.x; a.mz = a.lz - a.z;
+        if (vis && flee) { const lead = Math.min(1.3, d / (S.run * 1.3)) * (a.flank ? 1 : .45); a.mx += P.vx * lead; a.mz += P.vz * lead; } // 逃げる相手には先回りする
+        spd = d > S.pounceRange * 1.8 || flee ? S.run * chaseMul() * (1 + .1 * G.night) : S.stalk; if (!vis && a.mx * a.mx + a.mz * a.mz < 3) spd = 0;
+      }
     }
   } else if (a.state === 'crouch') {
     const t = a.tgt; a.crouchT -= dt; a.moving = false;
@@ -963,7 +970,7 @@ function updateWolfPack(w, dt) {
       m.recT -= dt; m.moving = false; o = { rz: Math.sin(G.t * 10) * .1 }; if (m.recT <= 0) m.state = 'stalk';
     } else {
       m.state = 'stalk';
-      if (tgtAlive(t)) { m.ang += m.osign * dt * .9; m.mx = t.x + Math.cos(m.ang) * S.orbit - m.x; m.mz = t.z + Math.sin(m.ang) * S.orbit - m.z; const dl = Math.hypot(m.mx, m.mz); moveA(m, Math.min(S.run, dl * 2.5 + 3), dt, 7); if (dl < 2) m.dir = lerpAng(m.dir, Math.atan2(t.x - m.x, t.z - m.z), Math.min(1, dt * 6)); }
+      if (tgtAlive(t)) { m.ang += m.osign * dt * .9; m.mx = t.x + Math.cos(m.ang) * S.orbit - m.x; m.mz = t.z + Math.sin(m.ang) * S.orbit - m.z; const dl = Math.hypot(m.mx, m.mz); moveA(m, Math.min(S.run * chaseMul(), dl * 2.5 + 3), dt, 7); if (dl < 2) m.dir = lerpAng(m.dir, Math.atan2(t.x - m.x, t.z - m.z), Math.min(1, dt * 6)); }
     }
     laneShow(m, m.state === 'crouch' || m.state === 'charge', S.chargeSpeed * S.chargeTime + 1, (S.radius + .55) * 2);
     fanShow(m, S.sight * (1 + .25 * G.night), S.cone, 0, w.state === 'roam' && !lone && playing() && dist(P, m) < 50 && (CONFIG.modes[G.mode].hostile || m.provoked));
@@ -1043,7 +1050,7 @@ function tryAttack(mvx, mvz) {
   // 微補正：飛ぶ方向のごく近く（既定18度以内）に届く相手がいるときだけ、そちらへ合わせる。逃げる方向は変えない
   const t = frontTarget(dir); if (t) dir = Math.atan2(t.x - P.x, t.z - P.z);
   P.lungeCrit = new Set(animals.filter(a => a.alive && dist(P, a) < reach() + a.sp.radius + 1 && ambushKind(a)));
-  P.lungeT = A.lungeTime; P.lungeDir = dir; P.dir = dir; P.stamina -= A.staminaCost; P.atkCd = A.cooldown;
+  P.lungeT = A.lungeTime; P.lungeDir = dir; P.dir = dir; P.stamina -= A.staminaCost; P.stamDelay = CONFIG.player.staminaDelay; P.atkCd = A.cooldown;
   sfx('lunge'); burst(P.x, .15, P.z, 4, 0xb9b08f, 3, .16, 2);
 }
 function hit(a) {
@@ -1098,7 +1105,7 @@ function updatePlayer(dt) {
     }
     spd = A.lungeSpeed; P.moving = true;
   } else if (P.moving) { P.x += vx * spd * dt; P.z += vz * spd * dt; P.dir = lerpAng(P.dir, Math.atan2(vx, vz), Math.min(1, dt * 12)); resolve(P, C.radius); }
-  P.stamina = clamp(P.stamina + (P.lungeT > 0 ? 0 : C.staminaRegen) * dt, 0, C.staminaMax);
+  P.stamDelay = (P.stamDelay || 0) - dt; P.stamina = clamp(P.stamina + (P.lungeT > 0 || P.stamDelay > 0 ? 0 : C.staminaRegen) * dt, 0, C.staminaMax);
   const decay = CONFIG.hunger.decayPerSec * M.hungerMul * (1 + pack.length * CONFIG.hunger.perPup) * (1 + CONFIG.danger.hungerPerLevel * (G.level - 1));
   P.hunger = Math.max(0, P.hunger - decay * dt);
   if (P.hunger <= 0) { P.hp -= CONFIG.hunger.starveDamagePerSec * dt; if (!M.canDie) P.hp = Math.max(P.hp, 15); if (P.hp <= 0) { if (pack.length) succeed('飢え'); else gameOver('飢えに倒れた'); } }
