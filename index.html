@@ -132,7 +132,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 .steps li{counter-increment:st;display:grid;gap:3px;align-content:start;background:rgba(239,235,220,.05);border:1px solid var(--line);border-radius:8px;padding:9px 10px 10px}
 .steps li::before{content:counter(st);font-family:var(--display);font-size:13px;color:var(--rose);line-height:1}
 .steps b{font-size:13.5px} .steps span{font-size:11.5px;line-height:1.5;color:var(--mute)}
-.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .mode{text-align:left;background:rgba(239,235,220,.05);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:6px}
 .mode:hover{border-color:var(--moss);background:rgba(169,201,75,.1)}
 .mode-name{font-family:var(--display);font-size:20px}
@@ -231,7 +231,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 
 <div id="title" class="screen">
   <div class="card">
-    <p class="eyebrow">試作版 v0.3.5 ・ HTMLプロトタイプ</p>
+    <p class="eyebrow">試作版 v0.4.0 ・ HTMLプロトタイプ</p>
     <h1>新宿ワイルド</h1>
     <p class="goal-line"><b>目的</b>群れが尽きるまで、できるだけ長く生き延びる</p>
     <ol class="steps">
@@ -241,6 +241,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
     </ol>
     <div class="modes">
       <button class="mode" id="btnSurvival"><span class="mode-name">延命</span><span class="mode-desc">30秒ごとに危険度が上がり、弱い肉食から順に現れる。外周からは野火が迫り、動ける範囲が狭まる。群れの数が残機。どこまで生き延びられるか。</span></button>
+      <button class="mode" id="btnDefense"><span class="mode-name">防衛</span><span class="mode-desc">巣にいる10匹の子犬を、食べに来る肉食から守る。獲物を食べて食料を貯め、巣に戻ると子犬が回復する。子犬が尽きたら終わり。</span></button>
       <button class="mode" id="btnRelax"><span class="mode-name">のんびり</span><span class="mode-desc">危険度は上がらず、敵はこちらから噛まない限りおとなしい。倒れない。好きなだけ狩って群れを育てる。</span></button>
     </div>
     <dl class="keys desk">
@@ -292,7 +293,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 'use strict';
 /* ========= バランスデータ ========= */
 const CONFIG = {
-  version: 'proto-0.3.5',
+  version: 'proto-0.4.0',
   world: { half: 84, denRadius: 7, meadow: 30, ruins: 58 },
   player: { speed: 13, staminaMax: 100, staminaRegen: 18, staminaDelay: 0, maxHP: 100, biteDamage: 1, radius: 0.45, swapInvuln: 1.5 },
   attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, staminaCost: 16, hitPad: 0.4, assistDeg: 18 },
@@ -303,6 +304,7 @@ const CONFIG = {
   hunt: { awareLimit: 0.5, backCos: -0.25, ambushDamage: 3 },
   stealth: { grassMul: 0.45, lungeMul: 1.7, stillMul: 0.55 },
   danger: { levelSeconds: 30, hungerPerLevel: 0.05, lionsBase: 2, lionsMax: 8, alphaLevel: 7, alphaEvery: 3, speedPerLevel: 0, speedMax: 1.5, foxAt: 5, foxMax: 4, leopardLevel: 3, bearLevel: 5, crouchPerLevel: 0.03, crouchMin: 0.65, closeInPerLevel: 0.06, hearPerLevel: 0.8, wolfLevel: 2, wolfLevel2: 5, wolfPack: 3, wolfRespawn: 30 },
+  defense: { pups: 10, penRadius: 9, pupHP: 60, pupDamageMul: 0.35, feedPerSec: 40, pupBite: 0.5, biteEvery: 1.1, fearHP: 0.4, tgtPupChance: 0.75, assistMax: 2 },
   fire: { startAt: 30, endAt: 270, r0: 100, rMin: 26, dps: 14 },
   events: { firstAt: 40, interval: 45, nightSeconds: 25, stampedeSize: 10, raidBase: 2 },
   population: { burrows: 18, rabbitsPerBurrow: 3, rabbitRespawn: 24, herds: 5, herdSize: 5, flocks: 7, boars: 3, nearRabbits: 5 },
@@ -321,6 +323,7 @@ const CONFIG = {
   chain: { huntRange: 14, huntChance: 0.3, huntGiveUp: 6, eatSeconds: 5, eatDetectMul: 0.35 },
   modes: {
     survival: { label: '延命', hungerMul: 1, hostile: true, canDie: true, escalate: true },
+    defense: { label: '防衛', hungerMul: 0, hostile: true, canDie: true, escalate: true, defense: true },
     relax: { label: 'のんびり', hungerMul: 0.4, hostile: false, canDie: false, escalate: false }
   },
   score: { perSecond: 10, perKcal: 0.1, perPup: 300, perLion: 150, perWolf: 80, perFox: 30, perLeopard: 120, perBear: 250, perAlpha: 1000 }
@@ -331,6 +334,11 @@ const setPath = (o, p, v) => { const ks = p.split('.'); const l = ks.pop(); ks.r
 const TUNABLES = [
   { p: 'player.speed', label: 'ダックスの移動速度', min: 5, max: 24, step: 0.5 },
   { p: 'attack.staminaCost', label: '攻撃1回のスタミナ', min: 4, max: 40, step: 1 },
+  { p: 'defense.pups', label: '防衛：子犬の数', min: 3, max: 20, step: 1 },
+  { p: 'defense.pupHP', label: '防衛：子犬の体力', min: 20, max: 200, step: 5 },
+  { p: 'defense.pupDamageMul', label: '防衛：子犬が受けるダメージの倍率', min: 0.1, max: 1, step: 0.05 },
+  { p: 'defense.pupBite', label: '防衛：子犬の噛みつきダメージ', min: 0, max: 3, step: 0.1 },
+  { p: 'defense.tgtPupChance', label: '防衛：敵が子犬を狙う割合', min: 0, max: 1, step: 0.05 },
   { p: 'fire.startAt', label: '野火が広がりはじめる秒数', min: 0, max: 180, step: 5 },
   { p: 'fire.endAt', label: '野火が最小まで狭まる秒数', min: 60, max: 900, step: 10 },
   { p: 'fire.rMin', label: '野火の最小の半径', min: 10, max: 80, step: 1 },
@@ -369,7 +377,7 @@ const TUNABLES = [
   { p: 'events.interval', label: '出来事の間隔（秒）', min: 15, max: 120, step: 5 }
 ];
 /* 「芯」= Unity版へ持っていく値 / 「短時間版専用」= フリー版のテンポ用 */
-const SESSION_PATHS = ['hunger', 'breed', 'danger', 'fire', 'events', 'modes', 'score', 'population', 'world'];
+const SESSION_PATHS = ['hunger', 'breed', 'danger', 'defense', 'fire', 'events', 'modes', 'score', 'population', 'world'];
 const isSession = p => SESSION_PATHS.some(s => p === s || p.startsWith(s + '.'));
 try { const s = JSON.parse(localStorage.getItem('sw3-tune') || '{}'); for (const k in s) if (TUNABLES.some(t => t.p === k)) setPath(CONFIG, k, s[k]); } catch (e) {}
 
@@ -837,6 +845,9 @@ const lerp = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
 /* ---- ライオン：身を低くする → 突進 → 外すと隙 ---- */
 function spawnLion(type, x, z) { const a = spawn(type, x, z); a.state = 'prowl'; a.flank = Math.random() < .5; a.sx = x; a.sz = z; a.hx = x * .85; a.hz = z * .85; if (type !== 'lion' && type !== 'alpha') { a.hx = x; a.hz = z; a.raidHome = true; } return a; }
 const charger = a => !!a.sp.damage;
+const DEF = () => !!CONFIG.modes[G.mode].defense;
+const pupMax = () => (DEF() ? CONFIG.defense.pupHP : CONFIG.pack.pupHP);
+const pickTgt = () => (DEF() && pack.length && Math.random() < CONFIG.defense.tgtPupChance ? pack[Math.floor(Math.random() * pack.length)] : P); // 防衛では子犬を狙う
 function laneShow(a, on, len, wd) {
   if (!on) { if (a.lane) a.lane.visible = false; return; }
   const lane = laneFor(a); lane.visible = true; if (a.state === 'crouch') { a.lx0 = a.x; a.lz0 = a.z; }
@@ -849,7 +860,7 @@ function lionTarget(a) {
   if (!playing()) return null; const M = CONFIG.modes[G.mode]; if (!M.hostile && !a.provoked) return null;
   let best = null, bd = 1e9; const S = a.sp;
   for (const t of [P].concat(pack)) {
-    const nm = t === P ? G.noise : 1, d = dist(t, a), eff = t === P ? d : d * 1.5; if (eff >= bd) continue; // 子より先にリーダーを狙う
+    const nm = t === P ? G.noise : 1, d = dist(t, a), eff = (t === P) !== DEF() ? d : d * 1.5; if (eff >= bd) continue; // 子より先にリーダーを狙う
     let sight = S.sight * (1 + .25 * G.night) * nm; if (a.state === 'eat') sight *= CONFIG.chain.eatDetectMul;
     if (a.alpha || d < (S.hear + CONFIG.danger.hearPerLevel * Math.max(0, lv() - 3)) * nm || (inCone(a, t, sight, S.cone) && losClear(a.x, a.z, t.x, t.z))) { bd = eff; best = t; }
   }
@@ -928,8 +939,9 @@ function updateLion(a, dt) {
 const fireRing = new THREE.Mesh(new THREE.RingGeometry(1, 1.035, 128), new THREE.MeshBasicMaterial({ color: 0xff7a1e, transparent: true, opacity: .9, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
 const fireScorch = new THREE.Mesh(new THREE.RingGeometry(1, 9, 128), new THREE.MeshBasicMaterial({ color: 0x1c0a03, transparent: true, opacity: .6, side: THREE.DoubleSide, depthWrite: false }));
 fireRing.rotation.x = fireScorch.rotation.x = -Math.PI / 2; fireRing.position.y = .14; fireScorch.position.y = .1; fireRing.visible = fireScorch.visible = false; fireRing.renderOrder = 3; fireScorch.renderOrder = 2; scene.add(fireRing, fireScorch);
-function fireR() { const F = CONFIG.fire; if (G.state !== 'play' && G.state !== 'paused' || !CONFIG.modes[G.mode].escalate) return Infinity; return F.r0 + (F.rMin - F.r0) * clamp((G.playT - F.startAt) / (F.endAt - F.startAt), 0, 1); }
+function fireR() { const F = CONFIG.fire; if (G.state !== 'play' && G.state !== 'paused' || !CONFIG.modes[G.mode].escalate || DEF()) return Infinity; return F.r0 + (F.rMin - F.r0) * clamp((G.playT - F.startAt) / (F.endAt - F.startAt), 0, 1); }
 function updateFire(dt) {
+  penRing.visible = DEF() && G.state !== 'title'; if (penRing.visible) penRing.scale.setScalar(CONFIG.defense.penRadius);
   const F = CONFIG.fire, R = fireR(), on = R < 1e6; G.fireR = R; fireRing.visible = fireScorch.visible = on;
   let tint = 0;
   if (on) {
@@ -1029,13 +1041,47 @@ marker.rotation.x = Math.PI; marker.renderOrder = 999; marker.visible = false; s
 const aimMark = new THREE.Mesh(new THREE.ConeGeometry(.32, .6, 4), new THREE.MeshBasicMaterial({ color: 0xefebdc, transparent: true, depthTest: false }));
 aimMark.geometry.rotateX(Math.PI); aimMark.renderOrder = 998; aimMark.visible = false; scene.add(aimMark);
 
-function addPup(x, z) { const v = makeAnimal(LOOK.pup); scene.add(v.g); const m = { v, x, z, dir: P.dir, phase: Math.random() * 6, born: G.playT, hp: CONFIG.pack.pupHP, rush: null, moving: false }; pack.push(m); G.maxPack = Math.max(G.maxPack, pack.length + 1); return m; }
+function addPup(x, z) { const v = makeAnimal(LOOK.pup); scene.add(v.g); const m = { v, x, z, dir: P.dir, phase: Math.random() * 6, born: G.playT, hp: pupMax(), rush: null, moving: false }; pack.push(m); G.maxPack = Math.max(G.maxPack, pack.length + 1); return m; }
 function clearPack() { pack.forEach(m => scene.remove(m.v.g)); pack.length = 0; }
 function hurtPup(m, dmg, src) {
-  if (!pack.includes(m)) return; m.hp -= dmg; floatAt(m, 'キャン！', 'hit'); burst(m.x, .5, m.z, 8, 0xda4a3d, 5, .2); sfx('yelp');
-  if (m.hp <= 0) { scene.remove(m.v.g); pack.splice(pack.indexOf(m), 1); toast('群れの1匹がやられた', '残り ' + (pack.length + 1) + '匹'); G.shake = Math.max(G.shake, .4); }
+  if (!pack.includes(m)) return; if (DEF()) dmg *= CONFIG.defense.pupDamageMul; m.hp -= dmg; floatAt(m, 'キャン！', 'hit'); burst(m.x, .5, m.z, 8, 0xda4a3d, 5, .2); sfx('yelp');
+  if (m.hp <= 0) { scene.remove(m.v.g); pack.splice(pack.indexOf(m), 1); toast(DEF() ? '子犬がやられた' : '群れの1匹がやられた', '残り ' + (pack.length + (DEF() ? 0 : 1)) + '匹'); G.shake = Math.max(G.shake, .4); }
+}
+/* 防衛モード：子犬は巣の枠の中で暮らす。近づいた敵には噛みつき、傷つくと逃げる */
+const penRing = new THREE.Mesh(new THREE.RingGeometry(.975, 1, 72), flatMat(0xf39bb0, .55)); penRing.rotation.x = -Math.PI / 2; penRing.position.y = .13; penRing.visible = false; scene.add(penRing);
+function updateDenPups(dt) {
+  const D = CONFIG.defense, R = D.penRadius;
+  if (!pack.length) { gameOver('子犬をすべて失った'); return; }
+  const foes = animals.filter(a => a.alive && charger(a) && Math.hypot(a.x, a.z) < R + 9);
+  for (const m of pack.slice()) {
+    m.biteCd = (m.biteCd || 0) - dt; m.wT = (m.wT || 0) - dt;
+    if (m.wT <= 0 || m.hx === undefined) { const an = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (R - 1.5); m.hx = Math.cos(an) * r; m.hz = Math.sin(an) * r; m.wT = 2 + Math.random() * 4; }
+    let tx = m.hx, tz = m.hz, spd = 3, near = null, nd = 1e9;
+    for (const f of foes) { const d = Math.hypot(f.x - m.x, f.z - m.z); if (d < nd) { nd = d; near = f; } }
+    if (near && nd < 9) {
+      if (m.hp < D.pupHP * D.fearHP) { tx = m.x + (m.x - near.x) / nd * 5; tz = m.z + (m.z - near.z) / nd * 5; spd = 9; }        // 傷ついたら逃げる
+      else if (near.state !== 'crouch' && near.state !== 'charge') {                                                             // 元気なら立ち向かう
+        tx = near.x; tz = near.z; spd = 10;
+        if (nd < near.sp.radius + 1.2 && m.biteCd <= 0 && near.alive) {
+          m.biteCd = D.biteEvery * (.8 + Math.random() * .4); near.hp -= D.pupBite; burst(near.x, .6, near.z, 3, 0xefebdc, 4, .16); m.phase += 2;
+          if (near.hp <= 0) { removeAnimal(near); burst(near.x, .8, near.z, 14, 0xb8402f, 6, .24); floatAt(m, '仕留めた！', 'perfect', 1); sfx('kill'); if (near.wpack) near.wpack.dartCd += 2.5; if (near.alpha) { G.kills.alpha++; G.alphaNext = G.level + CONFIG.danger.alphaEvery; } else G.kills[near.kind]++; }
+        }
+      }
+    }
+    for (const a of foes) { // 突進の通り道からは横へ逃げる
+      if (a.state !== 'charge') continue;
+      const cx = Math.sin(a.cdir), cz = Math.cos(a.cdir), rx = m.x - a.x, rz = m.z - a.z, along = rx * cx + rz * cz, side = rx * cz - rz * cx;
+      if (along > -1 && along < 16 && Math.abs(side) < a.sp.radius + 1.6) { const sg = side >= 0 ? 1 : -1; tx = m.x + cz * sg * 4; tz = m.z - cx * sg * 4; spd = 11; break; }
+    }
+    const tl = Math.hypot(tx, tz); if (tl > R - .6) { tx *= (R - .6) / tl; tz *= (R - .6) / tl; }
+    const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz); m.moving = d > .5;
+    if (m.moving) { const v = Math.min(spd, d * 4); m.x += dx / d * v * dt; m.z += dz / d * v * dt; m.dir = lerpAng(m.dir, Math.atan2(dx, dz), Math.min(1, dt * 10)); resolve(m, .4); m.phase += v * dt * 1.2; }
+    m.v.g.scale.setScalar(.72 * (m.hp < D.pupHP * D.fearHP ? .88 : 1));
+    pose(m.v, m.x, m.z, m.dir, m.phase, m.moving, m.hp < D.pupHP * D.fearHP ? { y: -.06 } : null);
+  }
 }
 function updatePack(dt) {
+  if (DEF()) return updateDenPups(dt);
   const fx = Math.sin(P.dir), fz = Math.cos(P.dir);
   pack.forEach((m, i) => {
     let tx, tz, spd;
@@ -1099,7 +1145,7 @@ function tryAttack(mvx, mvz) {
 function hit(a) {
   const crit = (P.lungeCrit && P.lungeCrit.has(a)) || (charger(a) && a.state === 'recover');
   const near = pack.filter(m => Math.hypot(m.x - a.x, m.z - a.z) < CONFIG.pack.assistRange); near.forEach(m => { m.rush = { x: a.x, z: a.z, t: .45 }; });
-  const dmg = (crit ? CONFIG.hunt.ambushDamage : CONFIG.player.biteDamage) + Math.floor(near.length * CONFIG.pack.assistPerMember);
+  const dmg = (crit ? CONFIG.hunt.ambushDamage : CONFIG.player.biteDamage) + Math.min(DEF() ? CONFIG.defense.assistMax : 99, Math.floor(near.length * CONFIG.pack.assistPerMember));
   a.hp -= dmg; sfx(crit ? 'crit' : 'bite'); burst(a.x, .8 * (a.sp.scale || 1), a.z, crit ? 12 : 6, crit ? 0xffe9a0 : 0xefebdc, 6, .2);
   if (crit) { ringFx(a.x, a.z, 0xa9c94b, 3, .3); G.shake = Math.max(G.shake, .25); }
   if (a.hp <= 0) return killed(a, crit);
@@ -1117,7 +1163,7 @@ function killed(a, crit, byCrash) {
   if (!playing()) return;
   sfx('kill'); G.freeze = Math.max(G.freeze, .06); G.shake = Math.max(G.shake, .3);
   P.hunger = Math.min(CONFIG.hunger.max, P.hunger + S.hunger);
-  const was = G.grow >= G.need; G.grow = Math.min(G.need, G.grow + S.hunger); if (!was && G.grow >= G.need) { sfx('ready'); toast('繁栄ゲージ満タン', '巣に戻ると子が生まれる'); }
+  const was = G.grow >= G.need || DEF(); G.grow = DEF() ? 0 : Math.min(G.need, G.grow + S.hunger); if (!was && G.grow >= G.need) { sfx('ready'); toast('繁栄ゲージ満タン', '巣に戻ると子が生まれる'); }
   G.kcal += S.kcal; if (a.alpha) { G.kills.alpha++; toast('主を倒した', '+' + CONFIG.score.perAlpha + ' ポイント'); G.alphaNext = G.level + CONFIG.danger.alphaEvery; } else G.kills[a.kind]++;
   floatAt(a, (byCrash ? '激突で仕留めた ' : crit ? '会心！ ' : '') + '+' + S.kcal + 'kcal', crit || byCrash ? 'perfect' : 'eat', 1.1);
 }
@@ -1138,7 +1184,7 @@ function updatePlayer(dt) {
   const px0 = P.x, pz0 = P.z;
   P.moving = Math.hypot(vx, vz) > .1; P.atkCd -= dt; P.hurtT -= dt; P.invuln -= dt;
   if (input.bite) tryAttack(vx, vz); input.bite = false;
-  let spd = C.speed * (P.hunger <= 0 ? .7 : 1);
+  let spd = C.speed * (P.hunger <= 0 && !M.defense ? .7 : 1);
   if (P.lungeT > 0) {
     const A = CONFIG.attack, steps = 3, sd = dt / steps;
     for (let s = 0; s < steps && P.lungeT > 0; s++) {
@@ -1151,12 +1197,17 @@ function updatePlayer(dt) {
   P.stamDelay = (P.stamDelay || 0) - dt; P.stamina = clamp(P.stamina + (P.lungeT > 0 || P.stamDelay > 0 ? 0 : C.staminaRegen) * dt, 0, C.staminaMax);
   const decay = CONFIG.hunger.decayPerSec * M.hungerMul * (1 + pack.length * CONFIG.hunger.perPup) * (1 + CONFIG.danger.hungerPerLevel * (G.level - 1));
   P.hunger = Math.max(0, P.hunger - decay * dt);
-  if (P.hunger <= 0) { P.hp -= CONFIG.hunger.starveDamagePerSec * dt; if (!M.canDie) P.hp = Math.max(P.hp, 15); if (P.hp <= 0) { if (pack.length) succeed('飢え'); else gameOver('飢えに倒れた'); } }
+  if (P.hunger <= 0 && !M.defense) { P.hp -= CONFIG.hunger.starveDamagePerSec * dt; if (!M.canDie) P.hp = Math.max(P.hp, 15); if (P.hp <= 0) { if (pack.length) succeed('飢え'); else gameOver('飢えに倒れた'); } }
   P.phase += (P.moving ? Math.min(spd, C.speed * 1.5) : 0) * dt * 1.2;
   P.vx = lerp(P.vx || 0, (P.x - px0) / dt, .35); P.vz = lerp(P.vz || 0, (P.z - pz0) / dt, .35);
   // 巣：回復と出産
-  G.atDen = Math.hypot(P.x, P.z) < CONFIG.world.denRadius;
-  if (G.atDen) {
+  G.atDen = Math.hypot(P.x, P.z) < (M.defense ? CONFIG.defense.penRadius : CONFIG.world.denRadius);
+  if (G.atDen && M.defense) { // 運んできた食料のぶんだけ、子犬が回復する
+    const D = CONFIG.defense; P.hp = Math.min(P.maxHP, P.hp + CONFIG.den.healPerSec * dt);
+    const hurt = pack.filter(m => m.hp < D.pupHP);
+    if (hurt.length && P.hunger > 0) { const give = Math.min(P.hunger, D.feedPerSec * dt); let used = 0; hurt.forEach(m => { const g = Math.min(D.pupHP - m.hp, give / hurt.length); m.hp += g; used += g; }); P.hunger -= used; G.feedFx = (G.feedFx || 0) - dt; if (G.feedFx <= 0) { G.feedFx = .35; const m = hurt[Math.floor(Math.random() * hurt.length)]; burst(m.x, .5, m.z, 5, 0xa9c94b, 3, .2, 4); floatAt(m, '回復', 'eat', .7); sfx('eat'); } }
+  }
+  else if (G.atDen) {
     if (P.hunger > 0) P.hp = Math.min(P.maxHP, P.hp + CONFIG.den.healPerSec * dt); pack.forEach(m => { m.hp = Math.min(CONFIG.pack.pupHP, m.hp + CONFIG.den.healPerSec * dt); });
     if (G.grow >= G.need && pack.length + 1 < CONFIG.breed.maxPack) birth();
   }
@@ -1183,10 +1234,10 @@ function updateAim() {
 function lionCount() { return animals.filter(a => a.alive && a.type === 'lion').length; }
 const typeCount = t => animals.filter(a => a.alive && a.type === t).length;
 function nearSpot(dmin, dmax, r) { // 操作キャラの周りの空いた場所
-  for (let i = 0; i < 30; i++) { const an = Math.random() * 6.283, d = dmin + Math.random() * (dmax - dmin), x = P.x + Math.cos(an) * d, z = P.z + Math.sin(an) * d; if (Math.abs(x) > LIM - 3 || Math.abs(z) > LIM - 3 || Math.hypot(x, z) < CONFIG.world.denRadius + 6 || Math.hypot(x, z) > fireR() - 3 || collides(x, z, r + .5)) continue; return { x, z }; }
+  for (let i = 0; i < 30; i++) { const an = Math.random() * 6.283, d = dmin + Math.random() * (dmax - dmin), x = (DEF() ? 0 : P.x) + Math.cos(an) * d, z = (DEF() ? 0 : P.z) + Math.sin(an) * d; if (Math.abs(x) > LIM - 3 || Math.abs(z) > LIM - 3 || Math.hypot(x, z) < CONFIG.world.denRadius + 6 || Math.hypot(x, z) > fireR() - 3 || collides(x, z, r + .5)) continue; return { x, z }; }
   return null;
 }
-function sic(a, secs) { a.state = 'stalk'; a.tgt = P; a.lostT = 0; a.lx = P.x; a.lz = P.z; a.raidT = secs; a.provoked = true; }
+function sic(a, secs) { const t = pickTgt(); a.state = 'stalk'; a.tgt = t; a.lostT = 0; a.lx = t.x; a.lz = t.z; a.raidT = secs; a.provoked = true; if (DEF()) { a.hx = 0; a.hz = 0; a.raidT = secs * 3; } }
 function announce(key, title, sub, snd) { if (G.seen[key]) return; G.seen[key] = 1; toast(title, sub); if (snd) sfx(snd); }
 function director(dt) {
   const D = CONFIG.danger, M = CONFIG.modes[G.mode], play = playing();
@@ -1211,14 +1262,14 @@ function director(dt) {
     if (typeCount('young') < (G.youngN || 1)) { G.youngCd -= 1; if (!(G.youngCd > 0)) { const p = freeSpot(CONFIG.world.meadow + 4, H - 8, 1.2, play ? P : null, 40); if (p) { spawnLion('young', p.x, p.z); G.youngCd = 45; } } }
     // キツネ：開始すぐから。1頭ずつ寄ってきて、周りを回って噛みに来る
     const foxWant = esc ? (G.playT >= D.foxAt ? Math.min(D.foxMax, 2 + Math.floor((L - 1) / 2)) : 0) : play ? 1 : 0;
-    if (wolfPacks.filter(w => w.type === 'fox').length < foxWant) { G.foxCd -= 1; if (!(G.foxCd > 0)) { const p = nearSpot(24, 36, 1); if (p) { const w = spawnWolfPack(p.x, p.z, 1, 'fox'); if (esc) { w.state = 'hunt'; w.tgt = P; w.dartCd = 2.5; } G.foxCd = 7; } } }
+    if (wolfPacks.filter(w => w.type === 'fox').length < foxWant) { G.foxCd -= 1; if (!(G.foxCd > 0)) { const p = nearSpot(24, 36, 1); if (p) { const w = spawnWolfPack(p.x, p.z, 1, 'fox'); if (esc) { w.state = 'hunt'; w.tgt = pickTgt(); w.dartCd = 2.5; } G.foxCd = 7; } } }
     // ヒョウ、クマ：現れたらまずこちらへ向かってくる
     const leoWant = esc && L >= D.leopardLevel ? Math.min(3, 1 + Math.floor((L - D.leopardLevel) / 3)) : 0;
     if (typeCount('leopard') < leoWant) { G.leoCd -= 1; if (!(G.leoCd > 0)) { const p = nearSpot(40, 52, 1.2); if (p) { const a = spawnLion('leopard', p.x, p.z); sic(a, 15); G.leoCd = 20; if (!G.seen.leopard) setEvent(() => a.alive ? a : null, 'ヒョウ', true); announce('leopard', 'ヒョウが現れた', '予兆が短く、速い。帯が出たらすぐ横へ', 'growl'); } } }
     const bearWant = esc && L >= D.bearLevel ? Math.min(2, 1 + Math.floor((L - D.bearLevel) / 3)) : 0;
     if (typeCount('bear') < bearWant) { G.bearCd -= 1; if (!(G.bearCd > 0)) { const p = nearSpot(40, 52, 2); if (p) { const a = spawnLion('bear', p.x, p.z); sic(a, 15); G.bearCd = 30; if (!G.seen.bear) setEvent(() => a.alive ? a : null, 'クマ', true); announce('bear', 'クマが現れた', '突進は長くて太い。大きく避けろ。外した後の隙も長い', 'roar'); } } }
     const wantW = !esc ? 0 : L >= D.wolfLevel2 ? 2 : L >= D.wolfLevel ? 1 : 0;
-    if (wolfPacks.filter(w => w.type === 'wolf').length < wantW) { G.wolfCd -= 1; if (G.wolfCd <= 0) { const p = nearSpot(40, 52, 1.2); if (p) { const w = spawnWolfPack(p.x, p.z, D.wolfPack); w.state = 'hunt'; w.tgt = P; G.wolfCd = D.wolfRespawn; sfx('howl'); if (!G.seen.wolf) setEvent(() => w.members.find(m => m.alive) || null, 'オオカミ', true); announce('wolf', 'オオカミの群れが現れた', '囲んで、交代で噛みに来る。飛び込んできた直後が隙'); } } }
+    if (wolfPacks.filter(w => w.type === 'wolf').length < wantW) { G.wolfCd -= 1; if (G.wolfCd <= 0) { const p = nearSpot(40, 52, 1.2); if (p) { const w = spawnWolfPack(p.x, p.z, D.wolfPack); w.state = 'hunt'; w.tgt = pickTgt(); G.wolfCd = D.wolfRespawn; sfx('howl'); if (!G.seen.wolf) setEvent(() => w.members.find(m => m.alive) || null, 'オオカミ', true); announce('wolf', 'オオカミの群れが現れた', '囲んで、交代で噛みに来る。飛び込んできた直後が隙'); } } }
     if (play && M.escalate && G.level >= Math.max(D.alphaLevel, G.alphaNext) && !animals.some(a => a.alive && a.alpha)) {
       const an = Math.atan2(-P.x, -P.z) + (Math.random() - .5), p = { x: clamp(Math.sin(an) * (H - 8), -LIM + 3, LIM - 3), z: clamp(Math.cos(an) * (H - 8), -LIM + 3, LIM - 3) }; resolve(p, 1.5);
       const a = spawnLion('alpha', p.x, p.z); a.provoked = true; a.hp = Math.round(a.sp.hp * (1 + .5 * G.kills.alpha)); sfx('roar'); setEvent(() => a.alive ? a : null, '主', true); G.alphaNext = 1e9;
@@ -1250,7 +1301,7 @@ function runEvent() {
     setEvent(() => { const m = h.members.find(q => q.alive); return m || null; }, 'シカの大移動', false);
   } else if (kind === 'raid') {
     if (G.level < CONFIG.danger.alphaLevel) {
-      const n = 3 + Math.floor(G.level / 3), p = nearSpot(40, 52, 1.2) || { x: 0, z: H - 8 }, w = spawnWolfPack(p.x, p.z, n); w.state = 'hunt'; w.tgt = P;
+      const n = 3 + Math.floor(G.level / 3), p = nearSpot(40, 52, 1.2) || { x: 0, z: H - 8 }, w = spawnWolfPack(p.x, p.z, n); w.state = 'hunt'; w.tgt = pickTgt();
       toast('オオカミの大群が来る', n + '頭がこちらへ向かっている'); sfx('howl'); setEvent(() => w.members.find(m => m.alive) || null, 'オオカミの大群', true); return;
     }
     const n = E.raidBase + Math.floor(G.level / 4), an = Math.random() * 6.283; let first = null;
@@ -1270,12 +1321,13 @@ function resetRun(mode) {
   buildWorld((Math.random() * 1e9) | 0);
   Object.assign(G, { mode, state: 'play', playT: 0, level: 1, night: 0, nightT: 0, shake: 0, freeze: 0, grow: 0, need: CONFIG.breed.need, born: 0, kcal: 0, kills: { rabbit: 0, deer: 0, lion: 0, alpha: 0, boar: 0, wolf: 0, fox: 0, leopard: 0, bear: 0 }, wolfCd: 0, foxCd: 0, lionCd: 0, youngCd: 30, leoCd: 0, bearCd: 0, seen: {}, youngN: 1 + (Math.random() < .5 ? 1 : 0), maxPack: 1, swaps: 0, eventT: CONFIG.events.firstAt, evQueue: [], evCount: 0, ev: null, alphaNext: 0, spawnT: 0, crashSeen: false, atDen: true });
   P = { x: 0, z: 2, dir: 0, hp: CONFIG.player.maxHP, maxHP: CONFIG.player.maxHP, hunger: CONFIG.hunger.start, stamina: CONFIG.player.staminaMax, atkCd: 0, hurtT: 0, lungeT: 0, lungeDir: 0, lungeCrit: null, moving: false, phase: 0, invuln: 0, vx: 0, vz: 0 };
+  if (DEF()) { const D = CONFIG.defense; P.hunger = 0; for (let i = 0; i < D.pups; i++) { const an = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (D.penRadius - 2), m = addPup(Math.cos(an) * r, Math.sin(an) * r); m.born = -999; m.dir = Math.random() * 6.283; } }
   populate(); initFlocks();
   cam.yaw = 0.35; cam.tx = P.x; cam.tz = P.z; huntTarget = null;
   playerView.g.visible = true; marker.visible = true;
   adv.last = {}; adv.t = 0; $('hint').classList.remove('on');
   show('hud', true); show('title', false); show('over', false); show('pause', false); show('tune', false); if (coarse) show('touch', true);
-  toast(CONFIG.modes[mode].label + 'モード', mode === 'survival' ? '狩って、満たして、巣で子を増やせ' : '急がなくていい。好きなだけ狩って群れを育てよう');
+  toast(CONFIG.modes[mode].label + 'モード', mode === 'survival' ? '狩って、満たして、巣で子を増やせ' : mode === 'defense' ? '巣の子犬を守れ。食料を運ぶと子犬が回復する' : '急がなくていい。好きなだけ狩って群れを育てよう');
 }
 function populate() {
   world.burrows.forEach(b => { b.count = 0; for (let i = 0; i < CONFIG.population.rabbitsPerBurrow; i++) spawnRabbit(b); });
@@ -1287,7 +1339,7 @@ function gameOver(cause, manual) {
   if (!playing()) return; G.state = 'over';
   const sc = score(), key = 'sw3-best-' + G.mode; let best = 0, prev = 0;
   try { prev = +localStorage.getItem(key) || 0; best = Math.max(prev, sc); if (sc > prev) localStorage.setItem(key, sc); } catch (e) { best = sc; }
-  $('overCause').textContent = cause; $('overHead').textContent = G.mode === 'survival' && !manual ? '群れは尽きた' : '今回の記録';
+  $('overCause').textContent = cause; $('overHead').textContent = manual || G.mode === 'relax' ? '今回の記録' : G.mode === 'defense' ? '守りきれなかった' : '群れは尽きた';
   $('overScore').firstChild.textContent = sc.toLocaleString();
   const D = CONFIG.danger, toNext = Math.ceil(G.level * D.levelSeconds - G.playT);
   $('overNear').textContent = sc > prev && prev > 0 ? '新記録！ これまでのベストを ' + (sc - prev).toLocaleString() + ' 上回った' : prev > sc ? '自己ベストまであと ' + (prev - sc).toLocaleString() + ' ポイント。危険度' + (G.level + 1) + 'まであと' + toNext + '秒だった' : '最初の記録。危険度' + (G.level + 1) + 'まであと' + toNext + '秒だった';
@@ -1341,7 +1393,7 @@ function advise(key, text, o) {
 function adviceTick() {
   if (G.playT < 1) return;
   const k = coarse ? '攻撃ボタン' : 'Space', near = (a, r) => dist(P, a) < r;
-  advise('goal', '目的は、群れが尽きるまで生き延びること。食べて繁栄ゲージを貯め、巣に戻ると子（残機）が増える', { prio: 4, dur: 7 });
+  advise('goal', DEF() ? '目的は、巣の子犬を守ること。獲物を食べて食料を貯め、巣に戻ると、そのぶん子犬が回復する' : '目的は、群れが尽きるまで生き延びること。食べて繁栄ゲージを貯め、巣に戻ると子（残機）が増える', { prio: 4, dur: 7 });
   advise('ctrl', coarse ? '左のスティックで移動、画面ドラッグで回転。攻撃ボタンは倒した方向へ飛び、連打でダッシュにもなる' : 'WASDで移動、ドラッグで回転。Spaceで入力方向へ飛びかかり、連打でダッシュにもなる', { prio: 1 });
   const foe = animals.find(a => a.alive && charger(a) && a.kind !== 'lion' && near(a, 26) && (a.state === 'crouch' || a.state === 'stalk' || a.state === 'recover'));
   if (foe && foe.state === 'recover') advise('punish', '隙だらけだ！ 今のうちに' + k + 'で噛め', { cd: 20, prio: 5, go: true, dur: 2.5 });
@@ -1358,9 +1410,10 @@ function adviceTick() {
   else if (animals.some(a => a.alive && a.kind === 'rabbit' && a.state === 'wander' && near(a, 24))) advise('rabbit', 'ウサギは気づくと少し逃げてこちらを見張る。追い詰めると巣穴へ消える。顔の向きを見て、背後から飛びかかれ', { prio: 2 });
   const herd = herds.find(h => !h.stampede && h.state === 'graze' && h.sentinel && near(h.sentinel, 32));
   if (herd) advise('deer', 'シカは顔を上げた見張りが1頭いる。その背後か、柱の陰から近づけ', { cd: 120, prio: 2 });
-  if (G.grow >= G.need && !G.atDen) advise('breed', '繁栄ゲージが満タン。巣に戻ると子が生まれ、群れ（残機）が増える', { cd: 30, prio: 3 });
+  if (G.grow >= G.need && !G.atDen && !DEF()) advise('breed', '繁栄ゲージが満タン。巣に戻ると子が生まれ、群れ（残機）が増える', { cd: 30, prio: 3 });
   if (P.hp / P.maxHP < .35) advise('lowhp', '体力が少ない。巣の輪の中にいると回復する', { cd: 40, prio: 3 });
-  if (P.hunger < 10) advise('starve', '飢え死に寸前。ウサギでもいいので何か食べよう', { cd: 30, prio: 3 });
+  if (DEF()) { if (P.hunger >= 50 && !G.atDen && pack.some(m => m.hp < CONFIG.defense.pupHP * .7)) advise('feed', '食料が貯まった。巣に戻ると、けがをした子犬が回復する', { cd: 25, prio: 3 }); }
+  else if (P.hunger < 10) advise('starve', '飢え死に寸前。ウサギでもいいので何か食べよう', { cd: 30, prio: 3 });
   else if (P.hunger < 30) advise('hungry', '空腹になってきた。外へ行くほど獲物は多いが、危険も増える', { cd: 60, prio: 2 });
   { const pd = Math.hypot(P.x, P.z); if (pd > G.fireR) advise('fireIn', '野火の中だ！ 巣の方向へ戻れ', { cd: 4, prio: 6, dur: 2.5 }); else if (pd > G.fireR - 12) advise('fireNear', '野火が迫っている。内側へ移れ', { cd: 15, prio: 4, dur: 3 }); }
   if (P.stamina < CONFIG.attack.staminaCost) advise('stam', 'スタミナ切れ。少し歩けば回復する', { cd: 60, prio: 1 });
@@ -1374,8 +1427,8 @@ function updateHUD() {
   const bar = (b, n, v, m) => { $(b).style.width = clamp(v / m * 100, 0, 100) + '%'; if (n) $(n).textContent = Math.max(0, Math.ceil(v)); };
   bar('hpBar', 'hpNum', P.hp, P.maxHP); bar('hgBar', 'hgNum', P.hunger, CONFIG.hunger.max); bar('stBar', 'stNum', P.stamina, C.staminaMax);
   const ready = G.grow >= G.need; bar('grBar', null, G.grow, G.need); $('grNum').textContent = ready ? '巣へ' : Math.floor(G.grow / G.need * 100) + '%'; $('grRow').classList.toggle('ready', ready);
-  $('hungry').classList.toggle('low', P.hunger < 25);
-  $('pack').textContent = pack.length + 1; $('kcal').textContent = G.kcal.toLocaleString() + 'kcal'; $('born').textContent = G.born; $('kRabbit').textContent = G.kills.rabbit; $('kDeer').textContent = G.kills.deer; $('kLion').textContent = G.kills.lion + G.kills.alpha + G.kills.wolf + G.kills.fox + G.kills.leopard + G.kills.bear; $('kBoar').textContent = G.kills.boar; $('ptNum').textContent = score().toLocaleString() + ' pt';
+  $('hungry').classList.toggle('low', P.hunger < 25 && !M.defense); $('hungry').firstElementChild.textContent = M.defense ? '食料' : '空腹'; show('grRow', !M.defense);
+  $('pack').textContent = pack.length + (M.defense ? 0 : 1); $('kcal').textContent = G.kcal.toLocaleString() + 'kcal'; $('born').textContent = G.born; $('kRabbit').textContent = G.kills.rabbit; $('kDeer').textContent = G.kills.deer; $('kLion').textContent = G.kills.lion + G.kills.alpha + G.kills.wolf + G.kills.fox + G.kills.leopard + G.kills.bear; $('kBoar').textContent = G.kills.boar; $('ptNum').textContent = score().toLocaleString() + ' pt';
   $('lvNum').textContent = M.escalate ? '危険度 ' + G.level : 'のんびり'; $('timeNum').textContent = fmtT(G.playT); $('lvBar').style.width = (M.escalate ? (G.playT % D.levelSeconds) / D.levelSeconds * 100 : 0) + '%'; $('status').classList.toggle('night', G.night > .5);
   $('vig').style.opacity = P.hurtT > 0 ? .8 : (P.hp / P.maxHP < .25 ? .3 : 0); $('hungerVig').style.opacity = P.hunger < 15 ? .55 : P.hunger < 25 ? .25 : 0;
   const yaw = G.view === '3d' ? cam.yaw : 0;
@@ -1386,6 +1439,9 @@ function updateHUD() {
   show('denCmp', true); $('denArrow').style.visibility = far || (ready && !G.atDen) ? 'visible' : 'hidden'; $('denCmp').classList.toggle('ready', ready && !full);
   $('denTxt').textContent = full ? '群れは最大。生き延びろ' + (far ? ' ・ 巣 ' + dm + 'm' : '') : ready ? '巣に戻ると子が生まれる ' + dm + 'm' : '次の子まで あとウサギ' + left + '匹ぶん' + (far ? ' ・ 巣 ' + dm + 'm' : '');
   $('denLabel').textContent = ready && !full ? '巣：戻ると子が生まれる' : '巣'; $('denLabel').classList.toggle('ready', ready && !full);
+  if (M.defense) { const hurtN = pack.filter(m => m.hp < CONFIG.defense.pupHP * .98).length, can = hurtN > 0 && P.hunger >= 1;
+    $('denTxt').textContent = '子犬 ' + pack.length + '匹' + (hurtN ? '（けが ' + hurtN + '匹）' : '') + (can && !G.atDen ? ' ・ 巣に戻ると回復 ' + dm + 'm' : far ? ' ・ 巣 ' + dm + 'm' : '');
+    $('denArrow').style.visibility = far || (can && !G.atDen) ? 'visible' : 'hidden'; $('denCmp').classList.toggle('ready', can && !G.atDen); $('denLabel').textContent = '巣'; $('denLabel').classList.remove('ready'); }
   const evT = G.ev && G.ev.get(); if (G.ev && !evT) G.ev = null; show('evCmp', !!evT);
   if (evT) { $('evTxt').textContent = G.ev.label + ' ' + aim('evArrow', evT.x, evT.z) + 'm'; $('evCmp').classList.toggle('bad', G.ev.bad); }
   world.denRing.material.color.setHex(ready ? 0xf39bb0 : 0xa9c94b);
@@ -1398,7 +1454,7 @@ function toTitle() {
   G.state = 'title'; show('hud', false); show('over', false); show('pause', false); show('title', true); show('touch', false); show('tune', false);
   playerView.g.visible = false; marker.visible = false; aimMark.visible = false; clearPack(); refreshBest(); G.nightT = 0; G.level = 1;
 }
-function refreshBest() { let s = 0; try { s = +localStorage.getItem('sw3-best-survival') || 0; } catch (e) {} $('bestLine').textContent = s ? '自己ベスト（延命） ' + s.toLocaleString() + 'pt' : ''; }
+function refreshBest() { let s = 0, d = 0; try { s = +localStorage.getItem('sw3-best-survival') || 0; d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = [s ? '延命 ' + s.toLocaleString() + 'pt' : '', d ? '防衛 ' + d.toLocaleString() + 'pt' : ''].filter(Boolean).join(' ・ ').replace(/^(?=.)/, '自己ベスト　'); }
 
 /* 調整パネル */
 function exportSplit() {
@@ -1437,7 +1493,7 @@ $('btnSound').addEventListener('click', () => { muted = !muted; try { localStora
 $('btnMenu').addEventListener('click', () => pause(true));
 $('btnResume').addEventListener('click', () => pause(false)); $('btnQuit').addEventListener('click', toTitle);
 $('btnEnd').addEventListener('click', () => { G.state = 'play'; show('pause', false); gameOver('自分で切り上げた', true); });
-$('btnSurvival').addEventListener('click', () => resetRun('survival')); $('btnRelax').addEventListener('click', () => resetRun('relax'));
+$('btnSurvival').addEventListener('click', () => resetRun('survival')); $('btnDefense').addEventListener('click', () => resetRun('defense')); $('btnRelax').addEventListener('click', () => resetRun('relax'));
 $('btnAgain').addEventListener('click', () => resetRun(G.mode)); $('btnToTitle').addEventListener('click', toTitle);
 $('vitals').addEventListener('click', () => { const on = $('vitals').getAttribute('aria-expanded') !== 'true'; $('vitals').setAttribute('aria-expanded', String(on)); show('vtMore', on); });
 
