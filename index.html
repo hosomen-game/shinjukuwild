@@ -1042,6 +1042,10 @@ const marker = new THREE.Mesh(new THREE.ConeGeometry(.38, .8, 4), new THREE.Mesh
 marker.rotation.x = Math.PI; marker.renderOrder = 999; marker.visible = false; scene.add(marker);
 const aimMark = new THREE.Mesh(new THREE.ConeGeometry(.32, .6, 4), new THREE.MeshBasicMaterial({ color: 0xefebdc, transparent: true, depthTest: false }));
 aimMark.geometry.rotateX(Math.PI); aimMark.renderOrder = 998; aimMark.visible = false; scene.add(aimMark);
+/* 飛びかかりの攻撃範囲：飛んだ瞬間に地面へ出して、すっと消す */
+const atkLane = (() => { const g = new THREE.PlaneGeometry(1, 1); g.rotateX(-Math.PI / 2); const m = new THREE.Mesh(g, flatMat(0xfff3c4, 0)); m.renderOrder = 3; m.visible = false; scene.add(m); return m; })();
+function atkLaneShow(dir) { const A = CONFIG.attack, len = A.lungeSpeed * A.lungeTime + CONFIG.player.radius + A.hitPad, wd = (CONFIG.player.radius + A.hitPad) * 2 + .5; atkLane.scale.set(wd, 1, len); atkLane.rotation.y = dir; atkLane.position.set(P.x + Math.sin(dir) * len / 2, .15, P.z + Math.cos(dir) * len / 2); atkLane.userData.t = .32; atkLane.visible = true; }
+function atkLaneTick(dt) { if (!atkLane.visible) return; const t = atkLane.userData.t -= dt; atkLane.material.opacity = Math.max(0, t / .32) * .55; if (t <= 0 || !playing()) atkLane.visible = false; }
 
 function addPup(x, z) { const v = makeAnimal(LOOK.pup); scene.add(v.g); const m = { v, x, z, dir: P.dir, phase: Math.random() * 6, born: G.playT, hp: pupMax(), rush: null, moving: false }; pack.push(m); G.maxPack = Math.max(G.maxPack, pack.length + 1); return m; }
 function clearPack() { pack.forEach(m => scene.remove(m.v.g)); pack.length = 0; }
@@ -1141,7 +1145,7 @@ function tryAttack(mvx, mvz) {
   // 微補正：飛ぶ方向のごく近く（既定18度以内）に届く相手がいるときだけ、そちらへ合わせる。逃げる方向は変えない
   const t = frontTarget(dir); if (t) dir = Math.atan2(t.x - P.x, t.z - P.z);
   P.lungeCrit = new Set(animals.filter(a => a.alive && dist(P, a) < reach() + a.sp.radius + 1 && ambushKind(a)));
-  P.lungeT = A.lungeTime; P.lungeDir = dir; P.dir = dir; P.stamina -= A.staminaCost; P.stamDelay = CONFIG.player.staminaDelay; P.atkCd = A.cooldown;
+  P.lungeT = A.lungeTime; P.lungeDir = dir; P.dir = dir; atkLaneShow(dir); P.stamina -= A.staminaCost; P.stamDelay = CONFIG.player.staminaDelay; P.atkCd = A.cooldown;
   sfx('lunge'); burst(P.x, .15, P.z, 4, 0xb9b08f, 3, .16, 2);
 }
 function hit(a) {
@@ -1553,7 +1557,7 @@ function simulate(dt) {
     updateAim(); updatePack(dt);
     pose(playerView, P.x, P.z, P.dir, P.phase, P.moving, P.lungeT > 0 ? { rx: -.2 } : null);
     playerView.g.visible = P.invuln <= 0 || Math.sin(G.t * 40) > 0;
-    marker.position.set(P.x, 2.3 + Math.sin(G.t * 4) * .15, P.z); marker.rotation.y = G.t * 2;
+    marker.position.set(P.x, 2.3 + Math.sin(G.t * 4) * .15, P.z); marker.rotation.y = G.t * 2; atkLaneTick(dt);
     world.denRing.material.opacity = .5 + .25 * Math.sin(G.t * 3);
     G.hudT -= dt; if (G.hudT <= 0) { updateHUD(); G.hudT = .08; }
   }
