@@ -554,8 +554,9 @@ const LOOK = {
   bear:   { L: 1.7, W: .95, H: .95, leg: .5, head: .62, c1: 0x4b3424, c2: 0x8a6a48, ear: 'round', tail: .12, thin: true, legC: 0x3a281c }
 };
 function part(c, w, h, d, x, y, z, parent) { const m = new THREE.Mesh(BOXG, mat(c)); m.scale.set(w, h, d); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m; }
-function makeAnimal(L) {
-  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+const EYE_MAT = new THREE.MeshBasicMaterial({ color: 0xfff08a, fog: false }), HALO_G = new THREE.CircleGeometry(1, 20), HALO_MAT = new THREE.MeshBasicMaterial({ color: 0xffd84a, fog: false, transparent: true, opacity: .32, depthWrite: false, blending: THREE.AdditiveBlending });
+function makeAnimal(L, glow) {
+  const g = new THREE.Group(), body = new THREE.Group(), eyes = []; g.add(body); g.userData.eyes = eyes;
   const by = L.leg + L.H / 2;
   part(L.c1, L.W, L.H, L.L, 0, by, 0, body);
   const hd = L.head, hz = L.L / 2 + hd * (L.neck ? 0.1 : 0.3), hy = by + L.H * (L.neck ? 1.25 : 0.35);
@@ -569,6 +570,7 @@ function makeAnimal(L) {
   part(0x1c1a18, hd * .2, hd * .16, hd * .1, 0, hy - hd * .04, hz + hd * .9, body);
   [-1, 1].forEach(s => {
     part(0x141210, hd * .14, hd * .14, hd * .06, s * hd * .27, hy + hd * .13, hz + hd * .5, body);
+    if (glow) { const e = new THREE.Mesh(BOXG, EYE_MAT); e.scale.set(hd * .3, hd * .3, hd * .3); e.position.set(s * hd * .29, hy + hd * .38, hz + hd * .38); e.visible = false; body.add(e); eyes.push(e); if (s > 0) { const h = new THREE.Mesh(HALO_G, HALO_MAT); h.rotation.x = -Math.PI / 2; h.scale.setScalar(hd * 1.5); h.position.set(0, hy + hd * .56, hz + hd * .3); h.visible = false; body.add(h); eyes.push(h); } } // 夜に光る目
     if (L.ear === 'flop') part(L.c2, 0.07, hd * .85, hd * .5, s * (hd / 2 + .035), hy - hd * .12, hz - hd * .05, body);
     if (L.ear === 'long') { part(L.c1, hd * .22, hd * 1.4, .07, s * hd * .22, hy + hd * 1.1, hz - .05, body); part(L.c2, hd * .12, hd * 1.1, .02, s * hd * .22, hy + hd * 1.1, hz - .01, body); }
     if (L.ear === 'pointy') part(L.c1, hd * .3, hd * .5, .06, s * hd * .38, hy + hd * .65, hz - hd * .1, body);
@@ -662,7 +664,7 @@ let huntTarget = null, huntKind = null;
 const playing = () => G.state === 'play';
 
 function spawn(type, x, z) {
-  const sp = CONFIG.species[type], v = makeAnimal(LOOK[type]); if (sp.scale) v.g.scale.setScalar(sp.scale); scene.add(v.g);
+  const sp = CONFIG.species[type], v = makeAnimal(LOOK[type], !!sp.damage); if (sp.scale) v.g.scale.setScalar(sp.scale); v.g.userData.eyes.forEach(e => { e.visible = G.night > .25; }); scene.add(v.g);
   const a = { type, kind: type === 'alpha' || type === 'young' ? 'lion' : type, alpha: type === 'alpha', sp, x, z, dir: Math.random() * 6.283, hp: sp.hp, state: 'wander', phase: Math.random() * 6, alive: true, v, aware: 0, timer: 0, idle: true, moving: false, tx: x, tz: z, colR: Math.min(.9, sp.radius), seed: Math.random() * 6.283 };
   v.g.position.set(x, 0, z); animals.push(a); return a;
 }
@@ -1256,7 +1258,7 @@ function runEvent() {
     toast('ライオンの群れが来る', n + '頭がこちらへ向かっている'); sfx('roar');
     const group = animals.filter(a => a.alive && a.raidT > 0); setEvent(() => group.find(a => a.alive && a.raidT > 0) || null, 'ライオンの群れ', true);
   } else {
-    G.nightT = E.nightSeconds; toast('夜が来た', '獲物は気づきにくい。ただし肉食は遠くから気づく');
+    G.nightT = E.nightSeconds; toast('夜が来た', '獲物は気づきにくい。肉食は遠くから気づく。光る目に注意');
   }
 }
 function score() { const s = CONFIG.score; return Math.round(G.playT * s.perSecond + G.kcal * s.perKcal + G.born * s.perPup + G.kills.lion * s.perLion + G.kills.wolf * s.perWolf + G.kills.fox * s.perFox + G.kills.leopard * s.perLeopard + G.kills.bear * s.perBear + G.kills.alpha * s.perAlpha); }
@@ -1302,7 +1304,7 @@ function updateCamera(dt) {
   if (playing()) { if (k.KeyQ) cam.yaw -= dt * 1.8; if (k.KeyE) cam.yaw += dt * 1.8; }
   const title = G.state === 'title', yaw = title ? G.titleYaw : cam.yaw, dst = title ? H * 1.05 : cam.dist, pitch = title ? .6 : cam.pitch;
   G.shake = Math.max(0, G.shake - dt * 2.2); const sh = G.shake * G.shake * 1.6, sx = (Math.random() - .5) * sh, sz = (Math.random() - .5) * sh;
-  const n = G.night; skyC.copy(SKY_DAY).lerp(SKY_NIGHT, n); fog.color.copy(skyC); hemi.intensity = .72 - .42 * n; sun.intensity = .72 - .5 * n; hemi.color.copy(HEMI_DAY).lerp(HEMI_NIGHT, n); if (n !== G.nightShown) { G.nightShown = n; $('nightTint').style.opacity = n; } sun.color.copy(SUN_DAY).lerp(SUN_NIGHT, n);
+  const n = G.night; skyC.copy(SKY_DAY).lerp(SKY_NIGHT, n); fog.color.copy(skyC); hemi.intensity = .72 - .35 * n; sun.intensity = .72 - .43 * n; if ((n > .25) !== G.eyesOn) { G.eyesOn = n > .25; for (const a of animals) if (a.alive) a.v.g.userData.eyes.forEach(e => { e.visible = G.eyesOn; }); } hemi.color.copy(HEMI_DAY).lerp(HEMI_NIGHT, n); if (n !== G.nightShown) { G.nightShown = n; $('nightTint').style.opacity = n * .8; } sun.color.copy(SUN_DAY).lerp(SUN_NIGHT, n);
   if (G.view === '3d' || title) {
     cam3.position.set(cam.tx + Math.sin(yaw) * Math.cos(pitch) * dst + sx, Math.sin(pitch) * dst, cam.tz + Math.cos(yaw) * Math.cos(pitch) * dst + sz);
     cam3.lookAt(cam.tx + sx, 1, cam.tz + sz); fog.near = dst * (1.25 - .45 * n); fog.far = dst * (3.6 - 1.5 * n) + 80 - 50 * n; scene.fog = fog;
