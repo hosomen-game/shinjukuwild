@@ -31,7 +31,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidd
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-offset:2px}
 
-/* 上段：体力・空腹・スタミナ・繁栄。タップで詳細 */
+/* 上段：体力・空腹・繁栄。タップで詳細 */
 #vitals{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);width:min(460px,calc(100% - 32px));display:grid;grid-template-columns:1fr auto;gap:4px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px 4px;text-align:left;backdrop-filter:blur(6px)}
 #vitals:hover{border-color:rgba(239,235,220,.3)}
 .vt-bars{display:grid;gap:5px;min-width:0}
@@ -43,8 +43,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 .vt b{font-family:var(--mono);font-weight:400;font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
 #hpRow .vt-label{color:#ef7a6e} #hpBar{background:var(--blood)}
 #hungry .vt-label{color:var(--amber)} #hgBar{background:var(--amber)}
-#stRow .vt-label,#grRow .vt-label{font-size:11px} #stRow .vt-track,#grRow .vt-track{height:6px} #stRow b,#grRow b{font-size:12px;color:var(--mute)}
-#stRow .vt-label{color:var(--sky)} #stBar{background:var(--sky)}
+#grRow .vt-label{font-size:11px} #grRow .vt-track{height:6px} #grRow b{font-size:12px;color:var(--mute)}
 #grRow .vt-label{color:var(--rose)} #grBar{background:var(--rose)} #grRow .vt-track::after{display:none}
 #grRow.ready b{color:var(--rose)}
 #hungry.low .vt-label{color:var(--blood)} #hungry.low #hgBar{background:var(--blood)}
@@ -185,7 +184,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
       <span class="vt-bars">
         <span class="vt" id="hpRow"><span class="vt-label">体力</span><span class="vt-track"><i id="hpBar"></i></span><b id="hpNum">100</b></span>
         <span class="vt" id="hungry"><span class="vt-label">空腹</span><span class="vt-track"><i id="hgBar"></i></span><b id="hgNum">70</b></span>
-        <span class="vt" id="stRow"><span class="vt-label">スタミナ</span><span class="vt-track"><i id="stBar"></i></span><b id="stNum">100</b></span>
         <span class="vt" id="grRow"><span class="vt-label">繁栄</span><span class="vt-track"><i id="grBar"></i></span><b id="grNum">0%</b></span>
       </span>
       <span class="vt-pack"><small>群れ</small><strong id="pack">1</strong><small>残機</small></span>
@@ -295,8 +293,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 const CONFIG = {
   version: 'proto-0.4.2',
   world: { half: 84, denRadius: 7, meadow: 30, ruins: 58 },
-  player: { speed: 13, staminaMax: 100, staminaRegen: 18, staminaDelay: 0, maxHP: 100, biteDamage: 1, radius: 0.45, swapInvuln: 1.5 },
-  attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, staminaCost: 16, hitPad: 0.4, assistDeg: 18 },
+  player: { speed: 13, maxHP: 100, biteDamage: 1, radius: 0.45, swapInvuln: 1.5 },
+  attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, hitPad: 0.4, assistDeg: 18 },
   hunger: { max: 100, start: 70, decayPerSec: 1.7, starveDamagePerSec: 6, perPup: 0.1 },
   breed: { need: 30, needGrowth: 1, maxPack: 10 },
   pack: { pupHP: 55, assistRange: 14, assistPerMember: 0.5, growSeconds: 25 },
@@ -333,7 +331,6 @@ const getPath = (o, p) => p.split('.').reduce((a, k) => a[k], o);
 const setPath = (o, p, v) => { const ks = p.split('.'); const l = ks.pop(); ks.reduce((a, k) => a[k], o)[l] = v; };
 const TUNABLES = [
   { p: 'player.speed', label: 'ダックスの移動速度', min: 5, max: 24, step: 0.5 },
-  { p: 'attack.staminaCost', label: '攻撃1回のスタミナ', min: 4, max: 40, step: 1 },
   { p: 'defense.swarm', label: '防衛：攻めてくる量の倍率（送り込む間隔を縮める）', min: 1, max: 10, step: 0.5 },
   { p: 'defense.maxFoes', label: '防衛：同時にいる敵の上限', min: 10, max: 80, step: 1 },
   { p: 'defense.pups', label: '防衛：子犬の数', min: 3, max: 20, step: 1 },
@@ -345,7 +342,6 @@ const TUNABLES = [
   { p: 'fire.endAt', label: '野火が最小まで狭まる秒数', min: 60, max: 900, step: 10 },
   { p: 'fire.rMin', label: '野火の最小の半径', min: 10, max: 80, step: 1 },
   { p: 'fire.dps', label: '野火の中での毎秒ダメージ', min: 0, max: 60, step: 1 },
-  { p: 'player.staminaDelay', label: '飛びかかり後、スタミナが戻りはじめるまで（秒）', min: 0, max: 2, step: 0.1 },
   { p: 'danger.speedPerLevel', label: '危険度ごとの敵の追う速さの増加', min: 0, max: 0.08, step: 0.005 },
   { p: 'attack.assistDeg', label: '狙いの微補正（度、0で無し）', min: 0, max: 45, step: 1 },
   { p: 'hunt.ambushDamage', label: '会心の威力', min: 1, max: 10, step: 1 },
@@ -1140,12 +1136,11 @@ function ambushKind(a) {
 function tryAttack(mvx, mvz) {
   const A = CONFIG.attack;
   if (P.atkCd > 0) return;
-  if (P.stamina < A.staminaCost) { floatAt(P, '息切れ…', 'hit', .8); P.atkCd = .3; return; }
   let dir = Math.hypot(mvx, mvz) > .1 ? Math.atan2(mvx, mvz) : P.dir;
   // 微補正：飛ぶ方向のごく近く（既定18度以内）に届く相手がいるときだけ、そちらへ合わせる。逃げる方向は変えない
   const t = frontTarget(dir); if (t) dir = Math.atan2(t.x - P.x, t.z - P.z);
   P.lungeCrit = new Set(animals.filter(a => a.alive && dist(P, a) < reach() + a.sp.radius + 1 && ambushKind(a)));
-  P.lungeT = A.lungeTime; P.lungeDir = dir; P.dir = dir; atkLaneShow(dir); P.stamina -= A.staminaCost; P.stamDelay = CONFIG.player.staminaDelay; P.atkCd = A.cooldown;
+  P.lungeT = A.lungeTime; P.lungeDir = dir; P.dir = dir; atkLaneShow(dir); P.atkCd = A.cooldown;
   sfx('lunge'); burst(P.x, .15, P.z, 4, 0xb9b08f, 3, .16, 2);
 }
 function hit(a) {
@@ -1200,7 +1195,6 @@ function updatePlayer(dt) {
     }
     spd = A.lungeSpeed; P.moving = true;
   } else if (P.moving) { P.x += vx * spd * dt; P.z += vz * spd * dt; P.dir = lerpAng(P.dir, Math.atan2(vx, vz), Math.min(1, dt * 12)); resolve(P, C.radius); }
-  P.stamDelay = (P.stamDelay || 0) - dt; P.stamina = clamp(P.stamina + (P.lungeT > 0 || P.stamDelay > 0 ? 0 : C.staminaRegen) * dt, 0, C.staminaMax);
   const decay = CONFIG.hunger.decayPerSec * M.hungerMul * (1 + pack.length * CONFIG.hunger.perPup) * (1 + CONFIG.danger.hungerPerLevel * (G.level - 1));
   P.hunger = Math.max(0, P.hunger - decay * dt);
   if (P.hunger <= 0 && !M.defense) { P.hp -= CONFIG.hunger.starveDamagePerSec * dt; if (!M.canDie) P.hp = Math.max(P.hp, 15); if (P.hp <= 0) { if (pack.length) succeed('飢え'); else gameOver('飢えに倒れた'); } }
@@ -1328,7 +1322,7 @@ function resetRun(mode) {
   animals.slice().forEach(removeAnimal); animals.length = 0; herds.length = 0; wolfPacks.length = 0; clearPack();
   buildWorld((Math.random() * 1e9) | 0);
   Object.assign(G, { mode, state: 'play', playT: 0, level: 1, night: 0, nightT: 0, shake: 0, freeze: 0, grow: 0, need: CONFIG.breed.need, born: 0, kcal: 0, kills: { rabbit: 0, deer: 0, lion: 0, alpha: 0, boar: 0, wolf: 0, fox: 0, leopard: 0, bear: 0 }, wolfCd: 0, foxCd: 0, lionCd: 0, youngCd: 30, leoCd: 0, bearCd: 0, seen: {}, youngN: 1 + (Math.random() < .5 ? 1 : 0), maxPack: 1, swaps: 0, eventT: CONFIG.events.firstAt, evQueue: [], evCount: 0, ev: null, alphaNext: 0, spawnT: 0, crashSeen: false, atDen: true });
-  P = { x: 0, z: 2, dir: 0, hp: CONFIG.player.maxHP, maxHP: CONFIG.player.maxHP, hunger: CONFIG.hunger.start, stamina: CONFIG.player.staminaMax, atkCd: 0, hurtT: 0, lungeT: 0, lungeDir: 0, lungeCrit: null, moving: false, phase: 0, invuln: 0, vx: 0, vz: 0 };
+  P = { x: 0, z: 2, dir: 0, hp: CONFIG.player.maxHP, maxHP: CONFIG.player.maxHP, hunger: CONFIG.hunger.start, stamina: 100, atkCd: 0, hurtT: 0, lungeT: 0, lungeDir: 0, lungeCrit: null, moving: false, phase: 0, invuln: 0, vx: 0, vz: 0 };
   if (DEF()) { const D = CONFIG.defense; P.hunger = 0; for (let i = 0; i < D.pups; i++) { const an = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (D.penRadius - 2), m = addPup(Math.cos(an) * r, Math.sin(an) * r); m.born = -999; m.dir = Math.random() * 6.283; } }
   populate(); initFlocks();
   cam.yaw = 0.35; cam.tx = P.x; cam.tz = P.z; huntTarget = null;
@@ -1424,7 +1418,6 @@ function adviceTick() {
   else if (P.hunger < 10) advise('starve', '飢え死に寸前。ウサギでもいいので何か食べよう', { cd: 30, prio: 3 });
   else if (P.hunger < 30) advise('hungry', '空腹になってきた。外へ行くほど獲物は多いが、危険も増える', { cd: 60, prio: 2 });
   { const pd = Math.hypot(P.x, P.z); if (pd > G.fireR) advise('fireIn', '野火の中だ！ 巣の方向へ戻れ', { cd: 4, prio: 6, dur: 2.5 }); else if (pd > G.fireR - 12) advise('fireNear', '野火が迫っている。内側へ移れ', { cd: 15, prio: 4, dur: 3 }); }
-  if (P.stamina < CONFIG.attack.staminaCost) advise('stam', 'スタミナ切れ。少し歩けば回復する', { cd: 60, prio: 1 });
   if (pack.length) advise('pup', '子は後ろをついてきて、噛むと加勢する。リーダーが倒れても子が引き継ぐ', { prio: 2 });
   if (G.night > .5) advise('night', '夜は獲物に近づきやすい。ライオンは遠くからでも気づく', { prio: 2 });
   if (G.crashSeen) advise('crash', 'ライオンが柱に激突した。長い隙ができ、ダメージも入る', { prio: 2 });
@@ -1433,7 +1426,7 @@ function adviceTick() {
 function updateHUD() {
   const C = CONFIG.player, M = CONFIG.modes[G.mode], D = CONFIG.danger;
   const bar = (b, n, v, m) => { $(b).style.width = clamp(v / m * 100, 0, 100) + '%'; if (n) $(n).textContent = Math.max(0, Math.ceil(v)); };
-  bar('hpBar', 'hpNum', P.hp, P.maxHP); bar('hgBar', 'hgNum', P.hunger, CONFIG.hunger.max); bar('stBar', 'stNum', P.stamina, C.staminaMax);
+  bar('hpBar', 'hpNum', P.hp, P.maxHP); bar('hgBar', 'hgNum', P.hunger, CONFIG.hunger.max);
   const ready = G.grow >= G.need; bar('grBar', null, Math.min(G.grow, G.need), G.need); $('grNum').textContent = ready ? '巣へ' + (G.grow >= G.need * 2 ? ' ×' + Math.floor(G.grow / G.need) : '') : Math.floor(G.grow / G.need * 100) + '%'; $('grRow').classList.toggle('ready', ready);
   $('hungry').classList.toggle('low', P.hunger < 25 && !M.defense); $('hungry').firstElementChild.textContent = M.defense ? '食料' : '空腹';
   $('pack').textContent = pack.length + (M.defense ? 0 : 1); $('kcal').textContent = G.kcal.toLocaleString() + 'kcal'; $('born').textContent = G.born; $('kRabbit').textContent = G.kills.rabbit; $('kDeer').textContent = G.kills.deer; $('kLion').textContent = G.kills.lion + G.kills.alpha + G.kills.wolf + G.kills.fox + G.kills.leopard + G.kills.bear; $('kBoar').textContent = G.kills.boar; $('ptNum').textContent = score().toLocaleString() + ' pt';
