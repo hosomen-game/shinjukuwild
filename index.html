@@ -1169,12 +1169,12 @@ function killed(a, crit, byCrash) {
   if (!playing()) return;
   sfx('kill'); G.freeze = Math.max(G.freeze, .06); G.shake = Math.max(G.shake, .3);
   P.hunger = Math.min(CONFIG.hunger.max, P.hunger + S.hunger);
-  const was = G.grow >= G.need; G.grow = Math.min(G.need, G.grow + S.hunger); if (DEF()) { if (G.grow >= G.need) birth(); } else if (!was && G.grow >= G.need) { sfx('ready'); toast('繁栄ゲージ満タン', '巣に戻ると子が生まれる'); }
+  const was = G.grow >= G.need; G.grow += S.hunger; if (DEF()) { for (let i = 0; i < 20 && G.grow >= G.need; i++) birth(); } // 余りは切り捨てず、次の子へ持ち越す else if (!was && G.grow >= G.need) { sfx('ready'); toast('繁栄ゲージ満タン', '巣に戻ると子が生まれる'); }
   G.kcal += S.kcal; if (a.alpha) { G.kills.alpha++; toast('主を倒した', '+' + CONFIG.score.perAlpha + ' ポイント'); G.alphaNext = G.level + CONFIG.danger.alphaEvery; } else G.kills[a.kind]++;
   floatAt(a, (byCrash ? '激突で仕留めた ' : crit ? '会心！ ' : '') + '+' + S.kcal + 'kcal', crit || byCrash ? 'perfect' : 'eat', 1.1);
 }
 function birth() {
-  const m = addPup(Math.random() * 3 - 1.5, Math.random() * 3 - 1.5); if (DEF()) { const an = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (CONFIG.defense.penRadius - 2); m.x = Math.cos(an) * r; m.z = Math.sin(an) * r; m.born = -999; } G.grow = 0; G.need = Math.round(G.need * CONFIG.breed.needGrowth); G.born++;
+  const m = addPup(Math.random() * 3 - 1.5, Math.random() * 3 - 1.5); if (DEF()) { const an = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (CONFIG.defense.penRadius - 2); m.x = Math.cos(an) * r; m.z = Math.sin(an) * r; m.born = -999; } G.grow = Math.max(0, G.grow - G.need); G.need = Math.round(G.need * CONFIG.breed.needGrowth); G.born++;
   floatAt(m, '誕生', 'mate', 1.4); burst(m.x, .6, m.z, 16, 0xf39bb0, 4, .22, 6); ringFx(0, 0, 0xf39bb0, CONFIG.world.denRadius + 2, .8); sfx('birth');
   toast(DEF() ? '子犬が生まれた' : '子が生まれた', DEF() ? '巣の子犬は ' + pack.length + '匹' : '残機 +1（群れ ' + (pack.length + 1) + '匹）');
 }
@@ -1434,7 +1434,7 @@ function updateHUD() {
   const C = CONFIG.player, M = CONFIG.modes[G.mode], D = CONFIG.danger;
   const bar = (b, n, v, m) => { $(b).style.width = clamp(v / m * 100, 0, 100) + '%'; if (n) $(n).textContent = Math.max(0, Math.ceil(v)); };
   bar('hpBar', 'hpNum', P.hp, P.maxHP); bar('hgBar', 'hgNum', P.hunger, CONFIG.hunger.max); bar('stBar', 'stNum', P.stamina, C.staminaMax);
-  const ready = G.grow >= G.need; bar('grBar', null, G.grow, G.need); $('grNum').textContent = ready ? '巣へ' : Math.floor(G.grow / G.need * 100) + '%'; $('grRow').classList.toggle('ready', ready);
+  const ready = G.grow >= G.need; bar('grBar', null, Math.min(G.grow, G.need), G.need); $('grNum').textContent = ready ? '巣へ' + (G.grow >= G.need * 2 ? ' ×' + Math.floor(G.grow / G.need) : '') : Math.floor(G.grow / G.need * 100) + '%'; $('grRow').classList.toggle('ready', ready);
   $('hungry').classList.toggle('low', P.hunger < 25 && !M.defense); $('hungry').firstElementChild.textContent = M.defense ? '食料' : '空腹';
   $('pack').textContent = pack.length + (M.defense ? 0 : 1); $('kcal').textContent = G.kcal.toLocaleString() + 'kcal'; $('born').textContent = G.born; $('kRabbit').textContent = G.kills.rabbit; $('kDeer').textContent = G.kills.deer; $('kLion').textContent = G.kills.lion + G.kills.alpha + G.kills.wolf + G.kills.fox + G.kills.leopard + G.kills.bear; $('kBoar').textContent = G.kills.boar; $('ptNum').textContent = score().toLocaleString() + ' pt';
   $('lvNum').textContent = M.escalate ? '危険度 ' + G.level : 'のんびり'; $('timeNum').textContent = fmtT(G.playT); $('lvBar').style.width = (M.escalate ? (G.playT % D.levelSeconds) / D.levelSeconds * 100 : 0) + '%'; $('status').classList.toggle('night', G.night > .5);
