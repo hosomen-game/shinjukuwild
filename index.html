@@ -139,6 +139,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 .mode:hover{border-color:var(--moss);background:rgba(169,201,75,.1)}
 .mode-name{font-family:var(--display);font-size:20px}
 .mode-desc{font-size:12.5px;line-height:1.6;color:var(--mute)}
+.mode.off{display:none} /* 延命・のんびりは一時的に非表示 */
+.modes:not(:has(.mode:not(.off) ~ .mode:not(.off))){grid-template-columns:1fr}
+.mode.start{border-color:var(--moss);background:rgba(169,201,75,.12);text-align:center;justify-items:center}
+.mode.start .mode-name{font-size:24px;color:var(--moss)} .mode.start:hover{background:rgba(169,201,75,.2)}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:12.5px}
 .keys dt{font-family:var(--mono);color:var(--moss)} .keys dd{margin:0;color:var(--mute)}
 .best{margin:0;font-size:12px;color:var(--mute);font-family:var(--mono)}
@@ -232,18 +236,18 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 
 <div id="title" class="screen">
   <div class="card">
-    <p class="eyebrow">試作版 v0.4.2 ・ HTMLプロトタイプ</p>
+    <p class="eyebrow">試作版 v0.5.0 ・ HTMLプロトタイプ</p>
     <h1>新宿ワイルド</h1>
-    <p class="goal-line"><b>目的</b>群れが尽きるまで、できるだけ長く生き延びる</p>
+    <p class="goal-line"><b>目的</b>巣の子犬を、食べに来る肉食から守り抜く</p>
     <ol class="steps">
-      <li><b>狩って食べる</b><span>空腹が回復し、繁栄ゲージが貯まる</span></li>
-      <li><b>巣に戻る</b><span>ゲージ満タンで戻ると子が生まれる</span></li>
-      <li><b>群れ＝残機</b><span>リーダーが倒れても子が引き継ぐ</span></li>
+      <li><b>狩って食べる</b><span>食料と繁栄ゲージが貯まる</span></li>
+      <li><b>子犬が増える</b><span>繁栄ゲージが満タンになるたび、巣に子犬が生まれる</span></li>
+      <li><b>巣で回復</b><span>巣に戻ると、貯めた食料で傷ついた子犬が回復する</span></li>
     </ol>
     <div class="modes">
-      <button class="mode" id="btnSurvival"><span class="mode-name">延命</span><span class="mode-desc">30秒ごとに危険度が上がり、弱い肉食から順に現れる。外周からは野火が迫り、動ける範囲が狭まる。群れの数が残機。どこまで生き延びられるか。</span></button>
-      <button class="mode" id="btnDefense"><span class="mode-name">防衛</span><span class="mode-desc">巣にいる5匹の子犬を、食べに来る肉食から守る。食べるほど子犬が増え、貯めた食料を巣に持ち帰ると子犬が回復する。子犬が尽きたら終わり。</span></button>
-      <button class="mode" id="btnRelax"><span class="mode-name">のんびり</span><span class="mode-desc">危険度は上がらず、敵はこちらから噛まない限りおとなしい。倒れない。好きなだけ狩って群れを育てる。</span></button>
+      <button class="mode off" id="btnSurvival"><span class="mode-name">延命</span><span class="mode-desc">30秒ごとに危険度が上がり、弱い肉食から順に現れる。外周からは野火が迫り、動ける範囲が狭まる。群れの数が残機。どこまで生き延びられるか。</span></button>
+      <button class="mode start" id="btnDefense"><span class="mode-name">ゲームスタート</span><span class="mode-desc">巣にいる5匹の子犬を、食べに来る肉食から守る。食べるほど子犬が増え、貯めた食料を巣に持ち帰ると子犬が回復する。子犬が尽きたら終わり。</span></button>
+      <button class="mode off" id="btnRelax"><span class="mode-name">のんびり</span><span class="mode-desc">危険度は上がらず、敵はこちらから噛まない限りおとなしい。倒れない。好きなだけ狩って群れを育てる。</span></button>
     </div>
     <dl class="keys desk">
       <dt>WASD</dt><dd>移動</dd>
@@ -294,7 +298,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 'use strict';
 /* ========= バランスデータ ========= */
 const CONFIG = {
-  version: 'proto-0.4.2',
+  version: 'proto-0.5.0',
   world: { half: 84, denRadius: 7, meadow: 30, ruins: 58 },
   player: { speed: 13, maxHP: 100, biteDamage: 1, radius: 0.45, swapInvuln: 1.5 },
   attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, hitPad: 0.4, assistDeg: 18 },
@@ -1469,7 +1473,7 @@ function toTitle() {
   G.state = 'title'; show('hud', false); show('over', false); show('pause', false); show('title', true); show('touch', false); show('tune', false);
   playerView.g.visible = false; marker.visible = false; aimMark.visible = false; clearPack(); refreshBest(); G.nightT = 0; G.level = 1;
 }
-function refreshBest() { let s = 0, d = 0; try { s = +localStorage.getItem('sw3-best-survival') || 0; d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = [s ? '延命 ' + s.toLocaleString() + 'pt' : '', d ? '防衛 ' + d.toLocaleString() + 'pt' : ''].filter(Boolean).join(' ・ ').replace(/^(?=.)/, '自己ベスト　'); }
+function refreshBest() { let s = 0, d = 0; if (document.querySelector('#btnSurvival.off')) { try { d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = d ? '自己ベスト　' + d.toLocaleString() + 'pt' : ''; return; } try { s = +localStorage.getItem('sw3-best-survival') || 0; d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = [s ? '延命 ' + s.toLocaleString() + 'pt' : '', d ? '防衛 ' + d.toLocaleString() + 'pt' : ''].filter(Boolean).join(' ・ ').replace(/^(?=.)/, '自己ベスト　'); }
 
 /* 調整パネル */
 function exportSplit() {
@@ -1519,6 +1523,7 @@ addEventListener('keydown', e => {
   if (playing() && ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
   input.k[e.code] = true; if (e.repeat) return;
   if ((e.code === 'Space' || e.code === 'KeyJ') && playing()) input.bite = true;
+  if ((e.code === 'Enter' || e.code === 'Space') && G.state === 'title') { e.preventDefault(); resetRun('defense'); return; }
   if (e.code === 'KeyV') setView(G.view === '3d' ? '2d' : '3d');
   if (e.code === 'KeyZ') zoom(.85); if (e.code === 'KeyX') zoom(1.18);
   if (e.code === 'Escape' || e.code === 'KeyP') pause(playing());
