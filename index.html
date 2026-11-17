@@ -916,7 +916,7 @@ function updateLion(a, dt) {
       let hitSome = false;
       if (playing()) {
         if (dist(P, a) < S.radius + CONFIG.player.radius + .5) { hurtPlayer(S.damage, a, S.name + 'に倒された'); hitSome = true; }
-        for (const m of pack.slice()) if (Math.hypot(m.x - a.x, m.z - a.z) < S.radius + .9) { hurtPup(m, S.damage, a); hitSome = true; }
+        { const m = nearestPup(a, S.radius + .9); if (m) { hurtPup(m, S.damage, a); hitSome = true; } }
       }
       if (hitSome) { a.state = 'recover'; a.recT = S.hitRecover; break; }
       if (a.chargeT <= 0) { a.state = 'recover'; a.recT = S.recover; if (playing() && dist(P, a) < 30) floatAt(a, '隙あり', 'perfect', .9); }
@@ -1016,7 +1016,7 @@ function updateWolfPack(w, dt) {
       for (let i = 0; i < steps && m.state === 'charge'; i++) {
         m.chargeT -= sd; m.x += Math.sin(m.cdir) * S.chargeSpeed * sd; m.z += Math.cos(m.cdir) * S.chargeSpeed * sd;
         let done = resolve(m, m.colR);
-        if (playing()) { if (dist(P, m) < S.radius + CONFIG.player.radius + .45) { hurtPlayer(S.damage, m, S.name + 'に倒された'); done = true; } for (const q of pack.slice()) if (Math.hypot(q.x - m.x, q.z - m.z) < S.radius + .8) { hurtPup(q, S.damage, m); done = true; } }
+        if (playing()) { if (dist(P, m) < S.radius + CONFIG.player.radius + .45) { hurtPlayer(S.damage, m, S.name + 'に倒された'); done = true; } { const q = nearestPup(m, S.radius + .8); if (q) { hurtPup(q, S.damage, m); done = true; } } }
         if (done || m.chargeT <= 0) { m.state = 'recover'; m.recT = S.recover; }
       }
     } else if (m.state === 'recover') {
@@ -1045,6 +1045,7 @@ function atkLaneTick(dt) { if (!atkLane.visible) return; const t = atkLane.userD
 
 function addPup(x, z) { const v = makeAnimal(LOOK.pup); scene.add(v.g); const m = { v, x, z, dir: P.dir, phase: Math.random() * 6, born: G.playT, hp: pupMax(), rush: null, moving: false }; pack.push(m); G.maxPack = Math.max(G.maxPack, pack.length + 1); return m; }
 function clearPack() { pack.forEach(m => scene.remove(m.v.g)); pack.length = 0; }
+function nearestPup(a, r) { let best = null, bd = r; for (const m of pack) { const d = Math.hypot(m.x - a.x, m.z - a.z); if (d < bd) { bd = d; best = m; } } return best; }
 function hurtPup(m, dmg, src) {
   if (!pack.includes(m)) return; if (DEF()) dmg *= CONFIG.defense.pupDamageMul; m.hp -= dmg; floatAt(m, 'キャン！', 'hit'); burst(m.x, .5, m.z, 8, 0xda4a3d, 5, .2); sfx('yelp');
   if (m.hp <= 0) { scene.remove(m.v.g); pack.splice(pack.indexOf(m), 1); toast(DEF() ? '子犬がやられた' : '群れの1匹がやられた', '残り ' + (pack.length + (DEF() ? 0 : 1)) + '匹'); G.shake = Math.max(G.shake, .4); }
@@ -1076,6 +1077,7 @@ function updateDenPups(dt) {
       if (along > -1 && along < 16 && Math.abs(side) < a.sp.radius + 1.6) { const sg = side >= 0 ? 1 : -1; tx = m.x + cz * sg * 4; tz = m.z - cx * sg * 4; spd = 11; break; }
     }
     const tl = Math.hypot(tx, tz); if (tl > R - .6) { tx *= (R - .6) / tl; tz *= (R - .6) / tl; }
+    for (const o of pack) { if (o === m) continue; const ox = m.x - o.x, oz = m.z - o.z, od = Math.hypot(ox, oz); if (od < 1.1) { const k = (1.1 - od) * .5 / (od || 1); m.x += (od ? ox : Math.random() - .5) * k; m.z += (od ? oz : Math.random() - .5) * k; } } // 重ならない
     const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz); m.moving = d > .5;
     if (m.moving) { const v = Math.min(spd, d * 4); m.x += dx / d * v * dt; m.z += dz / d * v * dt; m.dir = lerpAng(m.dir, Math.atan2(dx, dz), Math.min(1, dt * 10)); resolve(m, .4); m.phase += v * dt * 1.2; }
     m.v.g.scale.setScalar(.72 * (m.hp < D.pupHP * D.fearHP ? .88 : 1));
