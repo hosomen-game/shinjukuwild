@@ -31,7 +31,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidd
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-offset:2px}
 
-/* 上段：体力・空腹・繁栄。タップで詳細 */
+/* 上段：空腹・繁栄。体力はキャラの頭上に出す。タップで詳細 */
 #vitals{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);width:min(460px,calc(100% - 32px));display:grid;grid-template-columns:1fr auto;gap:4px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px 4px;text-align:left;backdrop-filter:blur(6px)}
 #vitals:hover{border-color:rgba(239,235,220,.3)}
 .vt-bars{display:grid;gap:5px;min-width:0}
@@ -41,7 +41,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 .vt-track::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),rgba(17,21,15,.55) calc(10% - 1px) 10%)}
 .vt-track i{display:block;height:100%;transition:width .15s linear}
 .vt b{font-family:var(--mono);font-weight:400;font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
-#hpRow .vt-label{color:#ef7a6e} #hpBar{background:var(--blood)}
 #hungry .vt-label{color:var(--amber)} #hgBar{background:var(--amber)}
 #grRow .vt-label{font-size:11px} #grRow .vt-track{height:6px} #grRow b{font-size:12px;color:var(--mute)}
 #grRow .vt-label{color:var(--rose)} #grBar{background:var(--rose)} #grRow .vt-track::after{display:none}
@@ -186,7 +185,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
   <div id="hud" hidden>
     <button id="vitals" aria-expanded="false" aria-label="ステータス。タップで詳細">
       <span class="vt-bars">
-        <span class="vt" id="hpRow"><span class="vt-label">体力</span><span class="vt-track"><i id="hpBar"></i></span><b id="hpNum">100</b></span>
         <span class="vt" id="hungry"><span class="vt-label">空腹</span><span class="vt-track"><i id="hgBar"></i></span><b id="hgNum">70</b></span>
         <span class="vt" id="grRow"><span class="vt-label">繁栄</span><span class="vt-track"><i id="grBar"></i></span><b id="grNum">0%</b></span>
       </span>
@@ -1442,7 +1440,7 @@ function adviceTick() {
 function updateHUD() {
   const C = CONFIG.player, M = CONFIG.modes[G.mode], D = CONFIG.danger;
   const bar = (b, n, v, m) => { $(b).style.width = clamp(v / m * 100, 0, 100) + '%'; if (n) $(n).textContent = Math.max(0, Math.ceil(v)); };
-  bar('hpBar', 'hpNum', P.hp, P.maxHP); bar('hgBar', 'hgNum', P.hunger, CONFIG.hunger.max);
+  bar('hgBar', 'hgNum', P.hunger, CONFIG.hunger.max);
   const ready = G.grow >= G.need; bar('grBar', null, Math.min(G.grow, G.need), G.need); $('grNum').textContent = ready ? '巣へ' + (G.grow >= G.need * 2 ? ' ×' + Math.floor(G.grow / G.need) : '') : Math.floor(G.grow / G.need * 100) + '%'; $('grRow').classList.toggle('ready', ready);
   $('hungry').classList.toggle('low', P.hunger < 25 && !M.defense); $('hungry').firstElementChild.textContent = M.defense ? '食料' : '空腹';
   $('pack').textContent = pack.length + (M.defense ? 0 : 1); $('kcal').textContent = G.kcal.toLocaleString() + 'kcal'; $('born').textContent = G.born; $('kRabbit').textContent = G.kills.rabbit; $('kDeer').textContent = G.kills.deer; $('kLion').textContent = G.kills.lion + G.kills.alpha + G.kills.wolf + G.kills.fox + G.kills.leopard + G.kills.bear; $('kBoar').textContent = G.kills.boar; $('ptNum').textContent = score().toLocaleString() + ' pt';
