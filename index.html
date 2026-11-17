@@ -71,6 +71,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 #ptNum{grid-column:1/-1;font-family:var(--mono);font-size:11px;color:var(--mute);text-align:right;font-variant-numeric:tabular-nums}
 #denLabel{position:absolute;transform:translate(-50%,-100%);font-family:var(--display);font-size:13px;color:var(--moss);text-shadow:0 1px 0 #000,0 0 8px rgba(0,0,0,.8);pointer-events:none;white-space:nowrap}
 #denLabel.ready{color:var(--rose);font-size:15px}
+#headHP{position:absolute;width:46px;height:6px;transform:translate(-50%,-100%);background:rgba(10,8,6,.72);border:1px solid rgba(0,0,0,.6);border-radius:3px;overflow:hidden;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+#headHP i{display:block;height:100%;width:100%;background:#7fcf5a;transition:width .12s}
+#headHP.mid i{background:var(--amber)} #headHP.low i{background:var(--blood);animation:hpBlink .5s steps(2) infinite}
+@keyframes hpBlink{50%{opacity:.35}}
 
 .tb{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 11px;font-size:13px;font-weight:500;min-width:36px}
 .tb:hover{border-color:var(--moss)}
@@ -204,6 +208,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
       <span id="denTxt">巣</span>
     </div>
     <div id="denLabel" hidden>巣</div>
+    <div id="headHP" hidden><i></i></div>
     <div class="cmp" id="evCmp" hidden>
       <svg id="evArrow" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="currentColor"/></svg>
       <span id="evTxt"></span>
@@ -1572,8 +1577,12 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now;
   if (G.state !== 'paused') { if (G.freeze > 0) G.freeze -= dt; else simulate(dt); updateFloaters(dt); }
+  updateCamera(dt); // ラベルの位置は、動いた後のカメラで計算する
+  if (playing()) { // 操作キャラの頭上に小さな体力バー
+    V3.set(P.x, 1.75, P.z).project(activeCam()); const r = clamp(P.hp / P.maxHP, 0, 1), hb = $('headHP'); show('headHP', true);
+    hb.style.left = (V3.x * .5 + .5) * innerWidth + 'px'; hb.style.top = (-V3.y * .5 + .5) * innerHeight + 'px'; hb.firstElementChild.style.width = (r * 100).toFixed(1) + '%'; hb.classList.toggle('mid', r <= .6 && r > .3); hb.classList.toggle('low', r <= .3);
+  } else show('headHP', false);
   if (playing()) { V3.set(0, 2.6, 0).project(activeCam()); const on = Math.hypot(P.x, P.z) > CONFIG.world.denRadius + 2 && V3.z < 1 && Math.abs(V3.x) < 1.05 && Math.abs(V3.y) < 1.05; show('denLabel', on); if (on) { $('denLabel').style.left = (V3.x * .5 + .5) * innerWidth + 'px'; $('denLabel').style.top = (-V3.y * .5 + .5) * innerHeight + 'px'; } }
-  updateCamera(dt);
   renderer.render(scene, activeCam());
   requestAnimationFrame(frame);
 }
