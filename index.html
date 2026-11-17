@@ -236,17 +236,17 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 
 <div id="title" class="screen">
   <div class="card">
-    <p class="eyebrow">試作版 v0.5.0 ・ HTMLプロトタイプ</p>
+    <p class="eyebrow">試作版 v0.5.1 ・ HTMLプロトタイプ</p>
     <h1>新宿ワイルド</h1>
     <p class="goal-line"><b>目的</b>巣の子犬を、食べに来る肉食から守り抜く</p>
     <ol class="steps">
-      <li><b>狩って食べる</b><span>食料と繁栄ゲージが貯まる</span></li>
-      <li><b>子犬が増える</b><span>繁栄ゲージが満タンになるたび、巣に子犬が生まれる</span></li>
-      <li><b>巣で回復</b><span>巣に戻ると、貯めた食料で傷ついた子犬が回復する</span></li>
+      <li><b>狩って食べる</b><span>食べた分で、まず自分の体力が回復する</span></li>
+      <li><b>余りで増える</b><span>余った分が繁栄ゲージへ。満タンのたび巣に子犬が生まれる</span></li>
+      <li><b>子犬は治らない</b><span>傷ついた子犬は回復しない。近づく敵を先に倒せ</span></li>
     </ol>
     <div class="modes">
       <button class="mode off" id="btnSurvival"><span class="mode-name">延命</span><span class="mode-desc">30秒ごとに危険度が上がり、弱い肉食から順に現れる。外周からは野火が迫り、動ける範囲が狭まる。群れの数が残機。どこまで生き延びられるか。</span></button>
-      <button class="mode start" id="btnDefense"><span class="mode-name">ゲームスタート</span><span class="mode-desc">巣にいる5匹の子犬を、食べに来る肉食から守る。食べるほど子犬が増え、貯めた食料を巣に持ち帰ると子犬が回復する。子犬が尽きたら終わり。</span></button>
+      <button class="mode start" id="btnDefense"><span class="mode-name">ゲームスタート</span><span class="mode-desc">巣にいる5匹の子犬を、食べに来る肉食から守る。食べるとまず自分が回復し、余りで子犬が増える。子犬が尽きたら終わり。</span></button>
       <button class="mode off" id="btnRelax"><span class="mode-name">のんびり</span><span class="mode-desc">危険度は上がらず、敵はこちらから噛まない限りおとなしい。倒れない。好きなだけ狩って群れを育てる。</span></button>
     </div>
     <dl class="keys desk">
@@ -298,7 +298,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 'use strict';
 /* ========= バランスデータ ========= */
 const CONFIG = {
-  version: 'proto-0.5.0',
+  version: 'proto-0.5.1',
   world: { half: 84, denRadius: 7, meadow: 30, ruins: 58 },
   player: { speed: 13, maxHP: 100, biteDamage: 1, radius: 0.45, swapInvuln: 1.5 },
   attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, hitPad: 0.4, assistDeg: 18 },
@@ -1181,8 +1181,10 @@ function killed(a, crit, byCrash) {
   if (a.wpack) a.wpack.dartCd += 2.5; // 仲間がやられると、ひるむ
   if (!playing()) return;
   sfx('kill'); G.freeze = Math.max(G.freeze, .06); G.shake = Math.max(G.shake, .3);
-  P.hunger = Math.min(CONFIG.hunger.max, P.hunger + S.hunger);
-  const was = G.grow >= G.need; G.grow += S.hunger; if (DEF()) { for (let i = 0; i < 20 && G.grow >= G.need; i++) birth(); } // 余りは切り捨てず、次の子へ持ち越す else if (!was && G.grow >= G.need) { sfx('ready'); toast('繁栄ゲージ満タン', '巣に戻ると子が生まれる'); }
+  let food = S.hunger;
+  if (DEF()) { const heal = Math.min(Math.max(0, P.maxHP - P.hp), food); if (heal > 0) { P.hp += heal; food -= heal; floatAt(P, '体力 +' + Math.round(heal), 'eat', .9); } } // ルールB：まず自分の回復、余りが繁栄
+  else P.hunger = Math.min(CONFIG.hunger.max, P.hunger + S.hunger);
+  const was = G.grow >= G.need; G.grow += food; if (DEF()) { for (let i = 0; i < 20 && G.grow >= G.need; i++) birth(); } // 余りは切り捨てず、次の子へ持ち越す else if (!was && G.grow >= G.need) { sfx('ready'); toast('繁栄ゲージ満タン', '巣に戻ると子が生まれる'); }
   G.kcal += S.kcal; if (a.alpha) { G.kills.alpha++; toast('主を倒した', '+' + CONFIG.score.perAlpha + ' ポイント'); G.alphaNext = G.level + CONFIG.danger.alphaEvery; } else G.kills[a.kind]++;
   floatAt(a, (byCrash ? '激突で仕留めた ' : crit ? '会心！ ' : '') + '+' + S.kcal + 'kcal', crit || byCrash ? 'perfect' : 'eat', 1.1);
 }
@@ -1220,11 +1222,7 @@ function updatePlayer(dt) {
   P.vx = lerp(P.vx || 0, (P.x - px0) / dt, .35); P.vz = lerp(P.vz || 0, (P.z - pz0) / dt, .35);
   // 巣：回復と出産
   G.atDen = Math.hypot(P.x, P.z) < (M.defense ? CONFIG.defense.penRadius : CONFIG.world.denRadius);
-  if (G.atDen && M.defense) { // 運んできた食料のぶんだけ、子犬が回復する
-    const D = CONFIG.defense; P.hp = Math.min(P.maxHP, P.hp + CONFIG.den.healPerSec * dt);
-    const hurt = pack.filter(m => m.hp < D.pupHP);
-    if (hurt.length && P.hunger > 0) { const give = Math.min(P.hunger, D.feedPerSec * dt); let used = 0; hurt.forEach(m => { const g = Math.min(D.pupHP - m.hp, give / hurt.length); m.hp += g; used += g; }); P.hunger -= used; G.feedFx = (G.feedFx || 0) - dt; if (G.feedFx <= 0) { G.feedFx = .35; const m = hurt[Math.floor(Math.random() * hurt.length)]; burst(m.x, .5, m.z, 5, 0xa9c94b, 3, .2, 4); floatAt(m, '回復', 'eat', .7); sfx('eat'); } }
-  }
+  if (G.atDen && M.defense) { /* 防衛：巣での回復は無し。回復は食べることだけ */ }
   else if (G.atDen) {
     if (P.hunger > 0) P.hp = Math.min(P.maxHP, P.hp + CONFIG.den.healPerSec * dt); pack.forEach(m => { m.hp = Math.min(CONFIG.pack.pupHP, m.hp + CONFIG.den.healPerSec * dt); });
     if (G.grow >= G.need && pack.length + 1 < CONFIG.breed.maxPack) birth();
@@ -1347,7 +1345,7 @@ function resetRun(mode) {
   playerView.g.visible = true; marker.visible = true;
   adv.last = {}; adv.t = 0; $('hint').classList.remove('on');
   show('hud', true); show('title', false); show('over', false); show('pause', false); show('tune', false); if (coarse) show('touch', true);
-  toast(CONFIG.modes[mode].label + 'モード', mode === 'survival' ? '狩って、満たして、巣で子を増やせ' : mode === 'defense' ? '巣の子犬を守れ。食料を運ぶと子犬が回復する' : '急がなくていい。好きなだけ狩って群れを育てよう');
+  toast(CONFIG.modes[mode].label + 'モード', mode === 'survival' ? '狩って、満たして、巣で子を増やせ' : mode === 'defense' ? '巣の子犬を守れ。食べるとまず自分が回復し、余りで子犬が増える' : '急がなくていい。好きなだけ狩って群れを育てよう');
 }
 function populate() {
   world.burrows.forEach(b => { b.count = 0; for (let i = 0; i < CONFIG.population.rabbitsPerBurrow; i++) spawnRabbit(b); });
@@ -1359,7 +1357,7 @@ function gameOver(cause, manual) {
   if (!playing()) return; G.state = 'over';
   const sc = score(), key = 'sw3-best-' + G.mode; let best = 0, prev = 0;
   try { prev = +localStorage.getItem(key) || 0; best = Math.max(prev, sc); if (sc > prev) localStorage.setItem(key, sc); } catch (e) { best = sc; }
-  $('overCause').textContent = cause; $('overHead').textContent = manual || G.mode === 'relax' ? '今回の記録' : G.mode === 'defense' ? '守りきれなかった' : '群れは尽きた';
+  $('overCause').textContent = cause; $('overHead').textContent = manual || G.mode === 'relax' ? '今回の記録' : G.mode === 'defense' ? '今回の記録' : '群れは尽きた';
   $('overScore').firstChild.textContent = sc.toLocaleString();
   const D = CONFIG.danger, toNext = Math.ceil(G.level * D.levelSeconds - G.playT);
   $('overNear').textContent = sc > prev && prev > 0 ? '新記録！ これまでのベストを ' + (sc - prev).toLocaleString() + ' 上回った' : prev > sc ? '自己ベストまであと ' + (prev - sc).toLocaleString() + ' ポイント。危険度' + (G.level + 1) + 'まであと' + toNext + '秒だった' : '最初の記録。危険度' + (G.level + 1) + 'まであと' + toNext + '秒だった';
@@ -1413,7 +1411,7 @@ function advise(key, text, o) {
 function adviceTick() {
   if (G.playT < 1) return;
   const k = coarse ? '攻撃ボタン' : 'Space', near = (a, r) => dist(P, a) < r;
-  advise('goal', DEF() ? '目的は、巣の子犬を守ること。食べると繁栄ゲージが貯まって子犬が増え、食料を巣に持ち帰ると子犬が回復する' : '目的は、群れが尽きるまで生き延びること。食べて繁栄ゲージを貯め、巣に戻ると子（残機）が増える', { prio: 4, dur: 7 });
+  advise('goal', DEF() ? '目的は、巣の子犬を守ること。食べるとまず自分の体力が回復し、余った分が繁栄ゲージに入って子犬が増える' : '目的は、群れが尽きるまで生き延びること。食べて繁栄ゲージを貯め、巣に戻ると子（残機）が増える', { prio: 4, dur: 7 });
   advise('ctrl', coarse ? '左のスティックで移動、画面ドラッグで回転。攻撃ボタンは倒した方向へ飛び、連打でダッシュにもなる' : 'WASDで移動、ドラッグで回転。Spaceで入力方向へ飛びかかり、連打でダッシュにもなる', { prio: 1 });
   const foe = animals.find(a => a.alive && charger(a) && a.kind !== 'lion' && near(a, 26) && (a.state === 'crouch' || a.state === 'stalk' || a.state === 'recover'));
   if (foe && foe.state === 'recover') advise('punish', '隙だらけだ！ 今のうちに' + k + 'で噛め', { cd: 20, prio: 5, go: true, dur: 2.5 });
@@ -1432,7 +1430,7 @@ function adviceTick() {
   if (herd) advise('deer', 'シカは顔を上げた見張りが1頭いる。その背後か、柱の陰から近づけ', { cd: 120, prio: 2 });
   if (G.grow >= G.need && !G.atDen && !DEF()) advise('breed', '繁栄ゲージが満タン。巣に戻ると子が生まれ、群れ（残機）が増える', { cd: 30, prio: 3 });
   if (P.hp / P.maxHP < .35) advise('lowhp', '体力が少ない。巣の輪の中にいると回復する', { cd: 40, prio: 3 });
-  if (DEF()) { if (P.hunger >= 50 && !G.atDen && pack.some(m => m.hp < CONFIG.defense.pupHP * .7)) advise('feed', '食料が貯まった。巣に戻ると、けがをした子犬が回復する', { cd: 25, prio: 3 }); }
+  if (DEF()) { if (P.hp < P.maxHP * .4) advise('heal', '体力が少ない。何か食べれば回復する。ただし余りが減るので子犬は増えにくい', { cd: 40, prio: 3 }); }
   else if (P.hunger < 10) advise('starve', '飢え死に寸前。ウサギでもいいので何か食べよう', { cd: 30, prio: 3 });
   else if (P.hunger < 30) advise('hungry', '空腹になってきた。外へ行くほど獲物は多いが、危険も増える', { cd: 60, prio: 2 });
   { const pd = Math.hypot(P.x, P.z); if (pd > G.fireR) advise('fireIn', '野火の中だ！ 巣の方向へ戻れ', { cd: 4, prio: 6, dur: 2.5 }); else if (pd > G.fireR - 12) advise('fireNear', '野火が迫っている。内側へ移れ', { cd: 15, prio: 4, dur: 3 }); }
@@ -1446,10 +1444,10 @@ function updateHUD() {
   const bar = (b, n, v, m) => { $(b).style.width = clamp(v / m * 100, 0, 100) + '%'; if (n) $(n).textContent = Math.max(0, Math.ceil(v)); };
   bar('hgBar', 'hgNum', P.hunger, CONFIG.hunger.max);
   const ready = G.grow >= G.need; bar('grBar', null, Math.min(G.grow, G.need), G.need); $('grNum').textContent = ready ? '巣へ' + (G.grow >= G.need * 2 ? ' ×' + Math.floor(G.grow / G.need) : '') : Math.floor(G.grow / G.need * 100) + '%'; $('grRow').classList.toggle('ready', ready);
-  $('hungry').classList.toggle('low', P.hunger < 25 && !M.defense); $('hungry').firstElementChild.textContent = M.defense ? '食料' : '空腹';
+  $('hungry').classList.toggle('low', P.hunger < 25 && !M.defense); $('hungry').firstElementChild.textContent = '空腹'; show('hungry', !M.defense);
   $('pack').textContent = pack.length + (M.defense ? 0 : 1); $('kcal').textContent = G.kcal.toLocaleString() + 'kcal'; $('born').textContent = G.born; $('kRabbit').textContent = G.kills.rabbit; $('kDeer').textContent = G.kills.deer; $('kLion').textContent = G.kills.lion + G.kills.alpha + G.kills.wolf + G.kills.fox + G.kills.leopard + G.kills.bear; $('kBoar').textContent = G.kills.boar; $('ptNum').textContent = score().toLocaleString() + ' pt';
   $('lvNum').textContent = M.escalate ? '危険度 ' + G.level : 'のんびり'; $('timeNum').textContent = fmtT(G.playT); $('lvBar').style.width = (M.escalate ? (G.playT % D.levelSeconds) / D.levelSeconds * 100 : 0) + '%'; $('status').classList.toggle('night', G.night > .5);
-  $('vig').style.opacity = P.hurtT > 0 ? .8 : (P.hp / P.maxHP < .25 ? .3 : 0); $('hungerVig').style.opacity = P.hunger < 15 ? .55 : P.hunger < 25 ? .25 : 0;
+  $('vig').style.opacity = P.hurtT > 0 ? .8 : (P.hp / P.maxHP < .25 ? .3 : 0); $('hungerVig').style.opacity = M.defense ? 0 : P.hunger < 15 ? .55 : P.hunger < 25 ? .25 : 0;
   const yaw = G.view === '3d' ? cam.yaw : 0;
   const aim = (el, x, z) => { const dx = x - P.x, dz = z - P.z, sx = dx * Math.cos(yaw) - dz * Math.sin(yaw), sy = -dx * Math.sin(yaw) - dz * Math.cos(yaw); $(el).style.transform = 'rotate(' + Math.atan2(sx, sy) + 'rad)'; return Math.round(Math.hypot(dx, dz)); };
   // いま何をすればいいかを常に1行で出す
@@ -1458,9 +1456,9 @@ function updateHUD() {
   show('denCmp', true); $('denArrow').style.visibility = far || (ready && !G.atDen) ? 'visible' : 'hidden'; $('denCmp').classList.toggle('ready', ready && !full);
   $('denTxt').textContent = full ? '群れは最大。生き延びろ' + (far ? ' ・ 巣 ' + dm + 'm' : '') : ready ? '巣に戻ると子が生まれる ' + dm + 'm' : '次の子まで あとウサギ' + left + '匹ぶん' + (far ? ' ・ 巣 ' + dm + 'm' : '');
   $('denLabel').textContent = ready && !full ? '巣：戻ると子が生まれる' : '巣'; $('denLabel').classList.toggle('ready', ready && !full);
-  if (M.defense) { const hurtN = pack.filter(m => m.hp < CONFIG.defense.pupHP * .98).length, can = hurtN > 0 && P.hunger >= 1;
-    $('denTxt').textContent = '子犬 ' + pack.length + '匹' + (hurtN ? '（けが ' + hurtN + '匹）' : '') + (can && !G.atDen ? ' ・ 巣に戻ると回復 ' + dm + 'm' : far ? ' ・ 巣 ' + dm + 'm' : '');
-    $('denArrow').style.visibility = far || (can && !G.atDen) ? 'visible' : 'hidden'; $('denCmp').classList.toggle('ready', can && !G.atDen); $('denLabel').textContent = '巣'; $('denLabel').classList.remove('ready'); }
+  if (M.defense) {
+    $('denTxt').textContent = '子犬 ' + pack.length + '匹 ・ 次の子犬まで あとウサギ' + Math.max(1, left) + '匹ぶん' + (far ? ' ・ 巣 ' + dm + 'm' : '');
+    $('denArrow').style.visibility = far ? 'visible' : 'hidden'; $('denCmp').classList.remove('ready'); $('denLabel').textContent = '巣'; $('denLabel').classList.remove('ready'); }
   const evT = G.ev && G.ev.get(); if (G.ev && !evT) G.ev = null; show('evCmp', !!evT);
   if (evT) { $('evTxt').textContent = G.ev.label + ' ' + aim('evArrow', evT.x, evT.z) + 'm'; $('evCmp').classList.toggle('bad', G.ev.bad); }
   world.denRing.material.color.setHex(ready ? 0xf39bb0 : 0xa9c94b);
