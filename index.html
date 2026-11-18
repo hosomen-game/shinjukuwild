@@ -134,15 +134,14 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 .steps li{counter-increment:st;display:grid;gap:3px;align-content:start;background:rgba(239,235,220,.05);border:1px solid var(--line);border-radius:8px;padding:9px 10px 10px}
 .steps li::before{content:counter(st);font-family:var(--display);font-size:13px;color:var(--rose);line-height:1}
 .steps b{font-size:13.5px} .steps span{font-size:11.5px;line-height:1.5;color:var(--mute)}
-.modes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .mode{text-align:left;background:rgba(239,235,220,.05);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:6px}
 .mode:hover{border-color:var(--moss);background:rgba(169,201,75,.1)}
 .mode-name{font-family:var(--display);font-size:20px}
 .mode-desc{font-size:12.5px;line-height:1.6;color:var(--mute)}
 .mode.off{display:none} /* 延命・のんびりは一時的に非表示 */
-.modes:not(:has(.mode:not(.off) ~ .mode:not(.off))){grid-template-columns:1fr}
 .mode.start{border-color:var(--moss);background:rgba(169,201,75,.12);text-align:center;justify-items:center}
-.mode.start .mode-name{font-size:24px;color:var(--moss)} .mode.start:hover{background:rgba(169,201,75,.2)}
+.mode.start .mode-name{font-size:22px;color:var(--moss)} #btnSurvival.start{border-color:var(--rose);background:rgba(239,122,110,.1)} #btnSurvival.start .mode-name{color:var(--rose)} #btnSurvival.start:hover{background:rgba(239,122,110,.18)} .mode.start:hover{background:rgba(169,201,75,.2)}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:12.5px}
 .keys dt{font-family:var(--mono);color:var(--moss)} .keys dd{margin:0;color:var(--mute)}
 .best{margin:0;font-size:12px;color:var(--mute);font-family:var(--mono)}
@@ -236,17 +235,17 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 
 <div id="title" class="screen">
   <div class="card">
-    <p class="eyebrow">試作版 v0.5.2 ・ HTMLプロトタイプ</p>
+    <p class="eyebrow">試作版 v0.6.0 ・ HTMLプロトタイプ</p>
     <h1>新宿ワイルド</h1>
-    <p class="goal-line"><b>目的</b>巣の子犬を、食べに来る肉食から守り抜く</p>
+    <p class="goal-line"><b>目的</b>群れを増やしながら、肉食に食い尽くされるまで粘る</p>
     <ol class="steps">
-      <li><b>狩って食べる</b><span>食べた分で、まず自分の体力が回復する</span></li>
-      <li><b>余りで増える</b><span>余った分が繁栄ゲージへ。満タンのたび巣に子犬が生まれる</span></li>
-      <li><b>子犬は治らない</b><span>傷ついた子犬は回復しない。近づく敵を先に倒せ</span></li>
+      <li><b>狩って食べる</b><span>獲物は背後から。食べると繁栄ゲージが貯まる</span></li>
+      <li><b>子が増える</b><span>繁栄ゲージが満タンになるたび、子が1匹生まれる</span></li>
+      <li><b>敵は増え続ける</b><span>30秒ごとに強い肉食が現れる。赤い帯は横へ避けろ</span></li>
     </ol>
     <div class="modes">
-      <button class="mode off" id="btnSurvival"><span class="mode-name">延命</span><span class="mode-desc">30秒ごとに危険度が上がり、弱い肉食から順に現れる。外周からは野火が迫り、動ける範囲が狭まる。群れの数が残機。どこまで生き延びられるか。</span></button>
-      <button class="mode start" id="btnDefense"><span class="mode-name">ゲームスタート</span><span class="mode-desc">巣にいる5匹の子犬を、食べに来る肉食から守る。食べるとまず自分が回復し、余りで子犬が増える。子犬が尽きたら終わり。</span></button>
+      <button class="mode start" id="btnDefense"><span class="mode-name">守るゲーム</span><span class="mode-desc">巣にいる5匹の子犬を、食べに来る肉食から守る。食べるとまず自分が回復し、余りで巣に子犬が生まれる。傷ついた子犬は治らない。子犬が尽きたら終わり。</span></button>
+      <button class="mode start" id="btnSurvival"><span class="mode-name">攻めるゲーム</span><span class="mode-desc">子犬を連れて狩りに出る。食べて繁栄ゲージを貯め、巣に戻ると子が生まれる。群れの数が残機。外周から野火が迫り、動ける範囲が狭まる。群れが尽きたら終わり。</span></button>
       <button class="mode off" id="btnRelax"><span class="mode-name">のんびり</span><span class="mode-desc">危険度は上がらず、敵はこちらから噛まない限りおとなしい。倒れない。好きなだけ狩って群れを育てる。</span></button>
     </div>
     <dl class="keys desk">
@@ -298,7 +297,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 'use strict';
 /* ========= バランスデータ ========= */
 const CONFIG = {
-  version: 'proto-0.5.2',
+  version: 'proto-0.6.0',
   world: { half: 84, denRadius: 7, meadow: 30, ruins: 58 },
   player: { speed: 13, maxHP: 100, biteDamage: 1, radius: 0.45, swapInvuln: 1.5 },
   attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, hitPad: 0.4, assistDeg: 18 },
@@ -327,8 +326,8 @@ const CONFIG = {
   },
   chain: { huntRange: 14, huntChance: 0.3, huntGiveUp: 6, eatSeconds: 5, eatDetectMul: 0.35 },
   modes: {
-    survival: { label: '延命', hungerMul: 1, hostile: true, canDie: true, escalate: true },
-    defense: { label: '防衛', hungerMul: 0, hostile: true, canDie: true, escalate: true, defense: true },
+    survival: { label: '攻めるゲーム', hungerMul: 1, hostile: true, canDie: true, escalate: true },
+    defense: { label: '守るゲーム', hungerMul: 0, hostile: true, canDie: true, escalate: true, defense: true },
     relax: { label: 'のんびり', hungerMul: 0.4, hostile: false, canDie: false, escalate: false }
   },
   score: { perSecond: 10, perKcal: 0.1, perPup: 300, perLion: 150, perWolf: 80, perFox: 30, perLeopard: 120, perBear: 250, perAlpha: 1000 }
@@ -1346,7 +1345,7 @@ function resetRun(mode) {
   playerView.g.visible = true; marker.visible = true;
   adv.last = {}; adv.t = 0; $('hint').classList.remove('on');
   show('hud', true); show('title', false); show('over', false); show('pause', false); show('tune', false); if (coarse) show('touch', true);
-  toast(CONFIG.modes[mode].label + 'モード', mode === 'survival' ? '狩って、満たして、巣で子を増やせ' : mode === 'defense' ? '巣の子犬を守れ。食べるとまず自分が回復し、余りで子犬が増える' : '急がなくていい。好きなだけ狩って群れを育てよう');
+  toast(CONFIG.modes[mode].label, mode === 'survival' ? '狩って、満たして、巣で子を増やせ' : mode === 'defense' ? '巣の子犬を守れ。食べるとまず自分が回復し、余りで子犬が増える' : '急がなくていい。好きなだけ狩って群れを育てよう');
 }
 function populate() {
   world.burrows.forEach(b => { b.count = 0; for (let i = 0; i < CONFIG.population.rabbitsPerBurrow; i++) spawnRabbit(b); });
@@ -1472,7 +1471,7 @@ function toTitle() {
   G.state = 'title'; show('hud', false); show('over', false); show('pause', false); show('title', true); show('touch', false); show('tune', false);
   playerView.g.visible = false; marker.visible = false; aimMark.visible = false; clearPack(); refreshBest(); G.nightT = 0; G.level = 1;
 }
-function refreshBest() { let s = 0, d = 0; if (document.querySelector('#btnSurvival.off')) { try { d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = d ? '自己ベスト　' + d.toLocaleString() + 'pt' : ''; return; } try { s = +localStorage.getItem('sw3-best-survival') || 0; d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = [s ? '延命 ' + s.toLocaleString() + 'pt' : '', d ? '防衛 ' + d.toLocaleString() + 'pt' : ''].filter(Boolean).join(' ・ ').replace(/^(?=.)/, '自己ベスト　'); }
+function refreshBest() { let s = 0, d = 0; if (false) { try { d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = d ? '自己ベスト　' + d.toLocaleString() + 'pt' : ''; return; } try { s = +localStorage.getItem('sw3-best-survival') || 0; d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = [d ? '守る ' + d.toLocaleString() + 'pt' : '', s ? '攻める ' + s.toLocaleString() + 'pt' : ''].filter(Boolean).join(' ・ ').replace(/^(?=.)/, '自己ベスト　'); }
 
 /* 調整パネル */
 function exportSplit() {
@@ -1522,7 +1521,6 @@ addEventListener('keydown', e => {
   if (playing() && ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
   input.k[e.code] = true; if (e.repeat) return;
   if ((e.code === 'Space' || e.code === 'KeyJ') && playing()) input.bite = true;
-  if ((e.code === 'Enter' || e.code === 'Space') && G.state === 'title') { e.preventDefault(); resetRun('defense'); return; }
   if (e.code === 'KeyV') setView(G.view === '3d' ? '2d' : '3d');
   if (e.code === 'KeyZ') zoom(.85); if (e.code === 'KeyX') zoom(1.18);
   if (e.code === 'Escape' || e.code === 'KeyP') pause(playing());
