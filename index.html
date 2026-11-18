@@ -235,7 +235,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 
 <div id="title" class="screen">
   <div class="card">
-    <p class="eyebrow">試作版 v0.6.0 ・ HTMLプロトタイプ</p>
+    <p class="eyebrow">試作版 v0.6.1 ・ HTMLプロトタイプ</p>
     <h1>新宿ワイルド</h1>
     <p class="goal-line"><b>目的</b>群れを増やしながら、肉食に食い尽くされるまで粘る</p>
     <ol class="steps">
@@ -245,7 +245,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
     </ol>
     <div class="modes">
       <button class="mode start" id="btnDefense"><span class="mode-name">守るゲーム</span><span class="mode-desc">巣にいる5匹の子犬を、食べに来る肉食から守る。食べるとまず自分が回復し、余りで巣に子犬が生まれる。傷ついた子犬は治らない。子犬が尽きたら終わり。</span></button>
-      <button class="mode start" id="btnSurvival"><span class="mode-name">攻めるゲーム</span><span class="mode-desc">子犬を連れて狩りに出る。食べて繁栄ゲージを貯め、巣に戻ると子が生まれる。群れの数が残機。外周から野火が迫り、動ける範囲が狭まる。群れが尽きたら終わり。</span></button>
+      <button class="mode start" id="btnSurvival"><span class="mode-name">攻めるゲーム</span><span class="mode-desc">子犬を連れて狩りに出る。噛みついた相手には、群れ全員が飛びかかる。繁栄ゲージが満タンになると巣で子が生まれ、走って合流する。群れの数が残機。外周から野火が迫る。</span></button>
       <button class="mode off" id="btnRelax"><span class="mode-name">のんびり</span><span class="mode-desc">危険度は上がらず、敵はこちらから噛まない限りおとなしい。倒れない。好きなだけ狩って群れを育てる。</span></button>
     </div>
     <dl class="keys desk">
@@ -297,13 +297,13 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 'use strict';
 /* ========= バランスデータ ========= */
 const CONFIG = {
-  version: 'proto-0.6.0',
+  version: 'proto-0.6.1',
   world: { half: 84, denRadius: 7, meadow: 30, ruins: 58 },
   player: { speed: 13, maxHP: 100, biteDamage: 1, radius: 0.45, swapInvuln: 1.5 },
   attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, hitPad: 0.4, assistDeg: 18 },
   hunger: { max: 100, start: 70, decayPerSec: 1.7, starveDamagePerSec: 6, perPup: 0.1 },
   breed: { need: 30, needGrowth: 1, maxPack: 999 },
-  pack: { pupHP: 55, assistRange: 14, assistPerMember: 0.5, assistMax: 3, growSeconds: 25 },
+  pack: { pupHP: 55, assistRange: 14, assistPerMember: 0.5, assistMax: 3, bite: 0.5, biteEvery: 1.0, chaseRange: 30, chaseTime: 8, growSeconds: 25 },
   den: { healPerSec: 6 },
   hunt: { awareLimit: 0.5, backCos: -0.25, ambushDamage: 3 },
   stealth: { grassMul: 0.45, lungeMul: 1.7, stillMul: 0.55 },
@@ -343,6 +343,8 @@ const TUNABLES = [
   { p: 'defense.pupHP', label: '防衛：子犬の体力', min: 20, max: 200, step: 5 },
   { p: 'defense.pupDamageMul', label: '防衛：子犬が受けるダメージの倍率', min: 0.1, max: 1, step: 0.05 },
   { p: 'defense.pupBite', label: '防衛：子犬の噛みつきダメージ', min: 0, max: 3, step: 0.1 },
+  { p: 'pack.bite', label: '攻める：子犬の噛みつきダメージ', min: 0, max: 3, step: 0.1 },
+  { p: 'pack.biteEvery', label: '攻める：子犬が噛む間隔（秒）', min: 0.3, max: 3, step: 0.1 },
   { p: 'defense.pupFeedShare', label: '防衛：子犬が仕留めた獲物が繁栄に入る割合', min: 0, max: 1, step: 0.05 },
   { p: 'defense.tgtPupChance', label: '防衛：敵が子犬を狙う割合', min: 0, max: 1, step: 0.05 },
   { p: 'fire.startAt', label: '野火が広がりはじめる秒数', min: 0, max: 180, step: 5 },
@@ -1103,18 +1105,28 @@ function updatePack(dt) {
   separatePups();
   if (DEF()) return updateDenPups(dt);
   const fx = Math.sin(P.dir), fz = Math.cos(P.dir);
+  G.packTgtT = (G.packTgtT || 0) - dt; let T = G.packTgt; if (T && (!T.alive || G.packTgtT <= 0 || Math.hypot(T.x - P.x, T.z - P.z) > CONFIG.pack.chaseRange)) T = G.packTgt = null; // 倒すか離れたら隊列へ
   pack.forEach((m, i) => {
     let tx, tz, spd;
-    if (m.rush && m.rush.t > 0) { m.rush.t -= dt; tx = m.rush.x; tz = m.rush.z; spd = CONFIG.attack.lungeSpeed * .6; }
-    else { m.rush = null; const row = 1 + Math.floor(i / 2), side = (i % 2 ? 1 : -1) * 1.1; tx = P.x - fx * (1.6 * row) + fz * side; tz = P.z - fz * (1.6 * row) - fx * side; spd = CONFIG.player.speed * 1.25; }
+    const C = CONFIG.pack, grown = Math.min(1, (G.playT - m.born) / C.growSeconds); m.biteCd = (m.biteCd || 0) - dt;
+    if (m.coming) { tx = P.x; tz = P.z; spd = CONFIG.player.speed * 1.1; if (Math.hypot(P.x - m.x, P.z - m.z) < 3) m.coming = false; }   // 巣から合流しに来る
+    else if (T && Math.hypot(m.x - P.x, m.z - P.z) < C.chaseRange) {                                                                    // 噛みついた相手を全員で
+      tx = T.x; tz = T.z; spd = CONFIG.player.speed * 1.3;
+      if (Math.hypot(T.x - m.x, T.z - m.z) < T.sp.radius + 1.1 && m.biteCd <= 0) {
+        m.biteCd = C.biteEvery * (.8 + Math.random() * .4); const dmg = C.bite * (.5 + .5 * grown); T.hp -= dmg; m.phase += 2; burst(T.x, .6, T.z, 3, 0xefebdc, 4, .16); sfx('bite');
+        if (T.hp <= 0) { floatAt(m, '仕留めた！', 'perfect', 1); killed(T, false); G.packTgt = null; }
+        else if (T.kind === 'deer') boltHerd(T.herd, P);
+      }
+    }
+    else { const row = 1 + Math.floor(i / 2), side = (i % 2 ? 1 : -1) * 1.1; tx = P.x - fx * (1.6 * row) + fz * side; tz = P.z - fz * (1.6 * row) - fx * side; spd = CONFIG.player.speed * 1.25; }
     // 突進の通り道にいたら横へ逃げる（幼いほど遅い。近すぎると間に合わない）
     for (const a of animals) {
       if (!a.alive || !charger(a) || a.state !== 'charge') continue;
       const cx = Math.sin(a.cdir), cz = Math.cos(a.cdir), rx = m.x - a.x, rz = m.z - a.z, along = rx * cx + rz * cz, side = rx * cz - rz * cx;
-      if (along > -1 && along < 16 && Math.abs(side) < a.sp.radius + 1.6) { const sg = side >= 0 ? 1 : -1; tx = m.x + cz * sg * 4; tz = m.z - cx * sg * 4; spd = 9 + 8 * Math.min(1, (G.playT - m.born) / CONFIG.pack.growSeconds); m.rush = null; break; }
+      if (along > -1 && along < 16 && Math.abs(side) < a.sp.radius + 1.6) { const sg = side >= 0 ? 1 : -1; tx = m.x + cz * sg * 4; tz = m.z - cx * sg * 4; spd = 9 + 8 * Math.min(1, (G.playT - m.born) / CONFIG.pack.growSeconds); break; }
     }
     const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz);
-    if (d > 40) { m.x = P.x - fx * 2; m.z = P.z - fz * 2; }
+    if (d > 40 && !m.coming) { m.x = P.x - fx * 2; m.z = P.z - fz * 2; }
     m.moving = d > .6;
     if (m.moving) { const s = Math.min(spd, d * 4); m.x += dx / d * s * dt; m.z += dz / d * s * dt; m.dir = lerpAng(m.dir, Math.atan2(dx, dz), Math.min(1, dt * 10)); resolve(m, .4); m.phase += s * dt * 1.2; }
     else m.dir = lerpAng(m.dir, P.dir, Math.min(1, dt * 4));
@@ -1163,8 +1175,9 @@ function tryAttack(mvx, mvz) {
 }
 function hit(a) {
   const crit = (P.lungeCrit && P.lungeCrit.has(a)) || (charger(a) && a.state === 'recover');
-  const near = pack.filter(m => Math.hypot(m.x - a.x, m.z - a.z) < CONFIG.pack.assistRange); near.forEach(m => { m.rush = { x: a.x, z: a.z, t: .45 }; });
-  const dmg = (crit ? CONFIG.hunt.ambushDamage : CONFIG.player.biteDamage) + Math.min(DEF() ? CONFIG.defense.assistMax : CONFIG.pack.assistMax, Math.floor(near.length * CONFIG.pack.assistPerMember));
+  const near = DEF() ? pack.filter(m => Math.hypot(m.x - a.x, m.z - a.z) < CONFIG.pack.assistRange) : [];
+  if (!DEF() && pack.length) { if (G.packTgt !== a) floatAt(a, 'かかれ！', 'alert', .6); G.packTgt = a; G.packTgtT = CONFIG.pack.chaseTime; } // 攻める：群れ全員でかかる
+  const dmg = (crit ? CONFIG.hunt.ambushDamage : CONFIG.player.biteDamage) + Math.min(CONFIG.defense.assistMax, Math.floor(near.length * CONFIG.pack.assistPerMember));
   a.hp -= dmg; sfx(crit ? 'crit' : 'bite'); burst(a.x, .8 * (a.sp.scale || 1), a.z, crit ? 12 : 6, crit ? 0xffe9a0 : 0xefebdc, 6, .2);
   if (crit) { ringFx(a.x, a.z, 0xa9c94b, 3, .3); G.shake = Math.max(G.shake, .25); }
   if (a.hp <= 0) return killed(a, crit);
@@ -1184,14 +1197,14 @@ function killed(a, crit, byCrash) {
   let food = S.hunger;
   if (DEF()) { const heal = Math.min(Math.max(0, P.maxHP - P.hp), food); if (heal > 0) { P.hp += heal; food -= heal; floatAt(P, '体力 +' + Math.round(heal), 'eat', .9); } } // ルールB：まず自分の回復、余りが繁栄
   else P.hunger = Math.min(CONFIG.hunger.max, P.hunger + S.hunger);
-  const was = G.grow >= G.need; G.grow += food; if (DEF()) { for (let i = 0; i < 20 && G.grow >= G.need; i++) birth(); } // 余りは切り捨てず、次の子へ持ち越す else if (!was && G.grow >= G.need) { sfx('ready'); toast('繁栄ゲージ満タン', '巣に戻ると子が生まれる'); }
+  G.grow += food; for (let i = 0; i < 20 && G.grow >= G.need && pack.length + 1 < CONFIG.breed.maxPack; i++) birth(); /* 余りは持ち越し。生まれた子は巣から走って合流する */
   G.kcal += S.kcal; if (a.alpha) { G.kills.alpha++; toast('主を倒した', '+' + CONFIG.score.perAlpha + ' ポイント'); G.alphaNext = G.level + CONFIG.danger.alphaEvery; } else G.kills[a.kind]++;
   floatAt(a, (byCrash ? '激突で仕留めた ' : crit ? '会心！ ' : '') + '+' + S.kcal + 'kcal', crit || byCrash ? 'perfect' : 'eat', 1.1);
 }
 function birth() {
-  const m = addPup(Math.random() * 3 - 1.5, Math.random() * 3 - 1.5); if (DEF()) { const an = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (CONFIG.defense.penRadius - 2); m.x = Math.cos(an) * r; m.z = Math.sin(an) * r; m.born = -999; } G.grow = Math.max(0, G.grow - G.need); G.need = Math.round(G.need * CONFIG.breed.needGrowth); G.born++;
+  const m = addPup(Math.random() * 3 - 1.5, Math.random() * 3 - 1.5); if (DEF()) { const an = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (CONFIG.defense.penRadius - 2); m.x = Math.cos(an) * r; m.z = Math.sin(an) * r; m.born = -999; } else { m.x = Math.random() * 3 - 1.5; m.z = Math.random() * 3 - 1.5; m.coming = true; } G.grow = Math.max(0, G.grow - G.need); G.need = Math.round(G.need * CONFIG.breed.needGrowth); G.born++;
   floatAt(m, '誕生', 'mate', 1.4); burst(m.x, .6, m.z, 16, 0xf39bb0, 4, .22, 6); ringFx(0, 0, 0xf39bb0, CONFIG.world.denRadius + 2, .8); sfx('birth');
-  toast(DEF() ? '子犬が生まれた' : '子が生まれた', DEF() ? '巣の子犬は ' + pack.length + '匹' : '残機 +1（群れ ' + (pack.length + 1) + '匹）');
+  toast(DEF() ? '子犬が生まれた' : '巣で子が生まれた', DEF() ? '巣の子犬は ' + pack.length + '匹' : 'こちらへ走ってくる。残機 +1（群れ ' + (pack.length + 1) + '匹）');
 }
 
 function updatePlayer(dt) {
@@ -1225,7 +1238,6 @@ function updatePlayer(dt) {
   if (G.atDen && M.defense) { /* 防衛：巣での回復は無し。回復は食べることだけ */ }
   else if (G.atDen) {
     if (P.hunger > 0) P.hp = Math.min(P.maxHP, P.hp + CONFIG.den.healPerSec * dt); pack.forEach(m => { m.hp = Math.min(CONFIG.pack.pupHP, m.hp + CONFIG.den.healPerSec * dt); });
-    if (G.grow >= G.need && pack.length + 1 < CONFIG.breed.maxPack) birth();
   }
 }
 function frontTarget(dir) {
@@ -1337,7 +1349,7 @@ function resetRun(mode) {
   audioInit();
   animals.slice().forEach(removeAnimal); animals.length = 0; herds.length = 0; wolfPacks.length = 0; clearPack();
   buildWorld((Math.random() * 1e9) | 0);
-  Object.assign(G, { mode, state: 'play', playT: 0, level: 1, night: 0, nightT: 0, shake: 0, freeze: 0, grow: 0, need: CONFIG.breed.need, born: 0, kcal: 0, kills: { rabbit: 0, deer: 0, lion: 0, alpha: 0, boar: 0, wolf: 0, fox: 0, leopard: 0, bear: 0 }, wolfCd: 0, foxCd: 0, lionCd: 0, youngCd: 30, leoCd: 0, bearCd: 0, seen: {}, youngN: 1 + (Math.random() < .5 ? 1 : 0), maxPack: 1, swaps: 0, eventT: CONFIG.events.firstAt, evQueue: [], evCount: 0, ev: null, alphaNext: 0, spawnT: 0, crashSeen: false, atDen: true });
+  Object.assign(G, { mode, state: 'play', playT: 0, level: 1, night: 0, nightT: 0, shake: 0, freeze: 0, grow: 0, need: CONFIG.breed.need, born: 0, kcal: 0, packTgt: null, packTgtT: 0, kills: { rabbit: 0, deer: 0, lion: 0, alpha: 0, boar: 0, wolf: 0, fox: 0, leopard: 0, bear: 0 }, wolfCd: 0, foxCd: 0, lionCd: 0, youngCd: 30, leoCd: 0, bearCd: 0, seen: {}, youngN: 1 + (Math.random() < .5 ? 1 : 0), maxPack: 1, swaps: 0, eventT: CONFIG.events.firstAt, evQueue: [], evCount: 0, ev: null, alphaNext: 0, spawnT: 0, crashSeen: false, atDen: true });
   P = { x: 0, z: 2, dir: 0, hp: CONFIG.player.maxHP, maxHP: CONFIG.player.maxHP, hunger: CONFIG.hunger.start, stamina: 100, atkCd: 0, hurtT: 0, lungeT: 0, lungeDir: 0, lungeCrit: null, moving: false, phase: 0, invuln: 0, vx: 0, vz: 0 };
   if (DEF()) { const D = CONFIG.defense; P.hunger = 0; for (let i = 0; i < D.pups; i++) { const an = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (D.penRadius - 2), m = addPup(Math.cos(an) * r, Math.sin(an) * r); m.born = -999; m.dir = Math.random() * 6.283; } }
   populate(); initFlocks();
@@ -1345,7 +1357,7 @@ function resetRun(mode) {
   playerView.g.visible = true; marker.visible = true;
   adv.last = {}; adv.t = 0; $('hint').classList.remove('on');
   show('hud', true); show('title', false); show('over', false); show('pause', false); show('tune', false); if (coarse) show('touch', true);
-  toast(CONFIG.modes[mode].label, mode === 'survival' ? '狩って、満たして、巣で子を増やせ' : mode === 'defense' ? '巣の子犬を守れ。食べるとまず自分が回復し、余りで子犬が増える' : '急がなくていい。好きなだけ狩って群れを育てよう');
+  toast(CONFIG.modes[mode].label, mode === 'survival' ? '噛みついた相手に、群れ全員で飛びかかれ' : mode === 'defense' ? '巣の子犬を守れ。食べるとまず自分が回復し、余りで子犬が増える' : '急がなくていい。好きなだけ狩って群れを育てよう');
 }
 function populate() {
   world.burrows.forEach(b => { b.count = 0; for (let i = 0; i < CONFIG.population.rabbitsPerBurrow; i++) spawnRabbit(b); });
@@ -1411,7 +1423,7 @@ function advise(key, text, o) {
 function adviceTick() {
   if (G.playT < 1) return;
   const k = coarse ? '攻撃ボタン' : 'Space', near = (a, r) => dist(P, a) < r;
-  advise('goal', DEF() ? '目的は、巣の子犬を守ること。食べるとまず自分の体力が回復し、余った分が繁栄ゲージに入って子犬が増える' : '目的は、群れが尽きるまで生き延びること。食べて繁栄ゲージを貯め、巣に戻ると子（残機）が増える', { prio: 4, dur: 7 });
+  advise('goal', DEF() ? '目的は、巣の子犬を守ること。食べるとまず自分の体力が回復し、余った分が繁栄ゲージに入って子犬が増える' : '目的は、群れが尽きるまで生き延びること。噛みついた相手には子犬が一斉に飛びかかる。食べて繁栄ゲージが満タンになると、巣で子が生まれて合流しに来る', { prio: 4, dur: 7 });
   advise('ctrl', coarse ? '左のスティックで移動、画面ドラッグで回転。攻撃ボタンは倒した方向へ飛び、連打でダッシュにもなる' : 'WASDで移動、ドラッグで回転。Spaceで入力方向へ飛びかかり、連打でダッシュにもなる', { prio: 1 });
   const foe = animals.find(a => a.alive && charger(a) && a.kind !== 'lion' && near(a, 26) && (a.state === 'crouch' || a.state === 'stalk' || a.state === 'recover'));
   if (foe && foe.state === 'recover') advise('punish', '隙だらけだ！ 今のうちに' + k + 'で噛め', { cd: 20, prio: 5, go: true, dur: 2.5 });
@@ -1587,7 +1599,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__sw = { G, CONFIG, animals, herds, pack, world, input, cam, simulate, score, get P() { return P; }, losClear, collides };
+window.__sw = { birth, hit, G, CONFIG, animals, herds, pack, world, input, cam, simulate, score, get P() { return P; }, losClear, collides };
 })();
 </script>
 
