@@ -139,6 +139,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 .mode:hover{border-color:var(--moss);background:rgba(169,201,75,.1)}
 .mode-name{font-family:var(--display);font-size:20px}
 .mode-desc{font-size:12.5px;line-height:1.6;color:var(--mute)}
+#parBox{grid-column:1/-1;border-color:var(--sky);background:rgba(126,182,214,.1);cursor:default}
+#parBox .mode-name{color:var(--sky)} .par-times{display:flex;gap:8px;justify-content:center;margin-top:4px}
+.par-times button{font:inherit;font-family:var(--display);font-size:16px;color:var(--ink);background:rgba(126,182,214,.18);border:1px solid var(--sky);border-radius:8px;padding:7px 16px;cursor:pointer}
+.par-times button:hover{background:rgba(126,182,214,.32)}
 .mode.off{display:none} /* 延命・のんびりは一時的に非表示 */
 .mode.start{border-color:var(--moss);background:rgba(169,201,75,.12);text-align:center;justify-items:center}
 .mode.start .mode-name{font-size:22px;color:var(--moss)} #btnSurvival.start{border-color:var(--rose);background:rgba(239,122,110,.1)} #btnSurvival.start .mode-name{color:var(--rose)} #btnSurvival.start:hover{background:rgba(239,122,110,.18)} .mode.start:hover{background:rgba(169,201,75,.2)}
@@ -235,7 +239,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 
 <div id="title" class="screen">
   <div class="card">
-    <p class="eyebrow">試作版 v0.6.1 ・ HTMLプロトタイプ</p>
+    <p class="eyebrow">試作版 v0.7.0 ・ HTMLプロトタイプ</p>
     <h1>新宿ワイルド</h1>
     <p class="goal-line"><b>目的</b>群れを増やしながら、肉食に食い尽くされるまで粘る</p>
     <ol class="steps">
@@ -246,6 +250,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
     <div class="modes">
       <button class="mode start" id="btnDefense"><span class="mode-name">守るゲーム</span><span class="mode-desc">巣にいる5匹の子犬を、食べに来る肉食から守る。食べるとまず自分が回復し、余りで巣に子犬が生まれる。傷ついた子犬は治らない。子犬が尽きたら終わり。</span></button>
       <button class="mode start" id="btnSurvival"><span class="mode-name">攻めるゲーム</span><span class="mode-desc">子犬を連れて狩りに出る。噛みついた相手には、群れ全員が飛びかかる。繁栄ゲージが満タンになると巣で子が生まれ、走って合流する。群れの数が残機。外周から野火が迫る。</span></button>
+      <div class="mode start parade" id="parBox"><span class="mode-name">パレード</span><span class="mode-desc">敵はいない。動物に後ろからそっと飛びつくと、仲間になって列についてくる。気づかれずに続けるほど点が上がる。自分の列にぶつかると、そこから後ろが切れる。</span><span class="par-times"><button type="button" data-t="60">60秒</button><button type="button" data-t="90">90秒</button><button type="button" data-t="120">120秒</button></span></div>
       <button class="mode off" id="btnRelax"><span class="mode-name">のんびり</span><span class="mode-desc">危険度は上がらず、敵はこちらから噛まない限りおとなしい。倒れない。好きなだけ狩って群れを育てる。</span></button>
     </div>
     <dl class="keys desk">
@@ -297,7 +302,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 'use strict';
 /* ========= バランスデータ ========= */
 const CONFIG = {
-  version: 'proto-0.6.1',
+  version: 'proto-0.7.0',
   world: { half: 84, denRadius: 7, meadow: 30, ruins: 58 },
   player: { speed: 13, maxHP: 100, biteDamage: 1, radius: 0.45, swapInvuln: 1.5 },
   attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, hitPad: 0.4, assistDeg: 18 },
@@ -309,6 +314,7 @@ const CONFIG = {
   stealth: { grassMul: 0.45, lungeMul: 1.7, stillMul: 0.55 },
   danger: { levelSeconds: 30, hungerPerLevel: 0.05, lionsBase: 2, lionsMax: 8, alphaLevel: 7, alphaEvery: 3, speedPerLevel: 0, speedMax: 1.5, foxAt: 5, foxMax: 4, leopardLevel: 3, bearLevel: 5, crouchPerLevel: 0.03, crouchMin: 0.65, closeInPerLevel: 0.06, hearPerLevel: 0.8, wolfLevel: 2, wolfLevel2: 5, wolfPack: 3, wolfRespawn: 30 },
   defense: { pups: 5, penRadius: 9, pupHP: 60, pupDamageMul: 0.35, feedPerSec: 40, pupBite: 0.5, biteEvery: 1.1, pupFeedShare: 0.5, fearHP: 0.4, tgtPupChance: 0.75, assistMax: 2, swarm: 5, maxFoes: 45 },
+  parade: { spacing: 1.35, cutSkip: 3, cutRadius: 0.8, pts: { rabbit: 1, deer: 3, boar: 5, fox: 6, young: 8 }, comboStep: 0.25, comboMax: 3, perPoint: 100 },
   fire: { startAt: 30, endAt: 270, r0: 100, rMin: 26, dps: 14 },
   events: { firstAt: 40, interval: 45, nightSeconds: 25, stampedeSize: 10, raidBase: 2 },
   population: { burrows: 18, rabbitsPerBurrow: 3, rabbitRespawn: 24, herds: 5, herdSize: 5, flocks: 7, boars: 3, nearRabbits: 5 },
@@ -327,6 +333,7 @@ const CONFIG = {
   chain: { huntRange: 14, huntChance: 0.3, huntGiveUp: 6, eatSeconds: 5, eatDetectMul: 0.35 },
   modes: {
     survival: { label: '攻めるゲーム', hungerMul: 1, hostile: true, canDie: true, escalate: true },
+    parade: { label: 'パレード', hungerMul: 0, hostile: false, canDie: false, escalate: false, parade: true },
     defense: { label: '守るゲーム', hungerMul: 0, hostile: true, canDie: true, escalate: true, defense: true },
     relax: { label: 'のんびり', hungerMul: 0.4, hostile: false, canDie: false, escalate: false }
   },
@@ -384,7 +391,7 @@ const TUNABLES = [
   { p: 'events.interval', label: '出来事の間隔（秒）', min: 15, max: 120, step: 5 }
 ];
 /* 「芯」= Unity版へ持っていく値 / 「短時間版専用」= フリー版のテンポ用 */
-const SESSION_PATHS = ['hunger', 'breed', 'danger', 'defense', 'fire', 'events', 'modes', 'score', 'population', 'world'];
+const SESSION_PATHS = ['hunger', 'breed', 'danger', 'defense', 'parade', 'fire', 'events', 'modes', 'score', 'population', 'world'];
 const isSession = p => SESSION_PATHS.some(s => p === s || p.startsWith(s + '.'));
 try { const s = JSON.parse(localStorage.getItem('sw3-tune') || '{}'); for (const k in s) if (TUNABLES.some(t => t.p === k)) setPath(CONFIG, k, s[k]); } catch (e) {}
 
@@ -1053,6 +1060,48 @@ function atkLaneShow(dir) { const A = CONFIG.attack, len = A.lungeSpeed * A.lung
 function atkLaneTick(dt) { if (!atkLane.visible) return; const t = atkLane.userData.t -= dt; atkLane.material.opacity = Math.max(0, t / .32) * .55; if (t <= 0 || !playing()) atkLane.visible = false; }
 
 function addPup(x, z) { const v = makeAnimal(LOOK.pup); scene.add(v.g); const m = { v, x, z, dir: P.dir, phase: Math.random() * 6, born: G.playT, hp: pupMax(), rush: null, moving: false }; pack.push(m); G.maxPack = Math.max(G.maxPack, pack.length + 1); return m; }
+/* ========= パレード：仲間にした動物が列になってついてくる ========= */
+const PAR = () => !!CONFIG.modes[G.mode].parade;
+const parade = [];
+function clearParade() { parade.forEach(f => scene.remove(f.v.g)); parade.length = 0; G.trail = []; G.combo = 0; G.maxParade = 0; }
+const paradeScore = () => parade.reduce((t, f) => t + f.val, 0);
+function befriend(a) {
+  const C = CONFIG.parade, pts = C.pts[a.type] || 1, sneak = !!(P.lungeCrit && P.lungeCrit.has(a));
+  G.combo = sneak ? G.combo + 1 : 0;
+  const mul = Math.min(C.comboMax, 1 + Math.max(0, G.combo - 1) * C.comboStep), val = Math.round(pts * mul * C.perPoint);
+  if (a.kind === 'rabbit' && a.burrow) { a.burrow.count--; a.burrow.respT = CONFIG.population.rabbitRespawn * (1 + Math.random() * .6); scareRabbits(a.x, a.z, P); }
+  removeAnimal(a); if (a.kind === 'deer') boltHerd(a.herd, P);
+  const v = makeAnimal(LOOK[a.type], false); if (a.sp.scale) v.g.scale.setScalar(a.sp.scale); scene.add(v.g);
+  parade.push({ v, type: a.type, x: a.x, z: a.z, dir: a.dir, phase: 0, val, r: a.sp.radius || .5 });
+  G.maxParade = Math.max(G.maxParade, parade.length);
+  floatAt(a, (sneak ? 'こっそり ' : '') + '+' + val + (G.combo > 1 ? '  連続×' + G.combo : ''), sneak ? 'perfect' : 'eat', 1.1);
+  burst(a.x, .6, a.z, 14, 0xf39bb0, 4, .22, 6); ringFx(a.x, a.z, 0xf39bb0, 2.5, .4); sfx(sneak ? 'crit' : 'birth');
+}
+function cutParade(i) {
+  const lost = parade.splice(i); let pts = 0;
+  lost.forEach(f => { pts += f.val; burst(f.x, .6, f.z, 8, 0xefebdc, 5, .2); scene.remove(f.v.g); });
+  floatAt(P, '切れた！ −' + lost.length + '匹', 'hit', 1.2); G.combo = 0; G.cutCd = .6; G.shake = Math.max(G.shake, .45); sfx('hurt'); G.cuts = (G.cuts || 0) + 1;
+}
+function updateParade(dt) {
+  if (!PAR() || !playing()) return;
+  const C = CONFIG.parade, T = G.trail;
+  if (G.playT >= G.limit) { gameOver('時間切れ'); return; }
+  if (!T.length || Math.hypot(P.x - T[0].x, P.z - T[0].z) > .25) T.unshift({ x: P.x, z: P.z });
+  const keep = Math.ceil((parade.length + 3) * C.spacing / .25) + 20; if (T.length > keep) T.length = keep;
+  // 列を、通ってきた道に沿って並べる
+  let seg = 0, acc = 0, prev = { x: P.x, z: P.z };
+  for (let i = 0; i < parade.length; i++) {
+    const f = parade[i], want = (i + 1) * C.spacing + .4;
+    let tx = prev.x, tz = prev.z;
+    while (seg < T.length) { const q = T[seg], d = Math.hypot(q.x - prev.x, q.z - prev.z); if (acc + d >= want) { const k = (want - acc) / (d || 1); tx = prev.x + (q.x - prev.x) * k; tz = prev.z + (q.z - prev.z) * k; acc = want; prev = { x: tx, z: tz }; break; } acc += d; prev = q; seg++; tx = q.x; tz = q.z; }
+    const dx = tx - f.x, dz = tz - f.z, d = Math.hypot(dx, dz); f.moving = d > .02;
+    if (f.moving) { f.dir = lerpAng(f.dir, Math.atan2(dx, dz), Math.min(1, dt * 12)); f.phase += d * 1.4; }
+    f.x = tx; f.z = tz; pose(f.v, f.x, f.z, f.dir, f.phase, f.moving);
+  }
+  // 自分の列にぶつかったら、そこから後ろが切れる
+  G.cutCd = (G.cutCd || 0) - dt;
+  if (G.cutCd <= 0) for (let i = C.cutSkip; i < parade.length; i++) { const f = parade[i]; if (Math.hypot(f.x - P.x, f.z - P.z) < C.cutRadius + f.r * .5) { cutParade(i); break; } }
+}
 function clearPack() { pack.forEach(m => scene.remove(m.v.g)); pack.length = 0; }
 function hurtPup(m, dmg, src) {
   if (!pack.includes(m)) return; if (DEF()) dmg *= CONFIG.defense.pupDamageMul; m.hp -= dmg; floatAt(m, 'キャン！', 'hit'); burst(m.x, .5, m.z, 8, 0xda4a3d, 5, .2); sfx('yelp');
@@ -1174,6 +1223,7 @@ function tryAttack(mvx, mvz) {
   sfx('lunge'); burst(P.x, .15, P.z, 4, 0xb9b08f, 3, .16, 2);
 }
 function hit(a) {
+  if (PAR()) return befriend(a);
   const crit = (P.lungeCrit && P.lungeCrit.has(a)) || (charger(a) && a.state === 'recover');
   const near = DEF() ? pack.filter(m => Math.hypot(m.x - a.x, m.z - a.z) < CONFIG.pack.assistRange) : [];
   if (!DEF() && pack.length) { if (G.packTgt !== a) floatAt(a, 'かかれ！', 'alert', .6); G.packTgt = a; G.packTgtT = CONFIG.pack.chaseTime; } // 攻める：群れ全員でかかる
@@ -1320,7 +1370,7 @@ function director(dt) {
 function setEvent(getter, label, bad) { G.ev = { get: getter, label, bad: !!bad }; }
 function runEvent() {
   const M = CONFIG.modes[G.mode], E = CONFIG.events;
-  if (!G.evQueue.length) { G.evQueue = (M.defense ? ['stampede', 'raid'] : M.hostile ? ['stampede', 'raid', 'night'] : ['stampede', 'night']).sort(() => Math.random() - .5); if (!G.evCount) { const i = G.evQueue.indexOf('stampede'); G.evQueue.splice(i, 1); G.evQueue.unshift('stampede'); } }
+  if (!G.evQueue.length) { G.evQueue = (M.parade ? ['stampede'] : M.defense ? ['stampede', 'raid'] : M.hostile ? ['stampede', 'raid', 'night'] : ['stampede', 'night']).sort(() => Math.random() - .5); if (!G.evCount) { const i = G.evQueue.indexOf('stampede'); G.evQueue.splice(i, 1); G.evQueue.unshift('stampede'); } }
   const kind = G.evQueue.shift(); G.evCount++; sfx('event');
   if (kind === 'stampede') {
     const an = Math.random() * 6.283, sx = Math.cos(an) * (H - 8), sz = Math.sin(an) * (H - 8), off = (Math.random() - .5) * 40;
@@ -1342,13 +1392,14 @@ function runEvent() {
     G.nightT = E.nightSeconds; toast('夜が来た', '獲物は気づきにくい。肉食は遠くから気づく。光る目に注意');
   }
 }
-function score() { const s = CONFIG.score; return Math.round(G.playT * s.perSecond + G.kcal * s.perKcal + G.born * s.perPup + G.kills.lion * s.perLion + G.kills.wolf * s.perWolf + G.kills.fox * s.perFox + G.kills.leopard * s.perLeopard + G.kills.bear * s.perBear + G.kills.alpha * s.perAlpha); }
+function score() { if (PAR()) return paradeScore(); const s = CONFIG.score; return Math.round(G.playT * s.perSecond + G.kcal * s.perKcal + G.born * s.perPup + G.kills.lion * s.perLion + G.kills.wolf * s.perWolf + G.kills.fox * s.perFox + G.kills.leopard * s.perLeopard + G.kills.bear * s.perBear + G.kills.alpha * s.perAlpha); }
 const fmtT = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
 
 function resetRun(mode) {
   audioInit();
-  animals.slice().forEach(removeAnimal); animals.length = 0; herds.length = 0; wolfPacks.length = 0; clearPack();
+  animals.slice().forEach(removeAnimal); animals.length = 0; herds.length = 0; wolfPacks.length = 0; clearPack(); clearParade();
   buildWorld((Math.random() * 1e9) | 0);
+  if (mode === 'parade' && !G.limit) G.limit = 90;
   Object.assign(G, { mode, state: 'play', playT: 0, level: 1, night: 0, nightT: 0, shake: 0, freeze: 0, grow: 0, need: CONFIG.breed.need, born: 0, kcal: 0, packTgt: null, packTgtT: 0, kills: { rabbit: 0, deer: 0, lion: 0, alpha: 0, boar: 0, wolf: 0, fox: 0, leopard: 0, bear: 0 }, wolfCd: 0, foxCd: 0, lionCd: 0, youngCd: 30, leoCd: 0, bearCd: 0, seen: {}, youngN: 1 + (Math.random() < .5 ? 1 : 0), maxPack: 1, swaps: 0, eventT: CONFIG.events.firstAt, evQueue: [], evCount: 0, ev: null, alphaNext: 0, spawnT: 0, crashSeen: false, atDen: true });
   P = { x: 0, z: 2, dir: 0, hp: CONFIG.player.maxHP, maxHP: CONFIG.player.maxHP, hunger: CONFIG.hunger.start, stamina: 100, atkCd: 0, hurtT: 0, lungeT: 0, lungeDir: 0, lungeCrit: null, moving: false, phase: 0, invuln: 0, vx: 0, vz: 0 };
   if (DEF()) { const D = CONFIG.defense; P.hunger = 0; for (let i = 0; i < D.pups; i++) { const an = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (D.penRadius - 2), m = addPup(Math.cos(an) * r, Math.sin(an) * r); m.born = -999; m.dir = Math.random() * 6.283; } }
@@ -1357,7 +1408,7 @@ function resetRun(mode) {
   playerView.g.visible = true; marker.visible = true;
   adv.last = {}; adv.t = 0; $('hint').classList.remove('on');
   show('hud', true); show('title', false); show('over', false); show('pause', false); show('tune', false); if (coarse) show('touch', true);
-  toast(CONFIG.modes[mode].label, mode === 'survival' ? '噛みついた相手に、群れ全員で飛びかかれ' : mode === 'defense' ? '巣の子犬を守れ。食べるとまず自分が回復し、余りで子犬が増える' : '急がなくていい。好きなだけ狩って群れを育てよう');
+  toast(CONFIG.modes[mode].label + (mode === 'parade' ? ' ' + G.limit + '秒' : ''), mode === 'parade' ? '後ろからそっと飛びついて、仲間を増やせ' : mode === 'survival' ? '噛みついた相手に、群れ全員で飛びかかれ' : mode === 'defense' ? '巣の子犬を守れ。食べるとまず自分が回復し、余りで子犬が増える' : '急がなくていい。好きなだけ狩って群れを育てよう');
 }
 function populate() {
   world.burrows.forEach(b => { b.count = 0; for (let i = 0; i < CONFIG.population.rabbitsPerBurrow; i++) spawnRabbit(b); });
@@ -1367,7 +1418,7 @@ function populate() {
 }
 function gameOver(cause, manual) {
   if (!playing()) return; G.state = 'over';
-  const sc = score(), key = 'sw3-best-' + G.mode; let best = 0, prev = 0;
+  const sc = score(), key = 'sw3-best-' + G.mode + (PAR() ? G.limit : ''); let best = 0, prev = 0;
   try { prev = +localStorage.getItem(key) || 0; best = Math.max(prev, sc); if (sc > prev) localStorage.setItem(key, sc); } catch (e) { best = sc; }
   $('overCause').textContent = cause; $('overHead').textContent = manual || G.mode === 'relax' ? '今回の記録' : G.mode === 'defense' ? '今回の記録' : '群れは尽きた';
   $('overScore').firstChild.textContent = sc.toLocaleString();
@@ -1375,6 +1426,14 @@ function gameOver(cause, manual) {
   $('overNear').textContent = sc > prev && prev > 0 ? '新記録！ これまでのベストを ' + (sc - prev).toLocaleString() + ' 上回った' : prev > sc ? '自己ベストまであと ' + (prev - sc).toLocaleString() + ' ポイント。危険度' + (G.level + 1) + 'まであと' + toNext + '秒だった' : '最初の記録。危険度' + (G.level + 1) + 'まであと' + toNext + '秒だった';
   $('oTime').textContent = fmtT(G.playT); $('oLevel').textContent = G.level; $('oPack').textContent = G.maxPack + '匹'; $('oBorn').textContent = G.born + '匹';
   $('oKills').textContent = 'ウサギ ' + G.kills.rabbit + '・シカ ' + G.kills.deer + '・イノシシ ' + G.kills.boar; $('oLion').textContent = [['キツネ', 'fox'], ['オオカミ', 'wolf'], ['ヒョウ', 'leopard'], ['クマ', 'bear'], ['ライオン', 'lion'], ['主', 'alpha']].filter(e => G.kills[e[1]]).map(e => e[0] + ' ' + G.kills[e[1]]).join('・') || 'なし'; $('oBest').textContent = best.toLocaleString();
+  const lab = (id, t) => { const e = $(id).previousElementSibling; if (!e.dataset.orig) e.dataset.orig = e.textContent; e.textContent = t || e.dataset.orig; };
+  if (PAR()) {
+    $('overHead').textContent = '今回のパレード'; $('overNear').textContent = sc > prev && prev > 0 ? '新記録！ これまでのベストを ' + (sc - prev).toLocaleString() + ' 上回った' : prev > sc ? '自己ベストまであと ' + (prev - sc).toLocaleString() + ' ポイント' : '最初の記録';
+    const cnt = {}; parade.forEach(f => { cnt[f.type] = (cnt[f.type] || 0) + 1; });
+    lab('oTime', '制限時間'); $('oTime').textContent = G.limit + '秒'; lab('oLevel', '最後の列'); $('oLevel').textContent = parade.length + '匹'; lab('oPack', '最長の列'); $('oPack').textContent = G.maxParade + '匹'; lab('oBorn', '切れた回数'); $('oBorn').textContent = (G.cuts || 0) + '回';
+    lab('oKills', '列の中身'); $('oKills').textContent = [['ウサギ', 'rabbit'], ['シカ', 'deer'], ['イノシシ', 'boar'], ['キツネ', 'fox'], ['若いライオン', 'young']].filter(e => cnt[e[1]]).map(e => e[0] + ' ' + cnt[e[1]]).join('・') || 'なし';
+    $('oLion').parentElement.hidden = true;
+  } else { ['oTime', 'oLevel', 'oPack', 'oBorn', 'oKills'].forEach(id => lab(id)); $('oLion').parentElement.hidden = false; }
   show('over', true); show('touch', false); show('pause', false); aimMark.visible = false; $('hint').classList.remove('on'); sfx('over');
 }
 
@@ -1423,7 +1482,7 @@ function advise(key, text, o) {
 function adviceTick() {
   if (G.playT < 1) return;
   const k = coarse ? '攻撃ボタン' : 'Space', near = (a, r) => dist(P, a) < r;
-  advise('goal', DEF() ? '目的は、巣の子犬を守ること。食べるとまず自分の体力が回復し、余った分が繁栄ゲージに入って子犬が増える' : '目的は、群れが尽きるまで生き延びること。噛みついた相手には子犬が一斉に飛びかかる。食べて繁栄ゲージが満タンになると、巣で子が生まれて合流しに来る', { prio: 4, dur: 7 });
+  advise('goal', PAR() ? '動物に気づかれずに後ろから飛びつくと、仲間になって列につく。自分の列にぶつかると、そこから後ろが切れる' : DEF() ? '目的は、巣の子犬を守ること。食べるとまず自分の体力が回復し、余った分が繁栄ゲージに入って子犬が増える' : '目的は、群れが尽きるまで生き延びること。噛みついた相手には子犬が一斉に飛びかかる。食べて繁栄ゲージが満タンになると、巣で子が生まれて合流しに来る', { prio: 4, dur: 7 });
   advise('ctrl', coarse ? '左のスティックで移動、画面ドラッグで回転。攻撃ボタンは倒した方向へ飛び、連打でダッシュにもなる' : 'WASDで移動、ドラッグで回転。Spaceで入力方向へ飛びかかり、連打でダッシュにもなる', { prio: 1 });
   const foe = animals.find(a => a.alive && charger(a) && a.kind !== 'lion' && near(a, 26) && (a.state === 'crouch' || a.state === 'stalk' || a.state === 'recover'));
   if (foe && foe.state === 'recover') advise('punish', '隙だらけだ！ 今のうちに' + k + 'で噛め', { cd: 20, prio: 5, go: true, dur: 2.5 });
@@ -1456,9 +1515,9 @@ function updateHUD() {
   const bar = (b, n, v, m) => { $(b).style.width = clamp(v / m * 100, 0, 100) + '%'; if (n) $(n).textContent = Math.max(0, Math.ceil(v)); };
   bar('hgBar', 'hgNum', P.hunger, CONFIG.hunger.max);
   const ready = G.grow >= G.need; bar('grBar', null, Math.min(G.grow, G.need), G.need); $('grNum').textContent = ready ? '巣へ' + (G.grow >= G.need * 2 ? ' ×' + Math.floor(G.grow / G.need) : '') : Math.floor(G.grow / G.need * 100) + '%'; $('grRow').classList.toggle('ready', ready);
-  $('hungry').classList.toggle('low', P.hunger < 25 && !M.defense); $('hungry').firstElementChild.textContent = '空腹'; show('hungry', !M.defense);
-  $('pack').textContent = pack.length + (M.defense ? 0 : 1); $('kcal').textContent = G.kcal.toLocaleString() + 'kcal'; $('born').textContent = G.born; $('kRabbit').textContent = G.kills.rabbit; $('kDeer').textContent = G.kills.deer; $('kLion').textContent = G.kills.lion + G.kills.alpha + G.kills.wolf + G.kills.fox + G.kills.leopard + G.kills.bear; $('kBoar').textContent = G.kills.boar; $('ptNum').textContent = score().toLocaleString() + ' pt';
-  $('lvNum').textContent = M.escalate ? '危険度 ' + G.level : 'のんびり'; $('timeNum').textContent = fmtT(G.playT); $('lvBar').style.width = (M.escalate ? (G.playT % D.levelSeconds) / D.levelSeconds * 100 : 0) + '%'; $('status').classList.toggle('night', G.night > .5);
+  $('hungry').classList.toggle('low', P.hunger < 25 && !M.defense); $('hungry').firstElementChild.textContent = '空腹'; show('hungry', !M.defense && !M.parade); show('grRow', !M.parade); $('vitals').style.display = M.parade ? 'none' : '';
+  $('pack').textContent = M.parade ? parade.length : pack.length + (M.defense ? 0 : 1); $('kcal').textContent = G.kcal.toLocaleString() + 'kcal'; $('born').textContent = G.born; $('kRabbit').textContent = G.kills.rabbit; $('kDeer').textContent = G.kills.deer; $('kLion').textContent = G.kills.lion + G.kills.alpha + G.kills.wolf + G.kills.fox + G.kills.leopard + G.kills.bear; $('kBoar').textContent = G.kills.boar; $('ptNum').textContent = score().toLocaleString() + ' pt';
+  $('lvNum').textContent = M.parade ? 'のこり' : M.escalate ? '危険度 ' + G.level : 'のんびり'; $('timeNum').textContent = fmtT(M.parade ? Math.max(0, G.limit - G.playT + .999) : G.playT); if (M.parade) $('lvBar').style.width = Math.max(0, 1 - G.playT / G.limit) * 100 + '%'; if (!M.parade) $('lvBar').style.width = (M.escalate ? (G.playT % D.levelSeconds) / D.levelSeconds * 100 : 0) + '%'; $('status').classList.toggle('night', G.night > .5);
   $('vig').style.opacity = P.hurtT > 0 ? .8 : (P.hp / P.maxHP < .25 ? .3 : 0); $('hungerVig').style.opacity = M.defense ? 0 : P.hunger < 15 ? .55 : P.hunger < 25 ? .25 : 0;
   const yaw = G.view === '3d' ? cam.yaw : 0;
   const aim = (el, x, z) => { const dx = x - P.x, dz = z - P.z, sx = dx * Math.cos(yaw) - dz * Math.sin(yaw), sy = -dx * Math.sin(yaw) - dz * Math.cos(yaw); $(el).style.transform = 'rotate(' + Math.atan2(sx, sy) + 'rad)'; return Math.round(Math.hypot(dx, dz)); };
@@ -1468,6 +1527,7 @@ function updateHUD() {
   show('denCmp', true); $('denArrow').style.visibility = far || (ready && !G.atDen) ? 'visible' : 'hidden'; $('denCmp').classList.toggle('ready', ready && !full);
   $('denTxt').textContent = full ? '群れは最大。生き延びろ' + (far ? ' ・ 巣 ' + dm + 'm' : '') : ready ? '巣に戻ると子が生まれる ' + dm + 'm' : '次の子まで あとウサギ' + left + '匹ぶん' + (far ? ' ・ 巣 ' + dm + 'm' : '');
   $('denLabel').textContent = ready && !full ? '巣：戻ると子が生まれる' : '巣'; $('denLabel').classList.toggle('ready', ready && !full);
+  if (M.parade) { $('denTxt').textContent = 'パレード ' + parade.length + '匹' + (G.combo > 1 ? ' ・ 連続×' + G.combo : '') + ' ・ 最長 ' + G.maxParade + '匹'; $('denArrow').style.visibility = 'hidden'; $('denCmp').classList.remove('ready'); $('denLabel').textContent = '巣'; }
   if (M.defense) {
     $('denTxt').textContent = '子犬 ' + pack.length + '匹 ・ 次の子犬まで あとウサギ' + Math.max(1, left) + '匹ぶん' + (far ? ' ・ 巣 ' + dm + 'm' : '');
     $('denArrow').style.visibility = far ? 'visible' : 'hidden'; $('denCmp').classList.remove('ready'); $('denLabel').textContent = '巣'; $('denLabel').classList.remove('ready'); }
@@ -1483,7 +1543,7 @@ function toTitle() {
   G.state = 'title'; show('hud', false); show('over', false); show('pause', false); show('title', true); show('touch', false); show('tune', false);
   playerView.g.visible = false; marker.visible = false; aimMark.visible = false; clearPack(); refreshBest(); G.nightT = 0; G.level = 1;
 }
-function refreshBest() { let s = 0, d = 0; if (false) { try { d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = d ? '自己ベスト　' + d.toLocaleString() + 'pt' : ''; return; } try { s = +localStorage.getItem('sw3-best-survival') || 0; d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = [d ? '守る ' + d.toLocaleString() + 'pt' : '', s ? '攻める ' + s.toLocaleString() + 'pt' : ''].filter(Boolean).join(' ・ ').replace(/^(?=.)/, '自己ベスト　'); }
+function refreshBest() { let s = 0, d = 0, pb = []; try { [60, 90, 120].forEach(t => { const v = +localStorage.getItem('sw3-best-parade' + t) || 0; if (v) pb.push('パレード' + t + '秒 ' + v.toLocaleString() + 'pt'); }); } catch (e) {} if (false) { try { d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = d ? '自己ベスト　' + d.toLocaleString() + 'pt' : ''; return; } try { s = +localStorage.getItem('sw3-best-survival') || 0; d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = [d ? '守る ' + d.toLocaleString() + 'pt' : '', s ? '攻める ' + s.toLocaleString() + 'pt' : ''].concat(pb).filter(Boolean).join(' ・ ').replace(/^(?=.)/, '自己ベスト　'); }
 
 /* 調整パネル */
 function exportSplit() {
@@ -1522,7 +1582,7 @@ $('btnSound').addEventListener('click', () => { muted = !muted; try { localStora
 $('btnMenu').addEventListener('click', () => pause(true));
 $('btnResume').addEventListener('click', () => pause(false)); $('btnQuit').addEventListener('click', toTitle);
 $('btnEnd').addEventListener('click', () => { G.state = 'play'; show('pause', false); gameOver('自分で切り上げた', true); });
-$('btnSurvival').addEventListener('click', () => resetRun('survival')); $('btnDefense').addEventListener('click', () => resetRun('defense')); $('btnRelax').addEventListener('click', () => resetRun('relax'));
+$('btnSurvival').addEventListener('click', () => resetRun('survival')); document.querySelectorAll('.par-times button').forEach(b => b.addEventListener('click', () => { G.limit = +b.dataset.t; resetRun('parade'); })); $('btnDefense').addEventListener('click', () => resetRun('defense')); $('btnRelax').addEventListener('click', () => resetRun('relax'));
 $('btnAgain').addEventListener('click', () => resetRun(G.mode)); $('btnToTitle').addEventListener('click', toTitle);
 $('vitals').addEventListener('click', () => { const on = $('vitals').getAttribute('aria-expanded') !== 'true'; $('vitals').setAttribute('aria-expanded', String(on)); show('vtMore', on); });
 
@@ -1575,7 +1635,7 @@ function simulate(dt) {
   for (const a of animals) { if (!a.alive) continue; if (a.kind === 'rabbit') updateRabbit(a, dt); else if (a.sp.damage && !a.wpack) updateLion(a, dt); }
   director(dt); updateFire(dt); updateFlocks(dt);
   if (playing()) {
-    updateAim(); updatePack(dt);
+    updateAim(); updatePack(dt); updateParade(dt);
     pose(playerView, P.x, P.z, P.dir, P.phase, P.moving, P.lungeT > 0 ? { rx: -.2 } : null);
     playerView.g.visible = P.invuln <= 0 || Math.sin(G.t * 40) > 0;
     marker.position.set(P.x, 2.3 + Math.sin(G.t * 4) * .15, P.z); marker.rotation.y = G.t * 2; atkLaneTick(dt);
@@ -1591,7 +1651,7 @@ function frame(now) {
   if (G.state !== 'paused') { if (G.freeze > 0) G.freeze -= dt; else simulate(dt); updateFloaters(dt); }
   updateCamera(dt); // ラベルの位置は、動いた後のカメラで計算する
   if (playing()) { // 操作キャラの頭上に小さな体力バー
-    V3.set(P.x, 1.75, P.z).project(activeCam()); const r = clamp(P.hp / P.maxHP, 0, 1), hb = $('headHP'); show('headHP', true);
+    V3.set(P.x, 1.75, P.z).project(activeCam()); const r = clamp(P.hp / P.maxHP, 0, 1), hb = $('headHP'); show('headHP', !PAR());
     hb.style.left = (V3.x * .5 + .5) * innerWidth + 'px'; hb.style.top = (-V3.y * .5 + .5) * innerHeight + 'px'; hb.firstElementChild.style.width = (r * 100).toFixed(1) + '%'; hb.classList.toggle('mid', r <= .6 && r > .3); hb.classList.toggle('low', r <= .3);
   } else show('headHP', false);
   if (playing()) { V3.set(0, 2.6, 0).project(activeCam()); const on = Math.hypot(P.x, P.z) > CONFIG.world.denRadius + 2 && V3.z < 1 && Math.abs(V3.x) < 1.05 && Math.abs(V3.y) < 1.05; show('denLabel', on); if (on) { $('denLabel').style.left = (V3.x * .5 + .5) * innerWidth + 'px'; $('denLabel').style.top = (-V3.y * .5 + .5) * innerHeight + 'px'; } }
