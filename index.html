@@ -120,6 +120,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 #touch #joy{position:absolute;left:calc(env(safe-area-inset-left,0px) + 24px);bottom:calc(env(safe-area-inset-bottom,0px) + 70px);width:120px;height:120px;border-radius:50%;background:rgba(17,21,15,.45);border:1px solid var(--line);touch-action:none}
 #knob{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(239,235,220,.25);border:1px solid rgba(239,235,220,.5)}
 .tbtns{position:absolute;right:calc(env(safe-area-inset-right,0px) + 20px);bottom:calc(env(safe-area-inset-bottom,0px) + 74px)}
+#tBite.dash{background:rgba(126,182,214,.55)}
 #tBite{width:88px;height:88px;font-size:16px;border-radius:50%;border:1px solid rgba(239,235,220,.4);background:rgba(218,74,61,.55);font-weight:700;touch-action:none}
 
 .screen{position:fixed;inset:0;display:grid;place-items:center;background:rgba(9,11,8,.62);padding-block:calc(env(safe-area-inset-top,0px) + 16px) calc(env(safe-area-inset-bottom,0px) + 16px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));overflow:auto}
@@ -250,7 +251,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
     <div class="modes">
       <button class="mode start" id="btnDefense"><span class="mode-name">守るゲーム</span><span class="mode-desc">巣にいる5匹の子犬を、食べに来る肉食から守る。食べるとまず自分が回復し、余りで巣に子犬が生まれる。傷ついた子犬は治らない。子犬が尽きたら終わり。</span></button>
       <button class="mode start" id="btnSurvival"><span class="mode-name">攻めるゲーム</span><span class="mode-desc">子犬を連れて狩りに出る。噛みついた相手には、群れ全員が飛びかかる。繁栄ゲージが満タンになると巣で子が生まれ、走って合流する。群れの数が残機。外周から野火が迫る。</span></button>
-      <div class="mode start parade" id="parBox"><span class="mode-name">パレード</span><span class="mode-desc">敵はいない。動物に触れると、仲間になって列についてくる。気づかれると逃げられるので、後ろからそっと近づこう。自分の列にぶつかると、そこから後ろが切れる。</span><span class="par-times"><button type="button" data-t="60">60秒</button><button type="button" data-t="90">90秒</button><button type="button" data-t="120">120秒</button></span></div>
+      <div class="mode start parade" id="parBox"><span class="mode-name">パレード</span><span class="mode-desc">敵はいない。動物に触れると、仲間になって列についてくる。気づかれると逃げられるので、後ろからそっと近づこう。Spaceかダッシュボタンを押している間は速く走れるが、気づかれやすい。自分の列にぶつかると、そこから後ろが切れる。</span><span class="par-times"><button type="button" data-t="60">60秒</button><button type="button" data-t="90">90秒</button><button type="button" data-t="120">120秒</button></span></div>
       <button class="mode off" id="btnRelax"><span class="mode-name">のんびり</span><span class="mode-desc">危険度は上がらず、敵はこちらから噛まない限りおとなしい。倒れない。好きなだけ狩って群れを育てる。</span></button>
     </div>
     <dl class="keys desk">
@@ -314,7 +315,8 @@ const CONFIG = {
   stealth: { grassMul: 0.45, lungeMul: 1.7, stillMul: 0.55 },
   danger: { levelSeconds: 30, hungerPerLevel: 0.05, lionsBase: 2, lionsMax: 8, alphaLevel: 7, alphaEvery: 3, speedPerLevel: 0, speedMax: 1.5, foxAt: 5, foxMax: 4, leopardLevel: 3, bearLevel: 5, crouchPerLevel: 0.03, crouchMin: 0.65, closeInPerLevel: 0.06, hearPerLevel: 0.8, wolfLevel: 2, wolfLevel2: 5, wolfPack: 3, wolfRespawn: 30 },
   defense: { pups: 5, penRadius: 9, pupHP: 60, pupDamageMul: 0.35, feedPerSec: 40, pupBite: 0.5, biteEvery: 1.1, pupFeedShare: 0.5, fearHP: 0.4, tgtPupChance: 0.75, assistMax: 2, swarm: 5, maxFoes: 45 },
-  parade: { spacing: 1.35, cutSkip: 3, cutRadius: 0.8, pts: { rabbit: 1, deer: 3, boar: 5, fox: 6, young: 8 }, comboStep: 0.25, comboMax: 3, combo: false, touchPad: 0.25, perPoint: 100 },
+  parade: { spacing: 1.35, cutSkip: 3, cutRadius: 0.8, pts: { rabbit: 1, deer: 3, boar: 5, fox: 6, young: 8 }, comboStep: 0.25, comboMax: 3, combo: false, touchPad: 0.25, perPoint: 100, dashMul: 1.6,
+    pop: { rabbitsPerBurrow: 5, rabbitRespawn: 6, herds: 8, boars: 6, nearRabbits: 16, startHerds: 3 } },
   fire: { startAt: 30, endAt: 270, r0: 100, rMin: 26, dps: 14 },
   events: { firstAt: 40, interval: 45, nightSeconds: 25, stampedeSize: 10, raidBase: 2 },
   population: { burrows: 18, rabbitsPerBurrow: 3, rabbitRespawn: 24, herds: 5, herdSize: 5, flocks: 7, boars: 3, nearRabbits: 5 },
@@ -779,7 +781,7 @@ function placeFlock(fl, first) {
   fl.state = 'ground'; fl.t = 0;
 }
 function initFlocks() {
-  flocks.length = 0; const n = Math.min(16, CONFIG.population.flocks);
+  flocks.length = 0; const n = Math.min(16, POP().flocks);
   for (let i = 0; i < n; i++) { const fl = { x: 0, z: 0, state: 'ground', t: 0, dx: 0, dz: 0, birds: [] }; for (let k = 0, nb = 1 + Math.floor(Math.random() * BIRDS_PER); k < nb; k++) fl.birds.push({ ox: Math.random() * 4 - 2, oz: Math.random() * 4 - 2, ph: Math.random() * 6.283, dir: Math.random() * 6.283, sp: .8 + Math.random() * .5 }); placeFlock(fl, true); flocks.push(fl); }
   birdMesh.count = 0;
 }
@@ -1069,7 +1071,7 @@ function befriend(a) {
   const C = CONFIG.parade, pts = C.pts[a.type] || 1, sneak = !!(P.lungeCrit && P.lungeCrit.has(a));
   G.combo = C.combo && sneak ? G.combo + 1 : 0;
   const mul = C.combo ? Math.min(C.comboMax, 1 + Math.max(0, G.combo - 1) * C.comboStep) : 1, val = Math.round(pts * mul * C.perPoint);
-  if (a.kind === 'rabbit' && a.burrow) { a.burrow.count--; a.burrow.respT = CONFIG.population.rabbitRespawn * (1 + Math.random() * .6); scareRabbits(a.x, a.z, P); }
+  if (a.kind === 'rabbit' && a.burrow) { a.burrow.count--; a.burrow.respT = POP().rabbitRespawn * (1 + Math.random() * .6); scareRabbits(a.x, a.z, P); }
   removeAnimal(a); if (a.kind === 'deer') boltHerd(a.herd, P);
   const v = makeAnimal(LOOK[a.type], false); if (a.sp.scale) v.g.scale.setScalar(a.sp.scale); scene.add(v.g);
   parade.push({ v, type: a.type, x: a.x, z: a.z, dir: a.dir, phase: 0, val, r: a.sp.radius || .5 });
@@ -1103,6 +1105,7 @@ function updateParade(dt) {
   G.cutCd = (G.cutCd || 0) - dt;
   if (G.cutCd <= 0) for (let i = C.cutSkip; i < parade.length; i++) { const f = parade[i]; if (Math.hypot(f.x - P.x, f.z - P.z) < C.cutRadius + f.r * .5) { cutParade(i); break; } }
 }
+const POP = () => (CONFIG.modes[G.mode] && CONFIG.modes[G.mode].parade ? Object.assign({}, CONFIG.population, CONFIG.parade.pop) : CONFIG.population);
 function clearPack() { pack.forEach(m => scene.remove(m.v.g)); pack.length = 0; }
 function hurtPup(m, dmg, src) {
   if (!pack.includes(m)) return; if (DEF()) dmg *= CONFIG.defense.pupDamageMul; m.hp -= dmg; floatAt(m, 'キャン！', 'hit'); burst(m.x, .5, m.z, 8, 0xda4a3d, 5, .2); sfx('yelp');
@@ -1198,7 +1201,8 @@ function hurtPlayer(dmg, src, cause) {
   if (!CONFIG.modes[G.mode].canDie) P.hp = Math.max(P.hp, 15);
   if (P.hp <= 0) { if (pack.length) succeed(cause); else gameOver(cause || '力尽きた'); }
 }
-function noiseMul() { const s = CONFIG.stealth; let m = 1; if (P.lungeT > 0) m *= s.lungeMul; else if (!P.moving) m *= s.stillMul; if (inGrass(P.x, P.z)) m *= s.grassMul; return m; }
+const dashing = () => PAR() && playing() && (input.k.Space || input.k.KeyJ || input.k.ShiftLeft || input.k.ShiftRight || input.tDash);
+function noiseMul() { const s = CONFIG.stealth; let m = 1; if (P.lungeT > 0 || (dashing() && P.moving)) m *= s.lungeMul; else if (!P.moving) m *= s.stillMul; if (inGrass(P.x, P.z)) m *= s.grassMul; return m; }
 const reach = () => CONFIG.attack.lungeSpeed * CONFIG.attack.lungeTime + .5;
 function unaware(a) {
   if (a.kind === 'rabbit') return a.state === 'wander' && a.aware < CONFIG.hunt.awareLimit;
@@ -1241,7 +1245,7 @@ function hit(a) {
 function killed(a, crit, byCrash) {
   const S = a.sp; removeAnimal(a);
   burst(a.x, .8, a.z, 18, 0xb8402f, 7, .26); burst(a.x, .8, a.z, 8, 0xefe1c6, 5, .2); ringFx(a.x, a.z, 0xefebdc, 3.5 * (S.scale || 1), .4);
-  if (a.kind === 'rabbit' && a.burrow) { a.burrow.count--; a.burrow.respT = CONFIG.population.rabbitRespawn * (1 + Math.random() * .6); scareRabbits(a.x, a.z, P); }
+  if (a.kind === 'rabbit' && a.burrow) { a.burrow.count--; a.burrow.respT = POP().rabbitRespawn * (1 + Math.random() * .6); scareRabbits(a.x, a.z, P); }
   if (a.kind === 'deer') boltHerd(a.herd, P);
   if (a.wpack) a.wpack.dartCd += 2.5; // 仲間がやられると、ひるむ
   if (!playing()) return;
@@ -1270,7 +1274,8 @@ function updatePlayer(dt) {
   const px0 = P.x, pz0 = P.z;
   P.moving = Math.hypot(vx, vz) > .1; P.atkCd -= dt; P.hurtT -= dt; P.invuln -= dt;
   if (input.bite) tryAttack(vx, vz); input.bite = false;
-  let spd = C.speed * (P.hunger <= 0 && !M.defense ? .7 : 1);
+  let spd = C.speed * (P.hunger <= 0 && !M.defense ? .7 : 1) * (dashing() ? CONFIG.parade.dashMul : 1);
+  if (dashing() && P.moving) { G.dustT = (G.dustT || 0) - dt; if (G.dustT <= 0) { G.dustT = .08; burst(P.x, .15, P.z, 2, 0xcdbf9c, 2, .18, 2); } }
   if (P.lungeT > 0) {
     const A = CONFIG.attack, steps = 3, sd = dt / steps;
     for (let s = 0; s < steps && P.lungeT > 0; s++) {
@@ -1329,15 +1334,15 @@ function director(dt) {
   G.spawnT -= dt;
   if (G.spawnT <= 0) {
     G.spawnT = 1;
-    for (const b of world.burrows) if (b.count < CONFIG.population.rabbitsPerBurrow) { b.respT -= 1; if (b.respT <= 0 && (!play || dist(P, b) > 22)) { spawnRabbit(b); b.respT = CONFIG.population.rabbitRespawn * (.5 + Math.random() * .5); } }
-    if (herds.filter(h => !h.stampede).length < CONFIG.population.herds) { const p = freeSpot(CONFIG.world.meadow * .8, H - 10, 2, play ? P : null, 34); if (p) spawnHerd(p.x, p.z, CONFIG.population.herdSize); }
+    for (const b of world.burrows) if (b.count < POP().rabbitsPerBurrow) { b.respT -= 1; if (b.respT <= 0 && (!play || dist(P, b) > 22)) { spawnRabbit(b); b.respT = POP().rabbitRespawn * (.5 + Math.random() * .5); } }
+    if (herds.filter(h => !h.stampede).length < POP().herds) { const p = freeSpot(CONFIG.world.meadow * .8, H - 10, 2, play ? P : null, 34); if (p) spawnHerd(p.x, p.z, POP().herdSize); }
     const esc = play && M.escalate, L = G.level, pride = esc && L >= D.alphaLevel;
     // 防衛：一度に多く出すのではなく、送り込む間隔を縮めて総量を増やす
     const SW = DEF() ? CONFIG.defense.swarm : 1, room = !DEF() || animals.filter(a => a.alive && charger(a) && a.type !== 'boar' && a.type !== 'young').length < CONFIG.defense.maxFoes, cap = w => (room ? Math.round(w * SW) : 0);
     const want = pride ? Math.round(SW * Math.min(D.lionsMax, D.lionsBase + (L - D.alphaLevel))) : 0, have = lionCount();
     if (have < want && room) { G.lionCd -= 1; if (G.lionCd <= 0) { const p = freeSpot(CONFIG.world.meadow + 6, H - 5, 1.2, P, 40); if (p) { spawnLion('lion', p.x, p.z); G.lionCd = 6 / SW; } } }
     else if (have > want + 3) { const far = animals.find(a => a.alive && a.type === 'lion' && a.state === 'prowl' && (!play || dist(P, a) > 46)); if (far) removeAnimal(far); }
-    const PO = CONFIG.population;
+    const PO = POP();
     if (animals.filter(a => a.alive && a.kind === 'boar').length < PO.boars) { const p = freeSpot(CONFIG.world.meadow, H - 10, 1.2, play ? P : null, 30); if (p) spawnLion('boar', p.x, p.z); }
     // ウサギは操作キャラの近くに保つ：周りが寂しくなったら、近くの巣穴から出す
     if (play) { let n = 0; for (const a of animals) if (a.alive && a.kind === 'rabbit' && dist(P, a) < 42) n++; if (n < PO.nearRabbits) { const c = world.burrows.filter(b => b.count < PO.rabbitsPerBurrow && dist(P, b) > 18 && dist(P, b) < 46); if (c.length) spawnRabbit(c[Math.floor(Math.random() * c.length)]); } }
@@ -1410,13 +1415,14 @@ function resetRun(mode) {
   cam.yaw = 0.35; cam.tx = P.x; cam.tz = P.z; huntTarget = null;
   playerView.g.visible = true; marker.visible = true;
   adv.last = {}; adv.t = 0; $('hint').classList.remove('on');
-  show('hud', true); show('title', false); show('over', false); show('pause', false); show('tune', false); if (coarse) show('touch', true); $('tBite').style.display = mode === 'parade' ? 'none' : '';
+  show('hud', true); show('title', false); show('over', false); show('pause', false); show('tune', false); if (coarse) show('touch', true); $('tBite').textContent = mode === 'parade' ? 'ダッシュ' : '攻撃'; $('tBite').classList.toggle('dash', mode === 'parade');
   toast(CONFIG.modes[mode].label + (mode === 'parade' ? ' ' + G.limit + '秒' : ''), mode === 'parade' ? '後ろからそっと近づいて、触れて仲間にしよう' : mode === 'survival' ? '噛みついた相手に、群れ全員で飛びかかれ' : mode === 'defense' ? '巣の子犬を守れ。食べるとまず自分が回復し、余りで子犬が増える' : '急がなくていい。好きなだけ狩って群れを育てよう');
 }
 function populate() {
-  world.burrows.forEach(b => { b.count = 0; for (let i = 0; i < CONFIG.population.rabbitsPerBurrow; i++) spawnRabbit(b); });
-  for (let i = 0; i < CONFIG.population.herds; i++) { const p = freeSpot(CONFIG.world.meadow * .8, H - 10, 2, P, 30); if (p) spawnHerd(p.x, p.z, CONFIG.population.herdSize); }
-  for (let i = 0; i < CONFIG.population.boars; i++) { const p = freeSpot(CONFIG.world.meadow, H - 10, 1.2, P, 34); if (p) spawnLion('boar', p.x, p.z); }
+  world.burrows.forEach(b => { b.count = 0; for (let i = 0; i < POP().rabbitsPerBurrow; i++) spawnRabbit(b); });
+  for (let i = 0; i < POP().herds; i++) { const p = freeSpot(CONFIG.world.meadow * .8, H - 10, 2, P, 30); if (p) spawnHerd(p.x, p.z, POP().herdSize); }
+  if (PAR()) for (let i = 0; i < POP().startHerds; i++) { const p = freeSpot(14, 32, 2); if (p) spawnHerd(p.x, p.z, POP().herdSize); }
+  for (let i = 0; i < POP().boars; i++) { const p = freeSpot(CONFIG.world.meadow, H - 10, 1.2, P, 34); if (p) spawnLion('boar', p.x, p.z); }
   for (let i = 0; i < (G.youngN || 1); i++) { const p = freeSpot(CONFIG.world.meadow + 8, H - 8, 1.2, P, 44); if (p) spawnLion('young', p.x, p.z); }
 }
 function gameOver(cause, manual) {
@@ -1486,7 +1492,7 @@ function adviceTick() {
   if (G.playT < 1) return;
   const k = coarse ? '攻撃ボタン' : 'Space', near = (a, r) => dist(P, a) < r;
   advise('goal', PAR() ? '動物に触れると仲間になって列につく。気づかれると逃げられるので後ろから。自分の列にぶつかると、そこから後ろが切れる' : DEF() ? '目的は、巣の子犬を守ること。食べるとまず自分の体力が回復し、余った分が繁栄ゲージに入って子犬が増える' : '目的は、群れが尽きるまで生き延びること。噛みついた相手には子犬が一斉に飛びかかる。食べて繁栄ゲージが満タンになると、巣で子が生まれて合流しに来る', { prio: 4, dur: 7 });
-  if (PAR()) advise('ctrlP', coarse ? '左のスティックで移動、画面ドラッグでカメラ回転。攻撃はなく、触れるだけで仲間になる' : 'WASDで移動、ドラッグでカメラ回転。攻撃はなく、触れるだけで仲間になる', { prio: 3, dur: 6 });
+  if (PAR()) advise('ctrlP', coarse ? '左のスティックで移動。ダッシュボタンを押している間は速いが、足音で気づかれやすい。触れるだけで仲間になる' : 'WASDで移動。Spaceを押している間はダッシュ（速いが気づかれやすい）。触れるだけで仲間になる', { prio: 3, dur: 6 });
   else advise('ctrl', coarse ? '左のスティックで移動、画面ドラッグで回転。攻撃ボタンは倒した方向へ飛び、連打でダッシュにもなる' : 'WASDで移動、ドラッグで回転。Spaceで入力方向へ飛びかかり、連打でダッシュにもなる', { prio: 1 });
   const foe = animals.find(a => a.alive && charger(a) && a.kind !== 'lion' && near(a, 26) && (a.state === 'crouch' || a.state === 'stalk' || a.state === 'recover'));
   if (foe && foe.state === 'recover') advise('punish', '隙だらけだ！ 今のうちに' + k + 'で噛め', { cd: 20, prio: 5, go: true, dur: 2.5 });
@@ -1618,7 +1624,8 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
   base.addEventListener('pointermove', e => { if (e.pointerId === id) set(e.clientX, e.clientY); });
   const up = e => { if (e.pointerId !== id) return; id = null; knob.style.transform = ''; input.joy.x = input.joy.y = 0; };
   base.addEventListener('pointerup', up); base.addEventListener('pointercancel', up);
-  $('tBite').addEventListener('pointerdown', e => { e.preventDefault(); if (playing()) input.bite = true; });
+  $('tBite').addEventListener('pointerdown', e => { e.preventDefault(); input.tDash = true; if (playing()) input.bite = true; });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => $('tBite').addEventListener(t, () => { input.tDash = false; }));
 })();
 /* iPad対策：ピンチ・2本指・ダブルタップの拡大縮小を止める */
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
