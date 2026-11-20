@@ -73,6 +73,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 #nameCard{position:absolute;left:50%;top:58%;transform:translate(-50%,8px);display:flex;align-items:baseline;gap:8px;padding:6px 14px;border-radius:999px;background:rgba(18,14,10,.72);border:1px solid rgba(243,155,176,.6);color:var(--ink);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;white-space:nowrap}
 #nameCard.on{opacity:1;transform:translate(-50%,0)} #nameCard b{font-family:var(--display);font-size:20px;font-weight:400} #nameCard small{font-family:var(--mono);font-size:12px;color:#f39bb0}
 #nameCard em{font-style:normal;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--bg);background:#f39bb0;border-radius:4px;padding:1px 5px;align-self:center}
+#nameCard.rainbow{border:2px solid transparent;background:linear-gradient(rgba(18,14,10,.85),rgba(18,14,10,.85)) padding-box,linear-gradient(90deg,#ff8fb1,#ffe27a,#9fe8ff,#c9a7ff,#ff8fb1) border-box;animation:rbShift 1s linear infinite} #nameCard.rainbow b{background:linear-gradient(90deg,#ff8fb1,#ffe27a,#9fe8ff,#c9a7ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+@keyframes rbShift{50%{filter:hue-rotate(90deg)}}
 #nameCard.fancy{border-color:rgba(160,210,240,.8);background:linear-gradient(90deg,rgba(60,40,70,.8),rgba(30,60,80,.8))}
 #headHP{position:absolute;width:46px;height:6px;transform:translate(-50%,-100%);background:rgba(10,8,6,.72);border:1px solid rgba(0,0,0,.6);border-radius:3px;overflow:hidden;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.5)}
 #headHP i{display:block;height:100%;width:100%;background:#7fcf5a;transition:width .12s}
@@ -256,7 +258,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
     <div class="modes">
       <button class="mode start" id="btnDefense"><span class="mode-name">守るゲーム</span><span class="mode-desc">巣にいる5匹の子犬を、食べに来る肉食から守る。食べるとまず自分が回復し、余りで巣に子犬が生まれる。傷ついた子犬は治らない。子犬が尽きたら終わり。</span></button>
       <button class="mode start" id="btnSurvival"><span class="mode-name">攻めるゲーム</span><span class="mode-desc">子犬を連れて狩りに出る。噛みついた相手には、群れ全員が飛びかかる。繁栄ゲージが満タンになると巣で子が生まれ、走って合流する。群れの数が残機。外周から野火が迫る。</span></button>
-      <div class="mode start parade" id="parBox"><span class="mode-name">パレード</span><span class="mode-desc">敵はいない。12種類の動物に触れると、仲間になって列についてくる。同じ動物でも色違いがいて、それぞれ名前がある。気づかれると逃げられるので、後ろからそっと近づこう。Spaceかダッシュボタンを押している間は速く走れるが、気づかれやすい。自分の列にぶつかると、そこから後ろが切れる。</span><span class="par-times"><button type="button" data-t="60">60秒</button><button type="button" data-t="90">90秒</button><button type="button" data-t="120">120秒</button></span></div>
+      <div class="mode start parade" id="parBox"><span class="mode-name">パレード</span><span class="mode-desc">敵はいない。12種類の動物に触れると、仲間になって列についてくる。同じ動物でも色違いがいて、それぞれ名前がある。まれに現れるレインボーは足が速いが、点は5倍。気づかれると逃げられるので、後ろからそっと近づこう。Spaceかダッシュボタンを押している間は速く走れるが、気づかれやすい。自分の列にぶつかると、そこから後ろが切れる。</span><span class="par-times"><button type="button" data-t="60">60秒</button><button type="button" data-t="90">90秒</button><button type="button" data-t="120">120秒</button></span></div>
       <button class="mode off" id="btnRelax"><span class="mode-name">のんびり</span><span class="mode-desc">危険度は上がらず、敵はこちらから噛まない限りおとなしい。倒れない。好きなだけ狩って群れを育てる。</span></button>
     </div>
     <dl class="keys desk">
@@ -321,6 +323,7 @@ const CONFIG = {
   danger: { levelSeconds: 30, hungerPerLevel: 0.05, lionsBase: 2, lionsMax: 8, alphaLevel: 7, alphaEvery: 3, speedPerLevel: 0, speedMax: 1.5, foxAt: 5, foxMax: 4, leopardLevel: 3, bearLevel: 5, crouchPerLevel: 0.03, crouchMin: 0.65, closeInPerLevel: 0.06, hearPerLevel: 0.8, wolfLevel: 2, wolfLevel2: 5, wolfPack: 3, wolfRespawn: 30 },
   defense: { pups: 5, penRadius: 9, pupHP: 60, pupDamageMul: 0.35, feedPerSec: 40, pupBite: 0.5, biteEvery: 1.1, pupFeedShare: 0.5, fearHP: 0.4, tgtPupChance: 0.75, assistMax: 2, swarm: 5, maxFoes: 45 },
   parade: { spacing: 1.35, cutSkip: 3, cutRadius: 0.8, pts: { rabbit: 1, squirrel: 1, tanuki: 2, sheep: 2, capybara: 2, deer: 3, p_boar: 4, p_fox: 4, p_wolf: 5, p_leopard: 6, p_bear: 6, p_lion: 8 }, comboStep: 0.25, comboMax: 3, combo: false, touchPad: 0.25, perPoint: 100, dashMul: 1.6,
+    rainbow: { mul: 5, speedMul: 1.4, senseMul: 1.3, max: 2, firstAt: 8, every: 18 },
     pop: { rabbitsPerBurrow: 3, rabbitRespawn: 6, herds: 22, boars: 0, nearRabbits: 10, startHerds: 5 },
     herdMix: { deer: [3, 3, 5], sheep: [3, 3, 6], capybara: [2, 2, 4], squirrel: [2, 1, 3], tanuki: [2, 1, 2], p_boar: [2, 1, 3], p_fox: [2, 1, 2], p_wolf: [1.5, 2, 3], p_leopard: [1, 1, 1], p_bear: [1, 1, 1], p_lion: [1, 2, 3] } },
   fire: { startAt: 30, endAt: 270, r0: 100, rMin: 26, dps: 14 },
@@ -613,15 +616,16 @@ const VARIANTS = {
   capybara: [['カピバラ'], ['ヌートリア', 0x6b5039, 0x4a3726], ['ビーバー', 0x7a4e2d, 0x5a3820], ['マーラ', 0x9a8a74, 0xece6da], ['パカ', 0x5e4330, 0xefe4d2], ['マシュマロカピバラ', 0xf5e6ea, 0xe8cdd5, 1], ['ラムネカピバラ', 0xa7d8ec, 0x7cbad4, 1]],
   sheep:    [['コリデール'], ['サフォーク', 0xeee8dc, 0x1e1b19, 0, 0x1e1b19], ['ジェイコブ', 0xe4ddd0, 0x5a4434, 0, 0x5a4434], ['マンクスロフタン', 0x7a5a43, 0x5c4231], ['ブラックウェルシュマウンテン', 0x2b2623, 0x1f1b18], ['ワタアメヒツジ', 0xf6c3d8, 0xfbe1ec, 1], ['ミントヒツジ', 0xb5ead2, 0xe0f6ec, 1]]
 };
+const RB = 7; Object.keys(VARIANTS).forEach(k => VARIANTS[k].push(['レインボー', 0, 0, 2]));
 const shade = (c, k) => ((Math.round(((c >> 16) & 255) * k) << 16) | (Math.round(((c >> 8) & 255) * k) << 8) | Math.round((c & 255) * k));
 function variantLook(type, i) {
-  const base = LOOK[type], v = (VARIANTS[type] || [])[i]; if (!v || !v[1]) return base;
+  const base = LOOK[type], v = (VARIANTS[type] || [])[i]; if (i === RB) return Object.assign({}, base, { rainbow: true }); if (!v || !v[1]) return base;
   const L = Object.assign({}, base, { c1: v[1] }); if (v[2] !== undefined) L.c2 = v[2];
   L.legC = v[4] !== undefined ? v[4] : shade(v[1], .82); if (base.headC !== undefined) L.headC = v[4] !== undefined ? v[4] : (v[2] !== undefined ? v[2] : base.headC);
   return L;
 }
-function pickVariant(type) { const vs = VARIANTS[type]; if (!vs) return -1; const w = vs.map((v, i) => (i === 0 ? 3 : v[3] ? 1 : 2)); let r = Math.random() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i; } return 0; }
-const variantName = a => (a.vi >= 0 && VARIANTS[a.type] && !VARIANTS[a.type][a.vi][3] ? VARIANTS[a.type][a.vi][0] : a.sp.name); // 空想の色はふつうの動物名
+function pickVariant(type) { const vs = VARIANTS[type]; if (!vs) return -1; const w = vs.map((v, i) => (i === RB ? 0 : i === 0 ? 3 : v[3] ? 1 : 2)); let r = Math.random() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i; } return 0; }
+const variantName = a => a.vi === RB ? 'レインボー' + a.sp.name : (a.vi >= 0 && VARIANTS[a.type] && !VARIANTS[a.type][a.vi][3] ? VARIANTS[a.type][a.vi][0] : a.sp.name); // 空想の色はふつうの動物名
 function part(c, w, h, d, x, y, z, parent) { const m = new THREE.Mesh(BOXG, mat(c)); m.scale.set(w, h, d); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m; }
 const EYE_MAT = new THREE.MeshBasicMaterial({ color: 0xfff08a, fog: false }), HALO_G = new THREE.CircleGeometry(1, 20), HALO_MAT = new THREE.MeshBasicMaterial({ color: 0xffd84a, fog: false, transparent: true, opacity: .32, depthWrite: false, blending: THREE.AdditiveBlending });
 function makeAnimal(L, glow) {
@@ -652,7 +656,19 @@ function makeAnimal(L, glow) {
   if (L.tuft) part(L.c2, .2, .2, .26, 0, by + L.H * .25, -L.L / 2 - L.tail - .1, body);
   const legs = [], lw = Math.max(.07, L.W * .28);
   [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(([sx, sz]) => { const lg = new THREE.Group(); lg.position.set(sx * L.W * .32, L.leg, sz * L.L * .36); part(L.legC || L.c1, lw, L.leg + .02, lw, 0, -L.leg / 2, 0, lg); g.add(lg); legs.push(lg); });
+  if (L.rainbow) { // 体の色の部分だけ、虹色に移り変わる材質へ
+    const cs = new Set([L.c1, L.c2, L.legC, L.headC]), list = [];
+    g.traverse(o => { if (o.isMesh && o.material && o.material.color && cs.has(o.material.color.getHex())) { o.material = new THREE.MeshLambertMaterial({ color: 0xffffff }); list.push(o.material); } });
+    g.userData.rb = list; RAINBOWS.add(g);
+  }
   return { g, body, legs, look: L };
+}
+const RAINBOWS = new Set();
+function updateRainbows(dt) {
+  G.rbFx = (G.rbFx || 0) - dt; const fx = G.rbFx <= 0; if (fx) G.rbFx = .12;
+  for (const g of RAINBOWS) { if (!g.parent) { RAINBOWS.delete(g); continue; }
+    g.userData.rb.forEach((m, i) => { const h = (G.t * .35 + i * .09) % 1; m.color.setHSL(h, .85, .62); m.emissive.setHSL(h, .9, .16); });
+    if (fx) burst(g.position.x + Math.random() - .5, .9 + Math.random() * .6, g.position.z + Math.random() - .5, 1, [0xff8fb1, 0xffe27a, 0x9fe8ff, 0xc9a7ff][(Math.random() * 4) | 0], 1.5, .25, 2); }
 }
 function pose(v, x, z, dir, ph, moving, o) {
   v.g.position.set(x, 0, z); v.g.rotation.y = dir;
@@ -734,9 +750,10 @@ let huntTarget = null, huntKind = null;
 const playing = () => G.state === 'play';
 
 function spawn(type, x, z) {
-  const vi = CONFIG.modes[G.mode] && CONFIG.modes[G.mode].parade ? pickVariant(type) : -1, sp = CONFIG.species[type], v = makeAnimal(vi > 0 ? variantLook(type, vi) : LOOK[type], !!sp.damage); if (sp.scale) v.g.scale.setScalar(sp.scale); v.g.userData.eyes.forEach(e => { e.visible = G.night > .25; }); scene.add(v.g);
+  const vi = G.forceVi != null ? G.forceVi : CONFIG.modes[G.mode] && CONFIG.modes[G.mode].parade ? pickVariant(type) : -1, sp = CONFIG.species[type], v = makeAnimal(vi > 0 ? variantLook(type, vi) : LOOK[type], !!sp.damage); if (sp.scale) v.g.scale.setScalar(sp.scale); v.g.userData.eyes.forEach(e => { e.visible = G.night > .25; }); scene.add(v.g);
   const a = { type, kind: type === 'alpha' || type === 'young' ? 'lion' : type, alpha: type === 'alpha', sp, x, z, dir: Math.random() * 6.283, hp: sp.hp, state: 'wander', phase: Math.random() * 6, alive: true, v, aware: 0, timer: 0, idle: true, moving: false, tx: x, tz: z, colR: Math.min(.9, sp.radius), seed: Math.random() * 6.283 };
-  a.vi = vi; v.g.position.set(x, 0, z); animals.push(a); return a;
+  a.vi = vi; if (vi === RB) { const R = CONFIG.parade.rainbow, q = Object.assign({}, sp); q.speed = (sp.speed || 15) * R.speedMul; ['sight', 'hear', 'alertRadius', 'nearSense', 'sentinelRange'].forEach(k => { if (q[k]) q[k] *= R.senseMul; }); a.sp = q; a.rainbow = true; }
+  v.g.position.set(x, 0, z); animals.push(a); return a;
 }
 function removeAnimal(a) { if (!a.alive) return; a.alive = false; scene.remove(a.v.g); if (a.lane) { scene.remove(a.lane); a.lane.material.dispose(); a.lane = null; } if (a.fan) { scene.remove(a.fan); a.fan.geometry.dispose(); a.fan.material.dispose(); a.fan = null; } }
 /* 視界の扇形：どの動物も「扇形の中＋ごく近く」で気づく。扇形は近くにいるときだけ地面に描く */
@@ -852,6 +869,14 @@ function updateFlocks(dt) {
 }
 
 /* ---- シカ：見張りが1頭、気づくと群れごと走る ---- */
+function spawnRainbow() { // レインボー：1匹で現れる。点は5倍
+  const ks = Object.keys(VARIANTS), type = ks[(Math.random() * ks.length) | 0]; let a = null; G.forceVi = RB;
+  try {
+    if (type === 'rabbit') { const bs = world.burrows.filter(b => { const d = dist(P, b); return d > 24 && d < 55; }); if (bs.length) a = spawnRabbit(bs[(Math.random() * bs.length) | 0]); }
+    else { const p = nearSpot(26, 50, 1.2); if (p) { const h = spawnHerd(p.x, p.z, 1, false, type); a = h.members[0] || null; if (a) h.sp = a.sp; } }
+  } finally { G.forceVi = null; }
+  if (!a) return; const nm = variantName(a); toast(nm + 'が現れた', '足が速く、目ざとい。点は' + CONFIG.parade.rainbow.mul + '倍'); sfx('ready'); setEvent(() => (a.alive ? a : null), nm);
+}
 function paradeHerd(x, z) { // パレード：いろいろな動物の群れ
   const mix = CONFIG.parade.herdMix, ks = Object.keys(mix); let r = Math.random() * ks.reduce((t, k) => t + mix[k][0], 0), k = ks[0];
   for (const t of ks) { r -= mix[t][0]; if (r <= 0) { k = t; break; } }
@@ -1116,19 +1141,20 @@ function addPup(x, z) { const v = makeAnimal(LOOK.pup); scene.add(v.g); const m 
 /* ========= パレード：仲間にした動物が列になってついてくる ========= */
 const PAR = () => !!CONFIG.modes[G.mode].parade;
 const parade = [];
-function clearParade() { parade.forEach(f => scene.remove(f.v.g)); parade.length = 0; G.trail = []; G.combo = 0; G.maxParade = 0; G.newDex = 0; }
+function clearParade() { parade.forEach(f => scene.remove(f.v.g)); parade.length = 0; G.trail = []; G.combo = 0; G.maxParade = 0; G.newDex = 0; G.rbCd = null; }
 const paradeScore = () => parade.reduce((t, f) => t + f.val, 0);
 function befriend(a) {
   const C = CONFIG.parade, pts = C.pts[a.type] || 1, sneak = !!(P.lungeCrit && P.lungeCrit.has(a));
   G.combo = C.combo && sneak ? G.combo + 1 : 0;
-  const mul = C.combo ? Math.min(C.comboMax, 1 + Math.max(0, G.combo - 1) * C.comboStep) : 1, val = Math.round(pts * mul * C.perPoint);
+  const mul = (C.combo ? Math.min(C.comboMax, 1 + Math.max(0, G.combo - 1) * C.comboStep) : 1) * (a.rainbow ? C.rainbow.mul : 1), val = Math.round(pts * mul * C.perPoint);
   if (a.kind === 'rabbit' && a.burrow) { a.burrow.count--; a.burrow.respT = POP().rabbitRespawn * (1 + Math.random() * .6); scareRabbits(a.x, a.z, P); }
   removeAnimal(a); if (a.herd) boltHerd(a.herd, P);
   const v = makeAnimal(a.vi > 0 ? variantLook(a.type, a.vi) : LOOK[a.type], false); if (a.sp.scale) v.g.scale.setScalar(a.sp.scale); scene.add(v.g);
   const name = variantName(a), key = a.type + ':' + Math.max(0, a.vi), fresh = !DEX.has(key); if (fresh) { DEX.add(key); G.newDex = (G.newDex || 0) + 1; saveDex(); }
   parade.push({ v, type: a.type, name, x: a.x, z: a.z, dir: a.dir, phase: 0, val, r: a.sp.radius || .5 });
   G.maxParade = Math.max(G.maxParade, parade.length);
-  showName(name, val, fresh, !!(VARIANTS[a.type] && a.vi > 0 && VARIANTS[a.type][a.vi][3]));
+  showName(name, val, fresh, a.rainbow ? 'rainbow' : !!(VARIANTS[a.type] && a.vi > 0 && VARIANTS[a.type][a.vi][3]));
+  if (a.rainbow) { ringFx(a.x, a.z, 0xffe27a, 4, .6); burst(a.x, 1, a.z, 30, 0x9fe8ff, 7, .3, 8); G.shake = Math.max(G.shake, .25); }
   burst(a.x, .6, a.z, 14, 0xf39bb0, 4, .22, 6); ringFx(a.x, a.z, 0xf39bb0, 2.5, .4); sfx('birth');
 }
 const DEX = new Set(); try { (JSON.parse(localStorage.getItem('sw3-dex') || '[]') || []).forEach(k => DEX.add(k)); } catch (e) {}
@@ -1136,7 +1162,7 @@ function saveDex() { try { localStorage.setItem('sw3-dex', JSON.stringify([...DE
 const DEX_TOTAL = Object.values(VARIANTS).reduce((t, v) => t + v.length, 0);
 function showName(name, val, fresh, fancy) { // 合流した動物の名前を、画面の中央下に一瞬出す
   const el = $('nameCard'); el.innerHTML = (fresh ? '<em>NEW</em>' : '') + '<b></b><small>+' + val + '</small>'; el.querySelector('b').textContent = name;
-  el.classList.toggle('fancy', fancy); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); clearTimeout(showName.t); showName.t = setTimeout(() => el.classList.remove('on'), 1400);
+  el.classList.toggle('fancy', fancy === true); el.classList.toggle('rainbow', fancy === 'rainbow'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); clearTimeout(showName.t); showName.t = setTimeout(() => el.classList.remove('on'), 1400);
 }
 function cutParade(i) {
   const lost = parade.splice(i); let pts = 0;
@@ -1402,6 +1428,7 @@ function director(dt) {
     if (have < want && room) { G.lionCd -= 1; if (G.lionCd <= 0) { const p = freeSpot(CONFIG.world.meadow + 6, H - 5, 1.2, P, 40); if (p) { spawnLion('lion', p.x, p.z); G.lionCd = 6 / SW; } } }
     else if (have > want + 3) { const far = animals.find(a => a.alive && a.type === 'lion' && a.state === 'prowl' && (!play || dist(P, a) > 46)); if (far) removeAnimal(far); }
     const PO = POP();
+    if (play && PAR()) { const R = CONFIG.parade.rainbow; G.rbCd = (G.rbCd == null ? R.firstAt : G.rbCd) - 1; if (G.rbCd <= 0 && animals.filter(a => a.alive && a.rainbow).length < R.max) { spawnRainbow(); G.rbCd = R.every; } }
     if (animals.filter(a => a.alive && a.kind === 'boar').length < PO.boars) { const p = freeSpot(CONFIG.world.meadow, H - 10, 1.2, play ? P : null, 30); if (p) spawnLion('boar', p.x, p.z); }
     // ウサギは操作キャラの近くに保つ：周りが寂しくなったら、近くの巣穴から出す
     if (play) { let n = 0; for (const a of animals) if (a.alive && a.kind === 'rabbit' && dist(P, a) < 42) n++; if (n < PO.nearRabbits) { const c = world.burrows.filter(b => b.count < PO.rabbitsPerBurrow && dist(P, b) > 18 && dist(P, b) < 46); if (c.length) spawnRabbit(c[Math.floor(Math.random() * c.length)]); } }
@@ -1718,7 +1745,7 @@ buildWorld((Math.random() * 1e9) | 0); populate(); initFlocks(); buildTune(); re
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now;
-  if (G.state !== 'paused') { if (G.freeze > 0) G.freeze -= dt; else simulate(dt); updateFloaters(dt); }
+  if (G.state !== 'paused') { if (G.freeze > 0) G.freeze -= dt; else simulate(dt); updateFloaters(dt); updateRainbows(dt); }
   updateCamera(dt); // ラベルの位置は、動いた後のカメラで計算する
   if (playing()) { // 操作キャラの頭上に小さな体力バー
     V3.set(P.x, 1.75, P.z).project(activeCam()); const r = clamp(P.hp / P.maxHP, 0, 1), hb = $('headHP'); show('headHP', !PAR());
