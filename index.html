@@ -70,6 +70,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 #ptNum{grid-column:1/-1;font-family:var(--mono);font-size:11px;color:var(--mute);text-align:right;font-variant-numeric:tabular-nums}
 #denLabel{position:absolute;transform:translate(-50%,-100%);font-family:var(--display);font-size:13px;color:var(--moss);text-shadow:0 1px 0 #000,0 0 8px rgba(0,0,0,.8);pointer-events:none;white-space:nowrap}
 #denLabel.ready{color:var(--rose);font-size:15px}
+#nameCard{position:absolute;left:50%;top:58%;transform:translate(-50%,8px);display:flex;align-items:baseline;gap:8px;padding:6px 14px;border-radius:999px;background:rgba(18,14,10,.72);border:1px solid rgba(243,155,176,.6);color:var(--ink);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;white-space:nowrap}
+#nameCard.on{opacity:1;transform:translate(-50%,0)} #nameCard b{font-family:var(--display);font-size:20px;font-weight:400} #nameCard small{font-family:var(--mono);font-size:12px;color:#f39bb0}
+#nameCard em{font-style:normal;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--bg);background:#f39bb0;border-radius:4px;padding:1px 5px;align-self:center}
+#nameCard.fancy{border-color:rgba(160,210,240,.8);background:linear-gradient(90deg,rgba(60,40,70,.8),rgba(30,60,80,.8))}
 #headHP{position:absolute;width:46px;height:6px;transform:translate(-50%,-100%);background:rgba(10,8,6,.72);border:1px solid rgba(0,0,0,.6);border-radius:3px;overflow:hidden;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.5)}
 #headHP i{display:block;height:100%;width:100%;background:#7fcf5a;transition:width .12s}
 #headHP.mid i{background:var(--amber)} #headHP.low i{background:var(--blood);animation:hpBlink .5s steps(2) infinite}
@@ -215,6 +219,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
     </div>
     <div id="denLabel" hidden>巣</div>
     <div id="headHP" hidden><i></i></div>
+    <div id="nameCard"></div>
     <div class="cmp" id="evCmp" hidden>
       <svg id="evArrow" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="currentColor"/></svg>
       <span id="evTxt"></span>
@@ -240,7 +245,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 
 <div id="title" class="screen">
   <div class="card">
-    <p class="eyebrow">試作版 v0.7.0 ・ HTMLプロトタイプ</p>
+    <p class="eyebrow">試作版 v0.8.0 ・ HTMLプロトタイプ</p>
     <h1>新宿ワイルド</h1>
     <p class="goal-line"><b>目的</b>群れを増やしながら、肉食に食い尽くされるまで粘る</p>
     <ol class="steps">
@@ -251,7 +256,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
     <div class="modes">
       <button class="mode start" id="btnDefense"><span class="mode-name">守るゲーム</span><span class="mode-desc">巣にいる5匹の子犬を、食べに来る肉食から守る。食べるとまず自分が回復し、余りで巣に子犬が生まれる。傷ついた子犬は治らない。子犬が尽きたら終わり。</span></button>
       <button class="mode start" id="btnSurvival"><span class="mode-name">攻めるゲーム</span><span class="mode-desc">子犬を連れて狩りに出る。噛みついた相手には、群れ全員が飛びかかる。繁栄ゲージが満タンになると巣で子が生まれ、走って合流する。群れの数が残機。外周から野火が迫る。</span></button>
-      <div class="mode start parade" id="parBox"><span class="mode-name">パレード</span><span class="mode-desc">敵はいない。動物に触れると、仲間になって列についてくる。気づかれると逃げられるので、後ろからそっと近づこう。Spaceかダッシュボタンを押している間は速く走れるが、気づかれやすい。自分の列にぶつかると、そこから後ろが切れる。</span><span class="par-times"><button type="button" data-t="60">60秒</button><button type="button" data-t="90">90秒</button><button type="button" data-t="120">120秒</button></span></div>
+      <div class="mode start parade" id="parBox"><span class="mode-name">パレード</span><span class="mode-desc">敵はいない。12種類の動物に触れると、仲間になって列についてくる。同じ動物でも色違いがいて、それぞれ名前がある。気づかれると逃げられるので、後ろからそっと近づこう。Spaceかダッシュボタンを押している間は速く走れるが、気づかれやすい。自分の列にぶつかると、そこから後ろが切れる。</span><span class="par-times"><button type="button" data-t="60">60秒</button><button type="button" data-t="90">90秒</button><button type="button" data-t="120">120秒</button></span></div>
       <button class="mode off" id="btnRelax"><span class="mode-name">のんびり</span><span class="mode-desc">危険度は上がらず、敵はこちらから噛まない限りおとなしい。倒れない。好きなだけ狩って群れを育てる。</span></button>
     </div>
     <dl class="keys desk">
@@ -303,7 +308,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 'use strict';
 /* ========= バランスデータ ========= */
 const CONFIG = {
-  version: 'proto-0.7.0',
+  version: 'proto-0.8.0',
   world: { half: 84, denRadius: 7, meadow: 30, ruins: 58 },
   player: { speed: 13, maxHP: 100, biteDamage: 1, radius: 0.45, swapInvuln: 1.5 },
   attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, hitPad: 0.4, assistDeg: 18 },
@@ -315,14 +320,25 @@ const CONFIG = {
   stealth: { grassMul: 0.45, lungeMul: 1.7, stillMul: 0.55 },
   danger: { levelSeconds: 30, hungerPerLevel: 0.05, lionsBase: 2, lionsMax: 8, alphaLevel: 7, alphaEvery: 3, speedPerLevel: 0, speedMax: 1.5, foxAt: 5, foxMax: 4, leopardLevel: 3, bearLevel: 5, crouchPerLevel: 0.03, crouchMin: 0.65, closeInPerLevel: 0.06, hearPerLevel: 0.8, wolfLevel: 2, wolfLevel2: 5, wolfPack: 3, wolfRespawn: 30 },
   defense: { pups: 5, penRadius: 9, pupHP: 60, pupDamageMul: 0.35, feedPerSec: 40, pupBite: 0.5, biteEvery: 1.1, pupFeedShare: 0.5, fearHP: 0.4, tgtPupChance: 0.75, assistMax: 2, swarm: 5, maxFoes: 45 },
-  parade: { spacing: 1.35, cutSkip: 3, cutRadius: 0.8, pts: { rabbit: 1, deer: 3, boar: 5, fox: 6, young: 8 }, comboStep: 0.25, comboMax: 3, combo: false, touchPad: 0.25, perPoint: 100, dashMul: 1.6,
-    pop: { rabbitsPerBurrow: 5, rabbitRespawn: 6, herds: 8, boars: 6, nearRabbits: 16, startHerds: 3 } },
+  parade: { spacing: 1.35, cutSkip: 3, cutRadius: 0.8, pts: { rabbit: 1, squirrel: 1, tanuki: 2, sheep: 2, capybara: 2, deer: 3, p_boar: 4, p_fox: 4, p_wolf: 5, p_leopard: 6, p_bear: 6, p_lion: 8 }, comboStep: 0.25, comboMax: 3, combo: false, touchPad: 0.25, perPoint: 100, dashMul: 1.6,
+    pop: { rabbitsPerBurrow: 3, rabbitRespawn: 6, herds: 22, boars: 0, nearRabbits: 10, startHerds: 5 },
+    herdMix: { deer: [3, 3, 5], sheep: [3, 3, 6], capybara: [2, 2, 4], squirrel: [2, 1, 3], tanuki: [2, 1, 2], p_boar: [2, 1, 3], p_fox: [2, 1, 2], p_wolf: [1.5, 2, 3], p_leopard: [1, 1, 1], p_bear: [1, 1, 1], p_lion: [1, 2, 3] } },
   fire: { startAt: 30, endAt: 270, r0: 100, rMin: 26, dps: 14 },
   events: { firstAt: 40, interval: 45, nightSeconds: 25, stampedeSize: 10, raidBase: 2 },
   population: { burrows: 18, rabbitsPerBurrow: 3, rabbitRespawn: 24, herds: 5, herdSize: 5, flocks: 7, boars: 3, nearRabbits: 5 },
   species: {
     rabbit: { name: 'ウサギ', hp: 1, speed: 15, radius: 0.45, sight: 9, cone: 170, hear: 4, alertRadius: 9, safeDist: 12, rebolt: 9, pressDist: 5, maxScares: 3, kcal: 120, hunger: 12 },
     deer:   { name: 'シカ', hp: 3, speed: 20, radius: 0.85, nearSense: 4.5, sentinelRange: 20, sentinelCone: 140, kcal: 420, hunger: 45 },
+    squirrel: { name: 'リス', hp: 1, speed: 16, radius: 0.35, nearSense: 4, sentinelRange: 13, sentinelCone: 200, kcal: 0, hunger: 0 },
+    tanuki:   { name: 'タヌキ', hp: 1, speed: 13, radius: 0.5, nearSense: 3.5, sentinelRange: 13, sentinelCone: 150, kcal: 0, hunger: 0 },
+    capybara: { name: 'カピバラ', hp: 1, speed: 11, radius: 0.7, nearSense: 3, sentinelRange: 11, sentinelCone: 130, kcal: 0, hunger: 0 },
+    sheep:    { name: 'ヒツジ', hp: 1, speed: 12, radius: 0.7, nearSense: 3.5, sentinelRange: 14, sentinelCone: 160, kcal: 0, hunger: 0 },
+    p_boar:   { name: 'イノシシ', hp: 1, speed: 15, radius: 0.85, nearSense: 4.5, sentinelRange: 15, sentinelCone: 140, kcal: 0, hunger: 0 },
+    p_fox:    { name: 'キツネ', hp: 1, speed: 17, radius: 0.45, nearSense: 4.5, sentinelRange: 18, sentinelCone: 170, kcal: 0, hunger: 0 },
+    p_wolf:   { name: 'オオカミ', hp: 1, speed: 18, radius: 0.6, nearSense: 5, sentinelRange: 20, sentinelCone: 180, kcal: 0, hunger: 0 },
+    p_leopard:{ name: 'ヒョウ', hp: 1, speed: 19, radius: 0.7, nearSense: 5, sentinelRange: 20, sentinelCone: 150, kcal: 0, hunger: 0 },
+    p_bear:   { name: 'クマ', scale: 1.2, hp: 1, speed: 13, radius: 1.1, nearSense: 4, sentinelRange: 15, sentinelCone: 140, kcal: 0, hunger: 0 },
+    p_lion:   { name: 'ライオン', scale: 1.15, hp: 1, speed: 17, radius: 0.9, nearSense: 5, sentinelRange: 20, sentinelCone: 160, kcal: 0, hunger: 0 },
     lion:   { name: 'ライオン', scale: 1.3, hp: 16, walk: 4, stalk: 8, run: 15, radius: 1.0, loseDist: 44, sight: 20, cone: 160, hear: 6, damage: 136, pounceRange: 9, crouch: 0.6, lockLead: 0.22, lead: 0.75, chargeSpeed: 30, chargeTime: 0.45, recover: 1.3, hitRecover: 0.9, crashRecover: 2.6, kcal: 500, hunger: 35 },
     alpha:  { name: '主', hp: 45, walk: 5, stalk: 9, run: 13.5, radius: 1.65, loseDist: 9999, sight: 9999, cone: 360, hear: 9999, damage: 180, pounceRange: 11, crouch: 0.7, lockLead: 0.2, lead: 0.85, chargeSpeed: 32, chargeTime: 0.55, recover: 1.5, hitRecover: 0.9, crashRecover: 2.6, kcal: 2000, hunger: 100, scale: 2.1 },
     boar:   { name: 'イノシシ', hp: 8, walk: 3, stalk: 3, run: 7, radius: 0.85, loseDist: 20, sight: 9, cone: 150, hear: 4.5, damage: 72, pounceRange: 10, crouch: 0.55, lockLead: 0.2, lead: 0.5, chargeSpeed: 24, chargeTime: 0.5, recover: 1.5, hitRecover: 1, crashRecover: 2.6, kcal: 700, hunger: 60 },
@@ -575,8 +591,37 @@ const LOOK = {
   fox:    { L: 1.0, W: .34, H: .36, leg: .36, head: .34, c1: 0x3f6f9c, c2: 0xdfeaf2, ear: 'pointy', tail: .75, legC: 0x24384f },
   young:  { L: 1.5, W: .58, H: .62, leg: .6, head: .48, c1: 0xd9ad62, c2: 0xc99a52, ear: 'round', tail: .8, thin: true, tuft: true, legC: 0xc79c55 },
   leopard:{ L: 1.65, W: .5, H: .5, leg: .58, head: .44, c1: 0xdcb44e, c2: 0x33261a, ear: 'round', tail: 1.05, thin: true, spots: true, legC: 0xc9a244 },
-  bear:   { L: 1.7, W: .95, H: .95, leg: .5, head: .62, c1: 0x4b3424, c2: 0x8a6a48, ear: 'round', tail: .12, thin: true, legC: 0x3a281c }
+  bear:   { L: 1.7, W: .95, H: .95, leg: .5, head: .62, c1: 0x4b3424, c2: 0x8a6a48, ear: 'round', tail: .12, thin: true, legC: 0x3a281c },
+  squirrel: { L: .6, W: .3, H: .32, leg: .2, head: .3, c1: 0xa0623a, c2: 0xefe1c6, ear: 'pointy', tail: .5, bushy: true, legC: 0x8a5230 },
+  tanuki:   { L: .95, W: .54, H: .5, leg: .26, head: .42, c1: 0x8a7860, c2: 0x2e2620, ear: 'round', tail: .42, legC: 0x2e2620 },
+  capybara: { L: 1.35, W: .7, H: .7, leg: .3, head: .55, c1: 0x9a6f48, c2: 0x7a5636, ear: 'round', tail: .04, thin: true, legC: 0x7a5636 },
+  sheep:    { L: 1.15, W: .82, H: .74, leg: .36, head: .4, c1: 0xece5d6, c2: 0xd8cfc0, headC: 0xd8cfc0, ear: 'pointy', tail: .14, legC: 0x3a332c }
 };
+LOOK.p_boar = LOOK.boar; LOOK.p_fox = LOOK.fox; LOOK.p_wolf = LOOK.wolf; LOOK.p_leopard = LOOK.leopard; LOOK.p_bear = LOOK.bear; LOOK.p_lion = LOOK.lion;
+/* パレードの色違い：各7色。f は空想の色（実在しない） */
+const VARIANTS = {
+  rabbit:   [['ジャパニーズホワイト'], ['ニホンノウサギ', 0xa07a52, 0xe9d9c2], ['アマミノクロウサギ', 0x3a2c26, 0x5a463c], ['ホーランドロップ', 0xe8c39a, 0xf3e3cf], ['ミニレッキス', 0x8a8f99, 0xc9ccd2], ['サクラウサギ', 0xf5c3d4, 0xfbe3ea, 1], ['ソーダウサギ', 0x94d6ee, 0xd8f1fa, 1]],
+  deer:     [['ニホンジカ'], ['トナカイ', 0xb8b2a6, 0xeeeae2], ['ダマジカ', 0xc9893f, 0xf3e6cf], ['キョン', 0xa0522d, 0xe3c9a8], ['シロジカ', 0xefe9df, 0xfaf7f1], ['ラベンダージカ', 0xc7b3e5, 0xeee6f8, 1], ['ミントジカ', 0xa8e6c9, 0xe4f7ee, 1]],
+  p_boar:   [['ニホンイノシシ'], ['リュウキュウイノシシ', 0x6b5444, 0x4a3a30], ['イボイノシシ', 0x7d7368, 0x56504a], ['アカカワイノシシ', 0xc4552d, 0xf0ece4], ['ウリボウ', 0xa8865c, 0xd9c09a], ['ピーチイノシシ', 0xf2b8a2, 0xf8d9cc, 1], ['ラムネイノシシ', 0x9fd3e8, 0xd6eef7, 1]],
+  p_fox:    [['アオギツネ'], ['キタキツネ', 0xd9742c, 0xf3ead8], ['フェネック', 0xe9d3a8, 0xfaf1e0], ['ホッキョクギツネ', 0xf0f0ea, 0xffffff], ['ギンギツネ', 0x4a4d52, 0xb9bcc2], ['イチゴギツネ', 0xf4a7b9, 0xfde4ea, 1], ['レモンギツネ', 0xf2e27a, 0xfbf5cf, 1]],
+  p_wolf:   [['ハイイロオオカミ'], ['ホッキョクオオカミ', 0xf1efe8, 0xffffff], ['タテガミオオカミ', 0xc8642a, 0xefe0c8, 0, 0x231c18], ['ニホンオオカミ', 0x8a7a62, 0xd8cdb8], ['アカオオカミ', 0xa5653c, 0xe6d3bb], ['スミレオオカミ', 0xb9a3e0, 0xe9e1f7, 1], ['ミントオオカミ', 0x9fe0c4, 0xe1f6ec, 1]],
+  p_leopard:[['ヒョウ'], ['ユキヒョウ', 0xd9d6cc, 0x4a4844], ['クロヒョウ', 0x2a2622, 0x16130f], ['アムールヒョウ', 0xe0b46a, 0x3b2a1a], ['ウンピョウ', 0xb09a72, 0x4e3f2c], ['サクラヒョウ', 0xf2b5c8, 0xa86078, 1], ['ソーダヒョウ', 0x8fd0ee, 0x3f7f9c, 1]],
+  p_bear:   [['ヒグマ'], ['ツキノワグマ', 0x24201d, 0xf2efe6], ['ホッキョクグマ', 0xf3f1ea, 0xe4dfd2], ['ジャイアントパンダ', 0xf4f1ea, 0x1f1c1a, 0, 0x1f1c1a], ['マレーグマ', 0x2b2622, 0xe0a050], ['ハチミツグマ', 0xf1c75b, 0xf8e3a6, 1], ['ラベンダーグマ', 0xc3b1e1, 0xe8e0f5, 1]],
+  p_lion:   [['ライオン'], ['ホワイトライオン', 0xefe6d2, 0xd9c9a8], ['バーバリライオン', 0xb88a4c, 0x2a1c12], ['アジアライオン', 0xc9a061, 0x8a5a2a], ['レモンライオン', 0xf3e07b, 0xd9b84a, 1], ['ミントライオン', 0xa6e3c8, 0x5fb08e, 1], ['ピーチライオン', 0xf5b8a0, 0xd9806a, 1]],
+  squirrel: [['ニホンリス'], ['エゾリス', 0x6b5a4e, 0xe6ddd0], ['シマリス', 0xc69660, 0x3a2a1c], ['ハイイロリス', 0x9a9590, 0xeceae6], ['アメリカアカリス', 0xb5562b, 0xf1e2cf], ['モモイロリス', 0xf3b6c8, 0xfce6ec, 1], ['ミズイロリス', 0xa3d8f2, 0xe2f3fb, 1]],
+  tanuki:   [['ホンドタヌキ'], ['エゾタヌキ', 0x6e5c48, 0x231c16], ['シロタヌキ', 0xece7dc, 0xb8b0a2, 0, 0xb8b0a2], ['アライグマ', 0x8e8c88, 0x2a2826], ['ハクビシン', 0x7a6f62, 0xe9e4da], ['ラベンダータヌキ', 0xc7b8e3, 0x7d6aa3, 1], ['ピスタチオタヌキ', 0xc2dca0, 0x6f8a4c, 1]],
+  capybara: [['カピバラ'], ['ヌートリア', 0x6b5039, 0x4a3726], ['ビーバー', 0x7a4e2d, 0x5a3820], ['マーラ', 0x9a8a74, 0xece6da], ['パカ', 0x5e4330, 0xefe4d2], ['マシュマロカピバラ', 0xf5e6ea, 0xe8cdd5, 1], ['ラムネカピバラ', 0xa7d8ec, 0x7cbad4, 1]],
+  sheep:    [['コリデール'], ['サフォーク', 0xeee8dc, 0x1e1b19, 0, 0x1e1b19], ['ジェイコブ', 0xe4ddd0, 0x5a4434, 0, 0x5a4434], ['マンクスロフタン', 0x7a5a43, 0x5c4231], ['ブラックウェルシュマウンテン', 0x2b2623, 0x1f1b18], ['ワタアメヒツジ', 0xf6c3d8, 0xfbe1ec, 1], ['ミントヒツジ', 0xb5ead2, 0xe0f6ec, 1]]
+};
+const shade = (c, k) => ((Math.round(((c >> 16) & 255) * k) << 16) | (Math.round(((c >> 8) & 255) * k) << 8) | Math.round((c & 255) * k));
+function variantLook(type, i) {
+  const base = LOOK[type], v = (VARIANTS[type] || [])[i]; if (!v || !v[1]) return base;
+  const L = Object.assign({}, base, { c1: v[1] }); if (v[2] !== undefined) L.c2 = v[2];
+  L.legC = v[4] !== undefined ? v[4] : shade(v[1], .82); if (base.headC !== undefined) L.headC = v[4] !== undefined ? v[4] : (v[2] !== undefined ? v[2] : base.headC);
+  return L;
+}
+function pickVariant(type) { const vs = VARIANTS[type]; if (!vs) return -1; const w = vs.map((v, i) => (i === 0 ? 3 : v[3] ? 1 : 2)); let r = Math.random() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i; } return 0; }
+const variantName = a => (a.vi >= 0 && VARIANTS[a.type] ? VARIANTS[a.type][a.vi][0] : a.sp.name);
 function part(c, w, h, d, x, y, z, parent) { const m = new THREE.Mesh(BOXG, mat(c)); m.scale.set(w, h, d); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m; }
 const EYE_MAT = new THREE.MeshBasicMaterial({ color: 0xfff08a, fog: false }), HALO_G = new THREE.CircleGeometry(1, 20), HALO_MAT = new THREE.MeshBasicMaterial({ color: 0xffd84a, fog: false, transparent: true, opacity: .32, depthWrite: false, blending: THREE.AdditiveBlending });
 function makeAnimal(L, glow) {
@@ -589,7 +634,7 @@ function makeAnimal(L, glow) {
   if (L.puff) part(0xffffff, L.W * .5, L.W * .5, .2, 0, by + L.H * .2, -L.L / 2 - .08, body);
   if (L.spots) for (let i = 0; i < 4; i++) part(L.c2, L.W * .26, .05, L.L * .1, (i % 2 ? 1 : -1) * L.W * .2, by + L.H * .5, -L.L * .36 + i * L.L * .21, body);
   if (L.ridge) part(L.c2, L.W * .3, L.H * .28, L.L * .8, 0, by + L.H * .58, -L.L * .05, body);
-  part(L.c1, hd, hd, hd, 0, hy, hz, body);
+  part(L.headC !== undefined ? L.headC : L.c1, hd, hd, hd, 0, hy, hz, body);
   part(L.c2, hd * .55, hd * .45, hd * .55, 0, hy - hd * .15, hz + hd * .6, body);
   part(0x1c1a18, hd * .2, hd * .16, hd * .1, 0, hy - hd * .04, hz + hd * .9, body);
   [-1, 1].forEach(s => {
@@ -602,7 +647,8 @@ function makeAnimal(L, glow) {
     if (L.tusk) part(0xf1ead8, hd * .1, hd * .34, hd * .1, s * hd * .3, hy - hd * .12, hz + hd * .72, body);
     if (L.antler) { part(0xd9c9a3, .06, hd * 1.3, .06, s * hd * .25, hy + hd * 1.1, hz - hd * .1, body); part(0xd9c9a3, hd * .5, .05, .05, s * hd * .45, hy + hd * 1.4, hz - hd * .1, body); }
   });
-  const tw = L.thin ? .07 : L.W * .28; if (!L.puff) part(L.c1, tw, tw, L.tail, 0, by + L.H * .25, -L.L / 2 - L.tail / 2, body);
+  if (L.bushy) part(L.c1, L.W * .75, L.H * 1.5, L.tail * .55, 0, by + L.H * .75, -L.L / 2 - L.tail * .2, body);
+  const tw = L.thin ? .07 : L.W * .28; if (!L.puff && !L.bushy) part(L.c1, tw, tw, L.tail, 0, by + L.H * .25, -L.L / 2 - L.tail / 2, body);
   if (L.tuft) part(L.c2, .2, .2, .26, 0, by + L.H * .25, -L.L / 2 - L.tail - .1, body);
   const legs = [], lw = Math.max(.07, L.W * .28);
   [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(([sx, sz]) => { const lg = new THREE.Group(); lg.position.set(sx * L.W * .32, L.leg, sz * L.L * .36); part(L.legC || L.c1, lw, L.leg + .02, lw, 0, -L.leg / 2, 0, lg); g.add(lg); legs.push(lg); });
@@ -688,9 +734,9 @@ let huntTarget = null, huntKind = null;
 const playing = () => G.state === 'play';
 
 function spawn(type, x, z) {
-  const sp = CONFIG.species[type], v = makeAnimal(LOOK[type], !!sp.damage); if (sp.scale) v.g.scale.setScalar(sp.scale); v.g.userData.eyes.forEach(e => { e.visible = G.night > .25; }); scene.add(v.g);
+  const vi = CONFIG.modes[G.mode] && CONFIG.modes[G.mode].parade ? pickVariant(type) : -1, sp = CONFIG.species[type], v = makeAnimal(vi > 0 ? variantLook(type, vi) : LOOK[type], !!sp.damage); if (sp.scale) v.g.scale.setScalar(sp.scale); v.g.userData.eyes.forEach(e => { e.visible = G.night > .25; }); scene.add(v.g);
   const a = { type, kind: type === 'alpha' || type === 'young' ? 'lion' : type, alpha: type === 'alpha', sp, x, z, dir: Math.random() * 6.283, hp: sp.hp, state: 'wander', phase: Math.random() * 6, alive: true, v, aware: 0, timer: 0, idle: true, moving: false, tx: x, tz: z, colR: Math.min(.9, sp.radius), seed: Math.random() * 6.283 };
-  v.g.position.set(x, 0, z); animals.push(a); return a;
+  a.vi = vi; v.g.position.set(x, 0, z); animals.push(a); return a;
 }
 function removeAnimal(a) { if (!a.alive) return; a.alive = false; scene.remove(a.v.g); if (a.lane) { scene.remove(a.lane); a.lane.material.dispose(); a.lane = null; } if (a.fan) { scene.remove(a.fan); a.fan.geometry.dispose(); a.fan.material.dispose(); a.fan = null; } }
 /* 視界の扇形：どの動物も「扇形の中＋ごく近く」で気づく。扇形は近くにいるときだけ地面に描く */
@@ -806,11 +852,16 @@ function updateFlocks(dt) {
 }
 
 /* ---- シカ：見張りが1頭、気づくと群れごと走る ---- */
-function spawnHerd(x, z, n, stampede) {
-  const h = { x, z, tx: x, tz: z, moveT: 4 + Math.random() * 6, members: [], sentinel: null, lookT: 0, lookDir: Math.random() * 6.283, alarm: 0, state: 'graze', boltT: 0, bx: 0, bz: 0, stampede: !!stampede };
+function paradeHerd(x, z) { // パレード：いろいろな動物の群れ
+  const mix = CONFIG.parade.herdMix, ks = Object.keys(mix); let r = Math.random() * ks.reduce((t, k) => t + mix[k][0], 0), k = ks[0];
+  for (const t of ks) { r -= mix[t][0]; if (r <= 0) { k = t; break; } }
+  const m = mix[k]; return spawnHerd(x, z, m[1] + Math.floor(Math.random() * (m[2] - m[1] + 1)), false, k);
+}
+function spawnHerd(x, z, n, stampede, type) {
+  type = type || 'deer'; const h = { type, sp: CONFIG.species[type], x, z, tx: x, tz: z, moveT: 4 + Math.random() * 6, members: [], sentinel: null, lookT: 0, lookDir: Math.random() * 6.283, alarm: 0, state: 'graze', boltT: 0, bx: 0, bz: 0, stampede: !!stampede };
   for (let i = 0; i < n; i++) {
     let p = null; for (let t = 0; t < 12 && !p; t++) { const an = Math.random() * 6.283, r = 1.5 + Math.random() * (stampede ? 9 : 5), px = x + Math.cos(an) * r, pz = z + Math.sin(an) * r; if (!collides(px, pz, 1)) p = { x: px, z: pz, ox: px - x, oz: pz - z }; }
-    if (!p) continue; const a = spawn('deer', p.x, p.z); a.herd = h; a.ox = p.ox; a.oz = p.oz; a.state = 'graze'; if (stampede) a.hp = 1; h.members.push(a);
+    if (!p) continue; const a = spawn(type, p.x, p.z); a.herd = h; a.ox = p.ox; a.oz = p.oz; a.state = 'graze'; if (stampede) a.hp = 1; h.members.push(a);
   }
   h.sentinel = h.members[0] || null; herds.push(h); return h;
 }
@@ -824,7 +875,7 @@ function updateHerd(h, dt) {
   h.members = h.members.filter(m => m.alive);
   if (!h.members.length) return false;
   if (!h.sentinel || !h.sentinel.alive) h.sentinel = h.members[0];
-  const S = CONFIG.species.deer, s = h.sentinel;
+  const S = h.sp || CONFIG.species.deer, s = h.sentinel;
   if (h.stampede) {
     for (const m of h.members) { m.mx = h.bx + Math.sin(G.t * 2 + m.seed) * .12; m.mz = h.bz + Math.cos(G.t * 2 + m.seed) * .12; moveA(m, 15.5, dt, 6); pose(m.v, m.x, m.z, m.dir, m.phase, true); if (m.x * h.bx + m.z * h.bz > H - 5) removeAnimal(m); }
     return true;
@@ -1065,19 +1116,27 @@ function addPup(x, z) { const v = makeAnimal(LOOK.pup); scene.add(v.g); const m 
 /* ========= パレード：仲間にした動物が列になってついてくる ========= */
 const PAR = () => !!CONFIG.modes[G.mode].parade;
 const parade = [];
-function clearParade() { parade.forEach(f => scene.remove(f.v.g)); parade.length = 0; G.trail = []; G.combo = 0; G.maxParade = 0; }
+function clearParade() { parade.forEach(f => scene.remove(f.v.g)); parade.length = 0; G.trail = []; G.combo = 0; G.maxParade = 0; G.newDex = 0; }
 const paradeScore = () => parade.reduce((t, f) => t + f.val, 0);
 function befriend(a) {
   const C = CONFIG.parade, pts = C.pts[a.type] || 1, sneak = !!(P.lungeCrit && P.lungeCrit.has(a));
   G.combo = C.combo && sneak ? G.combo + 1 : 0;
   const mul = C.combo ? Math.min(C.comboMax, 1 + Math.max(0, G.combo - 1) * C.comboStep) : 1, val = Math.round(pts * mul * C.perPoint);
   if (a.kind === 'rabbit' && a.burrow) { a.burrow.count--; a.burrow.respT = POP().rabbitRespawn * (1 + Math.random() * .6); scareRabbits(a.x, a.z, P); }
-  removeAnimal(a); if (a.kind === 'deer') boltHerd(a.herd, P);
-  const v = makeAnimal(LOOK[a.type], false); if (a.sp.scale) v.g.scale.setScalar(a.sp.scale); scene.add(v.g);
-  parade.push({ v, type: a.type, x: a.x, z: a.z, dir: a.dir, phase: 0, val, r: a.sp.radius || .5 });
+  removeAnimal(a); if (a.herd) boltHerd(a.herd, P);
+  const v = makeAnimal(a.vi > 0 ? variantLook(a.type, a.vi) : LOOK[a.type], false); if (a.sp.scale) v.g.scale.setScalar(a.sp.scale); scene.add(v.g);
+  const name = variantName(a), key = a.type + ':' + Math.max(0, a.vi), fresh = !DEX.has(key); if (fresh) { DEX.add(key); G.newDex = (G.newDex || 0) + 1; saveDex(); }
+  parade.push({ v, type: a.type, name, x: a.x, z: a.z, dir: a.dir, phase: 0, val, r: a.sp.radius || .5 });
   G.maxParade = Math.max(G.maxParade, parade.length);
-  floatAt(a, '+' + val, 'perfect', 1.1);
+  showName(name, val, fresh, !!(VARIANTS[a.type] && a.vi > 0 && VARIANTS[a.type][a.vi][3]));
   burst(a.x, .6, a.z, 14, 0xf39bb0, 4, .22, 6); ringFx(a.x, a.z, 0xf39bb0, 2.5, .4); sfx('birth');
+}
+const DEX = new Set(); try { (JSON.parse(localStorage.getItem('sw3-dex') || '[]') || []).forEach(k => DEX.add(k)); } catch (e) {}
+function saveDex() { try { localStorage.setItem('sw3-dex', JSON.stringify([...DEX])); } catch (e) {} }
+const DEX_TOTAL = Object.values(VARIANTS).reduce((t, v) => t + v.length, 0);
+function showName(name, val, fresh, fancy) { // 合流した動物の名前を、画面の中央下に一瞬出す
+  const el = $('nameCard'); el.innerHTML = (fresh ? '<em>NEW</em>' : '') + '<b></b><small>+' + val + '</small>'; el.querySelector('b').textContent = name;
+  el.classList.toggle('fancy', fancy); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); clearTimeout(showName.t); showName.t = setTimeout(() => el.classList.remove('on'), 1400);
 }
 function cutParade(i) {
   const lost = parade.splice(i); let pts = 0;
@@ -1335,7 +1394,7 @@ function director(dt) {
   if (G.spawnT <= 0) {
     G.spawnT = 1;
     for (const b of world.burrows) if (b.count < POP().rabbitsPerBurrow) { b.respT -= 1; if (b.respT <= 0 && (!play || dist(P, b) > 22)) { spawnRabbit(b); b.respT = POP().rabbitRespawn * (.5 + Math.random() * .5); } }
-    if (herds.filter(h => !h.stampede).length < POP().herds) { const p = freeSpot(CONFIG.world.meadow * .8, H - 10, 2, play ? P : null, 34); if (p) spawnHerd(p.x, p.z, POP().herdSize); }
+    if (herds.filter(h => !h.stampede).length < POP().herds) { const p = freeSpot(CONFIG.world.meadow * .8, H - 10, 2, play ? P : null, 34); if (p) { if (PAR()) paradeHerd(p.x, p.z); else spawnHerd(p.x, p.z, POP().herdSize); } }
     const esc = play && M.escalate, L = G.level, pride = esc && L >= D.alphaLevel;
     // 防衛：一度に多く出すのではなく、送り込む間隔を縮めて総量を増やす
     const SW = DEF() ? CONFIG.defense.swarm : 1, room = !DEF() || animals.filter(a => a.alive && charger(a) && a.type !== 'boar' && a.type !== 'young').length < CONFIG.defense.maxFoes, cap = w => (room ? Math.round(w * SW) : 0);
@@ -1347,9 +1406,9 @@ function director(dt) {
     // ウサギは操作キャラの近くに保つ：周りが寂しくなったら、近くの巣穴から出す
     if (play) { let n = 0; for (const a of animals) if (a.alive && a.kind === 'rabbit' && dist(P, a) < 42) n++; if (n < PO.nearRabbits) { const c = world.burrows.filter(b => b.count < PO.rabbitsPerBurrow && dist(P, b) > 18 && dist(P, b) < 46); if (c.length) spawnRabbit(c[Math.floor(Math.random() * c.length)]); } }
     // 若いライオン：最初から1〜2頭。縄張りからあまり離れない
-    if (typeCount('young') < (G.youngN || 1)) { G.youngCd -= 1; if (!(G.youngCd > 0)) { const p = freeSpot(CONFIG.world.meadow + 4, H - 8, 1.2, play ? P : null, 40); if (p) { spawnLion('young', p.x, p.z); G.youngCd = 45; } } }
+    if (!PAR() && typeCount('young') < (G.youngN || 1)) { G.youngCd -= 1; if (!(G.youngCd > 0)) { const p = freeSpot(CONFIG.world.meadow + 4, H - 8, 1.2, play ? P : null, 40); if (p) { spawnLion('young', p.x, p.z); G.youngCd = 45; } } }
     // キツネ：開始すぐから。1頭ずつ寄ってきて、周りを回って噛みに来る
-    const foxWant = esc ? (G.playT >= D.foxAt ? cap(Math.min(D.foxMax, 2 + Math.floor((L - 1) / 2))) : 0) : play ? 1 : 0;
+    const foxWant = esc ? (G.playT >= D.foxAt ? cap(Math.min(D.foxMax, 2 + Math.floor((L - 1) / 2))) : 0) : play && !PAR() ? 1 : 0;
     if (wolfPacks.filter(w => w.type === 'fox').length < foxWant) { G.foxCd -= 1; if (!(G.foxCd > 0)) { const p = nearSpot(24, 36, 1); if (p) { const w = spawnWolfPack(p.x, p.z, 1, 'fox'); if (esc) { w.state = 'hunt'; w.tgt = pickTgt(); w.dartCd = 2.5; } G.foxCd = 7 / SW; } } }
     // ヒョウ、クマ：現れたらまずこちらへ向かってくる
     const leoWant = esc && L >= D.leopardLevel ? cap(Math.min(3, 1 + Math.floor((L - D.leopardLevel) / 3))) : 0;
@@ -1420,10 +1479,10 @@ function resetRun(mode) {
 }
 function populate() {
   world.burrows.forEach(b => { b.count = 0; for (let i = 0; i < POP().rabbitsPerBurrow; i++) spawnRabbit(b); });
-  for (let i = 0; i < POP().herds; i++) { const p = freeSpot(CONFIG.world.meadow * .8, H - 10, 2, P, 30); if (p) spawnHerd(p.x, p.z, POP().herdSize); }
-  if (PAR()) for (let i = 0; i < POP().startHerds; i++) { const p = freeSpot(14, 32, 2); if (p) spawnHerd(p.x, p.z, POP().herdSize); }
+  for (let i = 0; i < POP().herds; i++) { const p = freeSpot(CONFIG.world.meadow * .8, H - 10, 2, P, 30); if (p) { if (PAR()) paradeHerd(p.x, p.z); else spawnHerd(p.x, p.z, POP().herdSize); } }
+  if (PAR()) for (let i = 0; i < POP().startHerds; i++) { const p = freeSpot(14, 32, 2); if (p) { if (PAR()) paradeHerd(p.x, p.z); else spawnHerd(p.x, p.z, POP().herdSize); } }
   for (let i = 0; i < POP().boars; i++) { const p = freeSpot(CONFIG.world.meadow, H - 10, 1.2, P, 34); if (p) spawnLion('boar', p.x, p.z); }
-  for (let i = 0; i < (G.youngN || 1); i++) { const p = freeSpot(CONFIG.world.meadow + 8, H - 8, 1.2, P, 44); if (p) spawnLion('young', p.x, p.z); }
+  for (let i = 0; i < (PAR() ? 0 : G.youngN || 1); i++) { const p = freeSpot(CONFIG.world.meadow + 8, H - 8, 1.2, P, 44); if (p) spawnLion('young', p.x, p.z); }
 }
 function gameOver(cause, manual) {
   if (!playing()) return; G.state = 'over';
@@ -1440,9 +1499,9 @@ function gameOver(cause, manual) {
     $('overHead').textContent = '今回のパレード'; $('overNear').textContent = sc > prev && prev > 0 ? '新記録！ これまでのベストを ' + (sc - prev).toLocaleString() + ' 上回った' : prev > sc ? '自己ベストまであと ' + (prev - sc).toLocaleString() + ' ポイント' : '最初の記録';
     const cnt = {}; parade.forEach(f => { cnt[f.type] = (cnt[f.type] || 0) + 1; });
     lab('oTime', '制限時間'); $('oTime').textContent = G.limit + '秒'; lab('oLevel', '最後の列'); $('oLevel').textContent = parade.length + '匹'; lab('oPack', '最長の列'); $('oPack').textContent = G.maxParade + '匹'; lab('oBorn', '切れた回数'); $('oBorn').textContent = (G.cuts || 0) + '回';
-    lab('oKills', '列の中身'); $('oKills').textContent = [['ウサギ', 'rabbit'], ['シカ', 'deer'], ['イノシシ', 'boar'], ['キツネ', 'fox'], ['若いライオン', 'young']].filter(e => cnt[e[1]]).map(e => e[0] + ' ' + cnt[e[1]]).join('・') || 'なし';
-    $('oLion').parentElement.hidden = true;
-  } else { ['oTime', 'oLevel', 'oPack', 'oBorn', 'oKills'].forEach(id => lab(id)); $('oLion').parentElement.hidden = false; }
+    lab('oKills', '列の中身'); $('oKills').textContent = Object.keys(cnt).map(t => CONFIG.species[t].name + ' ' + cnt[t]).join('・') || 'なし';
+    lab('oLion', '図鑑'); $('oLion').textContent = DEX.size + ' / ' + DEX_TOTAL + '種' + (G.newDex ? '（今回 新しく ' + G.newDex + '種）' : ''); $('oLion').parentElement.hidden = false;
+  } else { ['oTime', 'oLevel', 'oPack', 'oBorn', 'oKills', 'oLion'].forEach(id => lab(id)); $('oLion').parentElement.hidden = false; }
   show('over', true); show('touch', false); show('pause', false); aimMark.visible = false; $('hint').classList.remove('on'); sfx('over');
 }
 
