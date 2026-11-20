@@ -544,19 +544,23 @@ function buildWorld(seed) {
   }
   // 地面のテクスチャ
   const cv = document.createElement('canvas'); cv.width = cv.height = 1024; const x2 = cv.getContext('2d'), SP = H * 2 + 44, S = 1024 / SP, px = v => (v + SP / 2) * S;
-  x2.fillStyle = '#3d5a2b'; x2.fillRect(0, 0, 1024, 1024);
-  const blob = (x, z, r, col, a) => { x2.globalAlpha = a; x2.fillStyle = col; x2.beginPath(); x2.arc(px(x), px(z), r * S, 0, 6.283); x2.fill(); };
-  for (let i = 0; i < 200; i++) { const a = rnd() * 6.283, r = WC.ruins + R(-6, 4); blob(Math.cos(a) * r, Math.sin(a) * r, R(5, 11), '#6f6c5f', 1); } blob(0, 0, WC.ruins - 3, '#6f6c5f', 1);
-  for (let i = 0; i < 150; i++) { const a = rnd() * 6.283, r = WC.meadow + R(-4, 5); blob(Math.cos(a) * r, Math.sin(a) * r, R(4, 9), '#6a9440', 1); } blob(0, 0, WC.meadow - 2, '#6a9440', 1);
-  for (let i = 0; i < 1100; i++) { const x = R(-SP / 2, SP / 2), z = R(-SP / 2, SP / 2), rr = Math.hypot(x, z); blob(x, z, R(1.5, 6), rr < WC.meadow ? pick(['#76a348', '#5f8a3a', '#7fab50']) : rr < WC.ruins ? pick(['#7a776a', '#646256', '#5f7a3c', '#86826f', '#5b7a3a']) : pick(['#36522a', '#476a30', '#2f4a24']), .35); }
-  x2.globalAlpha = .55; x2.strokeStyle = '#4d6b33'; x2.lineWidth = 2;
-  for (let i = 0; i < 45; i++) { const p = polar(WC.meadow + 3, WC.ruins - 3); let x = p.x, z = p.z; x2.beginPath(); x2.moveTo(px(x), px(z)); for (let k = 0; k < 4; k++) { x += R(-7, 7); z += R(-7, 7); x2.lineTo(px(x), px(z)); } x2.stroke(); }
-  x2.globalAlpha = .28; x2.strokeStyle = '#d8d2bf'; x2.lineWidth = 3; x2.setLineDash([14, 18]);
-  for (let i = 0; i < 5; i++) { const a = rnd() * 6.283; x2.beginPath(); x2.moveTo(px(Math.cos(a) * (WC.meadow + 4)), px(Math.sin(a) * (WC.meadow + 4))); x2.lineTo(px(Math.cos(a + .25) * (WC.ruins - 4)), px(Math.sin(a + .25) * (WC.ruins - 4))); x2.stroke(); }
-  x2.setLineDash([]);
-  world.grass.forEach(q => { blob(q.x, q.z, q.r, '#4a7729', .9); blob(q.x, q.z, q.r * .7, '#56862f', .7); });
-  blob(0, 0, WC.denRadius + 1.5, '#8d7650', .95); blob(0, 0, WC.denRadius - 1.5, '#9c865e', .9);
-  world.burrows.forEach(b => { blob(b.x, b.z, 1.7, '#6f5a3c', .9); blob(b.x, b.z, .75, '#241c14', 1); });
+  // ドット調：地面を四角いマスで塗り、境目を少しぼかす
+  const N = 160, CS = 1024 / N, WS = SP / N, NG = 14, ng = [];
+  for (let i = 0; i <= NG; i++) { ng.push([]); for (let j = 0; j <= NG; j++) ng[i].push(rnd()); }
+  const vnoise = (x, z) => { const u = (x / SP + .5) * NG, v = (z / SP + .5) * NG, i = Math.max(0, Math.min(NG - 1, Math.floor(u))), j = Math.max(0, Math.min(NG - 1, Math.floor(v))), fu = u - i, fv = v - j; return (ng[i][j] * (1 - fu) + ng[i + 1][j] * fu) * (1 - fv) + (ng[i][j + 1] * (1 - fu) + ng[i + 1][j + 1] * fu) * fv; };
+  const hsh = (i, j, k) => { const t = Math.sin(i * 127.1 + j * 311.7 + k * 74.7 + world.seed * .0001) * 43758.5453; return t - Math.floor(t); };
+  const PAL = { meadow: ['#76a348', '#6a9440', '#7fab50', '#5f8a3a', '#86b356'], ruins: ['#7a776a', '#6f6c5f', '#646256', '#86826f', '#5f7a3c', '#6d7c4a'], forest: ['#36522a', '#3d5a2b', '#476a30', '#2f4a24', '#41602d'] };
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+    const x = -SP / 2 + (i + .5) * WS, z = -SP / 2 + (j + .5) * WS, r0 = Math.hypot(x, z), rr = r0 + (vnoise(x, z) - .5) * 12;
+    const pal = rr < WC.meadow ? PAL.meadow : rr < WC.ruins ? PAL.ruins : PAL.forest;
+    const blk = hsh(i >> 1, j >> 1, 1), own = hsh(i, j, 2); let col = pal[Math.floor((own < .3 ? own / .3 : blk) * pal.length) % pal.length];
+    for (const q of world.grass) { const d = Math.hypot(x - q.x, z - q.z); if (d < q.r) { col = d < q.r * .7 ? (own < .5 ? '#56862f' : '#5d8f33') : '#4a7729'; break; } }
+    if (r0 < WC.denRadius + 1.5) col = r0 < WC.denRadius - 1.5 ? (own < .5 ? '#9c865e' : '#a38d64') : '#8d7650';
+    for (const bu of world.burrows) { const d = Math.hypot(x - bu.x, z - bu.z); if (d < 1.7) { col = d < .85 ? '#241c14' : '#6f5a3c'; break; } }
+    x2.fillStyle = col; x2.fillRect(Math.floor(i * CS), Math.floor(j * CS), Math.ceil(CS) + 1, Math.ceil(CS) + 1);
+  }
+  { const cp = document.createElement('canvas'); cp.width = cp.height = 1024; const c2 = cp.getContext('2d'); // 四角の縁だけ、ぼかす
+    for (let pass = 0; pass < 2; pass++) { c2.clearRect(0, 0, 1024, 1024); c2.drawImage(cv, 0, 0); x2.globalAlpha = .22; [[2, 0], [-2, 0], [0, 2], [0, -2]].forEach(([dx, dy]) => x2.drawImage(cp, dx, dy)); } }
   x2.globalAlpha = 1;
   const tex = new THREE.CanvasTexture(cv); tex.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
   const under = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), new THREE.MeshLambertMaterial({ color: 0x2f4a24 })); under.rotation.x = -Math.PI / 2; under.position.y = -.5; g.add(under);
