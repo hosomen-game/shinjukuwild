@@ -1127,7 +1127,15 @@ function updateWolfPack(w, dt) {
 }
 
 /* ========= プレイヤーと群れ ========= */
-const playerView = makeAnimal(LOOK.dachs); scene.add(playerView.g); playerView.g.visible = false;
+/* 建物や木に隠れたとき、シルエットで見えるようにする。
+   キャラの各部品に同じ形の子を重ね、「手前に何かあるときだけ」単色で描く（環境を描いた後・本体を描く前） */
+const SIL_MATS = {};
+function addSil(v, color) {
+  const m = SIL_MATS[color] || (SIL_MATS[color] = new THREE.MeshBasicMaterial({ color, depthFunc: THREE.GreaterDepth, depthWrite: false }));
+  const meshes = []; v.g.traverse(o => { if (o.isMesh && !o.userData.sil && o.material !== EYE_MAT && o.material !== HALO_MAT) meshes.push(o); });
+  meshes.forEach(o => { o.renderOrder = 2; const s = new THREE.Mesh(o.geometry, m); s.userData.sil = true; s.renderOrder = 1; s.castShadow = false; o.add(s); });
+}
+const playerView = makeAnimal(LOOK.dachs); addSil(playerView, 0xffc061); scene.add(playerView.g); playerView.g.visible = false;
 const marker = new THREE.Mesh(new THREE.ConeGeometry(.38, .8, 4), new THREE.MeshBasicMaterial({ color: 0xa9c94b, depthTest: false, transparent: true }));
 marker.rotation.x = Math.PI; marker.renderOrder = 999; marker.visible = false; scene.add(marker);
 const aimMark = new THREE.Mesh(new THREE.ConeGeometry(.32, .6, 4), new THREE.MeshBasicMaterial({ color: 0xefebdc, transparent: true, depthTest: false }));
@@ -1137,7 +1145,7 @@ const atkLane = (() => { const g = new THREE.PlaneGeometry(1, 1); g.rotateX(-Mat
 function atkLaneShow(dir) { const A = CONFIG.attack, len = A.lungeSpeed * A.lungeTime + CONFIG.player.radius + A.hitPad, wd = (CONFIG.player.radius + A.hitPad) * 2 + .5; atkLane.scale.set(wd, 1, len); atkLane.rotation.y = dir; atkLane.position.set(P.x + Math.sin(dir) * len / 2, .15, P.z + Math.cos(dir) * len / 2); atkLane.userData.t = .32; atkLane.visible = true; }
 function atkLaneTick(dt) { if (!atkLane.visible) return; const t = atkLane.userData.t -= dt; atkLane.material.opacity = Math.max(0, t / .32) * .55; if (t <= 0 || !playing()) atkLane.visible = false; }
 
-function addPup(x, z) { const v = makeAnimal(LOOK.pup); scene.add(v.g); const m = { v, x, z, dir: P.dir, phase: Math.random() * 6, born: G.playT, hp: pupMax(), rush: null, moving: false }; pack.push(m); G.maxPack = Math.max(G.maxPack, pack.length + 1); return m; }
+function addPup(x, z) { const v = makeAnimal(LOOK.pup); addSil(v, 0xf7a8c0); scene.add(v.g); const m = { v, x, z, dir: P.dir, phase: Math.random() * 6, born: G.playT, hp: pupMax(), rush: null, moving: false }; pack.push(m); G.maxPack = Math.max(G.maxPack, pack.length + 1); return m; }
 /* ========= パレード：仲間にした動物が列になってついてくる ========= */
 const PAR = () => !!CONFIG.modes[G.mode].parade;
 const parade = [];
@@ -1149,7 +1157,7 @@ function befriend(a) {
   const mul = (C.combo ? Math.min(C.comboMax, 1 + Math.max(0, G.combo - 1) * C.comboStep) : 1) * (a.rainbow ? C.rainbow.mul : 1), val = Math.round(pts * mul * C.perPoint);
   if (a.kind === 'rabbit' && a.burrow) { a.burrow.count--; a.burrow.respT = POP().rabbitRespawn * (1 + Math.random() * .6); scareRabbits(a.x, a.z, P); }
   removeAnimal(a); if (a.herd) boltHerd(a.herd, P);
-  const v = makeAnimal(a.vi > 0 ? variantLook(a.type, a.vi) : LOOK[a.type], false); if (a.sp.scale) v.g.scale.setScalar(a.sp.scale); scene.add(v.g);
+  const v = makeAnimal(a.vi > 0 ? variantLook(a.type, a.vi) : LOOK[a.type], false); addSil(v, 0xf7a8c0); if (a.sp.scale) v.g.scale.setScalar(a.sp.scale); scene.add(v.g);
   const name = variantName(a), key = a.type + ':' + Math.max(0, a.vi), fresh = !DEX.has(key); if (fresh) { DEX.add(key); G.newDex = (G.newDex || 0) + 1; saveDex(); }
   parade.push({ v, type: a.type, name, x: a.x, z: a.z, dir: a.dir, phase: 0, val, r: a.sp.radius || .5 });
   G.maxParade = Math.max(G.maxParade, parade.length);
@@ -1756,7 +1764,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__sw = { birth, hit, G, CONFIG, animals, herds, pack, world, input, cam, simulate, score, get P() { return P; }, losClear, collides };
+window.__sw = { get BGRID() { return BGRID; }, birth, hit, G, CONFIG, animals, herds, pack, world, input, cam, simulate, score, get P() { return P; }, losClear, collides };
 })();
 </script>
 
