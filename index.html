@@ -621,7 +621,7 @@ function variantLook(type, i) {
   return L;
 }
 function pickVariant(type) { const vs = VARIANTS[type]; if (!vs) return -1; const w = vs.map((v, i) => (i === 0 ? 3 : v[3] ? 1 : 2)); let r = Math.random() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i; } return 0; }
-const variantName = a => (a.vi >= 0 && VARIANTS[a.type] ? VARIANTS[a.type][a.vi][0] : a.sp.name);
+const variantName = a => (a.vi >= 0 && VARIANTS[a.type] && !VARIANTS[a.type][a.vi][3] ? VARIANTS[a.type][a.vi][0] : a.sp.name); // 空想の色はふつうの動物名
 function part(c, w, h, d, x, y, z, parent) { const m = new THREE.Mesh(BOXG, mat(c)); m.scale.set(w, h, d); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m; }
 const EYE_MAT = new THREE.MeshBasicMaterial({ color: 0xfff08a, fog: false }), HALO_G = new THREE.CircleGeometry(1, 20), HALO_MAT = new THREE.MeshBasicMaterial({ color: 0xffd84a, fog: false, transparent: true, opacity: .32, depthWrite: false, blending: THREE.AdditiveBlending });
 function makeAnimal(L, glow) {
