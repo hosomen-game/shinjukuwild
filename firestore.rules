@@ -1,0 +1,24 @@
+rules_version = '2';
+// 新宿ワイルド ランキング用。誰でも読める・新規登録だけできる・書き換えと削除はできない
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{board}/{entry} {
+      function isBoard() {
+        return board in ['rank_defense', 'rank_survival', 'rank_parade60', 'rank_parade90', 'rank_parade120'];
+      }
+      function valid(d) {
+        return d.keys().hasOnly(['name', 'score', 'sec', 'ver', 'at'])
+          && d.keys().hasAll(['name', 'score', 'sec', 'ver', 'at'])
+          && d.name is string && d.name.size() >= 1 && d.name.size() <= 10
+          && d.score is int && d.score >= 1 && d.score <= 3000000
+          && d.sec is int && d.sec >= 1 && d.sec <= 7200
+          && d.score <= d.sec * 3000
+          && d.ver is string && d.ver.size() <= 20
+          && d.at == request.time;
+      }
+      allow read: if isBoard();
+      allow create: if isBoard() && valid(request.resource.data);
+      allow update, delete: if false;
+    }
+  }
+}

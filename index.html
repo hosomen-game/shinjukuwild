@@ -156,6 +156,20 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 .keys{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:12.5px}
 .keys dt{font-family:var(--mono);color:var(--moss)} .keys dd{margin:0;color:var(--mute)}
 .best{margin:0;font-size:12px;color:var(--mute);font-family:var(--mono)}
+#btnRank{justify-self:start}
+.rank-card{max-height:calc(100dvh - 32px);grid-template-rows:auto auto 1fr}
+.rank-head{display:flex;align-items:center;justify-content:space-between} .rank-head h2{margin:0;font-family:var(--display);font-weight:400;font-size:22px}
+.rank-tabs{display:flex;flex-wrap:wrap;gap:6px}
+.rank-tabs button{font:inherit;font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(239,235,220,.05);color:var(--mute)}
+.rank-tabs button[aria-selected=true]{background:var(--moss);border-color:var(--moss);color:var(--bg)}
+.rank-list{list-style:none;margin:0;padding:0;overflow:auto;min-height:120px;border-top:1px solid var(--line)}
+.rank-list li{display:grid;grid-template-columns:3em 1fr auto;gap:10px;align-items:baseline;padding:8px 4px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.rank-list li b{font-family:var(--mono);color:var(--mute)} .rank-list li:nth-child(-n+3) b{color:var(--amber)}
+.rank-list li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .rank-list li em{font-style:normal;font-family:var(--mono)}
+.rank-list li.me{background:rgba(169,201,75,.12)} .rank-list .note{display:block;color:var(--mute);font-size:13px;padding:16px 4px;border:0}
+.rank-entry{display:grid;gap:6px;border-top:1px solid var(--line);padding-top:12px} .rank-entry label{font-size:13px;color:var(--mute)}
+.rank-row{display:flex;gap:8px} .rank-row input{flex:1;min-width:0;font:inherit;font-size:16px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(239,235,220,.06);color:var(--ink)}
+.rank-msg{margin:0;font-size:13px;min-height:1.2em;color:var(--mute)} .rank-msg.good{color:var(--moss)} .rank-msg.bad{color:#ef7a6e}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin:0}
 .stats div{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding-bottom:4px}
 .stats .wide{grid-column:1/-1}
@@ -247,7 +261,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 
 <div id="title" class="screen">
   <div class="card">
-    <p class="eyebrow">試作版 v0.8.0 ・ HTMLプロトタイプ</p>
+    <p class="eyebrow">試作版 v0.9.0 ・ HTMLプロトタイプ</p>
     <h1>新宿ワイルド</h1>
     <p class="goal-line"><b>目的</b>群れを増やしながら、肉食に食い尽くされるまで粘る</p>
     <ol class="steps">
@@ -272,9 +286,17 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
       <dt>敵</dt><dd>赤い帯は攻撃の通り道。帯が赤くなった瞬間に横へ飛んで避け、外した直後の隙に噛む。危険は30秒ごとに増す</dd>
     </dl>
     <p class="best" id="bestLine"></p>
+    <button class="btn" id="btnRank" type="button">ランキング</button>
   </div>
 </div>
 
+<div id="rank" class="screen" hidden>
+  <div class="card rank-card">
+    <div class="rank-head"><h2>ランキング</h2><button class="btn" id="btnRankClose" type="button">閉じる</button></div>
+    <div class="rank-tabs" id="rankTabs"></div>
+    <ol class="rank-list" id="rankList"></ol>
+  </div>
+</div>
 <div id="over" class="screen" hidden>
   <div class="card">
     <p class="eyebrow" id="overCause">記録</p>
@@ -290,6 +312,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
       <div class="wide"><dt>狩り</dt><dd id="oKills">0</dd></div>
       <div class="wide"><dt>倒した敵</dt><dd id="oLion">0</dd></div>
     </dl>
+    <div class="rank-entry" id="rankEntry" hidden>
+      <label for="rankName">ランキングに登録</label>
+      <div class="rank-row"><input id="rankName" maxlength="10" placeholder="なまえ（10文字まで）" autocomplete="nickname"><button class="btn" id="btnSubmit" type="button">登録</button></div>
+      <p class="rank-msg" id="rankMsg"></p>
+    </div>
     <div class="actions"><button class="btn primary" id="btnAgain">もう一度</button><button class="btn" id="btnToTitle">タイトルへ</button></div>
   </div>
 </div>
@@ -310,7 +337,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 'use strict';
 /* ========= バランスデータ ========= */
 const CONFIG = {
-  version: 'proto-0.8.0',
+  version: 'proto-0.9.0',
   world: { half: 84, denRadius: 7, meadow: 30, ruins: 58 },
   player: { speed: 13, maxHP: 100, biteDamage: 1, radius: 0.45, swapInvuln: 1.5 },
   attack: { lungeSpeed: 34, lungeTime: 0.2, cooldown: 0.24, hitPad: 0.4, assistDeg: 18 },
@@ -326,6 +353,7 @@ const CONFIG = {
     rainbow: { mul: 5, speedMul: 1.4, senseMul: 1.3, max: 2, firstAt: 8, every: 18 },
     pop: { rabbitsPerBurrow: 3, rabbitRespawn: 6, herds: 22, boars: 0, nearRabbits: 10, startHerds: 5 },
     herdMix: { deer: [3, 3, 5], sheep: [3, 3, 6], capybara: [2, 2, 4], squirrel: [2, 1, 3], tanuki: [2, 1, 2], p_boar: [2, 1, 3], p_fox: [2, 1, 2], p_wolf: [1.5, 2, 3], p_leopard: [1, 1, 1], p_bear: [1, 1, 1], p_lion: [1, 2, 3] } },
+  ranking: { projectId: '', apiKey: '', top: 100, fetch: 300 },
   fire: { startAt: 30, endAt: 270, r0: 100, rMin: 26, dps: 14 },
   events: { firstAt: 40, interval: 45, nightSeconds: 25, stampedeSize: 10, raidBase: 2 },
   population: { burrows: 18, rabbitsPerBurrow: 3, rabbitRespawn: 24, herds: 5, herdSize: 5, flocks: 7, boars: 3, nearRabbits: 5 },
@@ -1176,6 +1204,54 @@ function showName(name, val, fresh, fancy) { // 合流した動物の名前を�
   const el = $('nameCard'); el.innerHTML = (fresh ? '<em>NEW</em>' : '') + '<b></b><small>+' + val + '</small>'; el.querySelector('b').textContent = name;
   el.classList.toggle('fancy', fancy === true); el.classList.toggle('rainbow', fancy === 'rainbow'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); clearTimeout(showName.t); showName.t = setTimeout(() => el.classList.remove('on'), 1400);
 }
+/* ========= ランキング：Firestore（REST）。設定が空なら「準備中」 ========= */
+const RANK_BOARDS = [['defense', '守る'], ['survival', '攻める'], ['parade60', 'パレード60秒'], ['parade90', 'パレード90秒'], ['parade120', 'パレード120秒']];
+const rankReady = () => !!(CONFIG.ranking.projectId && CONFIG.ranking.apiKey);
+const rankBase = () => 'https://firestore.googleapis.com/v1/projects/' + encodeURIComponent(CONFIG.ranking.projectId) + '/databases/(default)/documents';
+const boardOf = () => (PAR() ? 'parade' + G.limit : G.mode);
+const NG_NAME = /(https?:|www\.|\.com|\.jp|\.net|<|>)/i;
+async function rankFetch(board) {
+  const R = CONFIG.ranking, res = await fetch(rankBase() + ':runQuery?key=' + encodeURIComponent(R.apiKey), { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'rank_' + board }], orderBy: [{ field: { fieldPath: 'score' }, direction: 'DESCENDING' }], limit: R.fetch } }) });
+  if (!res.ok) throw new Error('http ' + res.status);
+  const rows = (await res.json()).filter(r => r.document).map(r => { const f = r.document.fields || {}; return { id: r.document.name.split('/').pop(), name: (f.name && f.name.stringValue) || '？', score: +((f.score && f.score.integerValue) || 0), at: f.at && f.at.timestampValue }; });
+  const seen = new Set(), out = []; for (const r of rows) { if (seen.has(r.name)) continue; seen.add(r.name); out.push(r); if (out.length >= R.top) break; } // 同じ名前は一番よい記録だけ
+  return out;
+}
+async function rankSubmit(board, name, score, sec) {
+  const R = CONFIG.ranking, id = Date.now().toString(36) + Math.random().toString(36).slice(2, 10), doc = 'projects/' + R.projectId + '/databases/(default)/documents/rank_' + board + '/' + id;
+  const res = await fetch(rankBase() + ':commit?key=' + encodeURIComponent(R.apiKey), { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ writes: [{ update: { name: doc, fields: { name: { stringValue: name }, score: { integerValue: String(score) }, sec: { integerValue: String(sec) }, ver: { stringValue: String(CONFIG.version).slice(0, 20) } } }, updateTransforms: [{ fieldPath: 'at', setToServerValue: 'REQUEST_TIME' }], currentDocument: { exists: false } }] }) });
+  if (!res.ok) throw new Error('http ' + res.status); return id;
+}
+let rankBoard = 'defense', rankMine = null;
+function rankRow(r, i) { const li = document.createElement('li'); if (r.id === rankMine) li.className = 'me'; li.innerHTML = '<b></b><span></span><em></em>'; li.children[0].textContent = (i + 1) + '位'; li.children[1].textContent = r.name; li.children[2].textContent = r.score.toLocaleString(); return li; }
+function rankNote(t) { const ol = $('rankList'); ol.innerHTML = ''; const li = document.createElement('li'); li.className = 'note'; li.textContent = t; ol.appendChild(li); }
+async function openRank(board) {
+  rankBoard = board || rankBoard; show('rank', true);
+  const tabs = $('rankTabs'); tabs.innerHTML = ''; RANK_BOARDS.forEach(([k, l]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = l; b.setAttribute('aria-selected', k === rankBoard); b.onclick = () => openRank(k); tabs.appendChild(b); });
+  if (!rankReady()) { rankNote('ランキングは準備中です'); return; }
+  rankNote('読み込み中…'); const want = rankBoard;
+  try { const rows = await rankFetch(want); if (want !== rankBoard) return; const ol = $('rankList'); ol.innerHTML = ''; if (!rows.length) rankNote('まだ記録がありません。最初の1位になろう'); else rows.forEach((r, i) => ol.appendChild(rankRow(r, i))); }
+  catch (e) { if (want === rankBoard) rankNote('読み込めませんでした。通信を確かめて、もう一度開いてください'); }
+}
+function prepRankEntry(sc, manual) { // 終了画面：登録欄を出す
+  const ok = rankReady() && !manual && sc > 0 && G.mode !== 'relax'; show('rankEntry', ok); if (!ok) return;
+  let nm = ''; try { nm = localStorage.getItem('sw3-name') || ''; } catch (e) {} $('rankName').value = nm; $('btnSubmit').disabled = false; $('rankMsg').textContent = ''; $('rankMsg').className = 'rank-msg';
+  G.rankSent = false; G.rankScore = sc; G.rankBoard = boardOf(); G.rankSec = Math.max(1, Math.round(G.playT));
+}
+async function submitRank() {
+  if (G.rankSent) return; const name = $('rankName').value.trim().replace(/\s+/g, ' '), msg = $('rankMsg');
+  if (!name) { msg.textContent = 'なまえを入れてください'; msg.className = 'rank-msg bad'; return; }
+  if (name.length > 10 || NG_NAME.test(name)) { msg.textContent = 'その名前は使えません'; msg.className = 'rank-msg bad'; return; }
+  try { localStorage.setItem('sw3-name', name); } catch (e) {}
+  $('btnSubmit').disabled = true; msg.textContent = '送信中…'; msg.className = 'rank-msg';
+  try {
+    const id = await rankSubmit(G.rankBoard, name, G.rankScore, G.rankSec); G.rankSent = true; rankMine = id;
+    const rows = await rankFetch(G.rankBoard), i = rows.findIndex(r => r.id === id);
+    msg.textContent = i >= 0 ? '登録しました。' + (i + 1) + '位です！' : '登録しました（' + CONFIG.ranking.top + '位圏外）'; msg.className = 'rank-msg good';
+  } catch (e) { $('btnSubmit').disabled = false; msg.textContent = '送信できませんでした。もう一度押してください'; msg.className = 'rank-msg bad'; }
+}
 function cutParade(i) {
   const lost = parade.splice(i); let pts = 0;
   lost.forEach(f => { pts += f.val; burst(f.x, .6, f.z, 8, 0xefebdc, 5, .2); scene.remove(f.v.g); });
@@ -1541,6 +1617,7 @@ function gameOver(cause, manual) {
     lab('oKills', '列の中身'); $('oKills').textContent = Object.keys(cnt).map(t => CONFIG.species[t].name + ' ' + cnt[t]).join('・') || 'なし';
     lab('oLion', '図鑑'); $('oLion').textContent = DEX.size + ' / ' + DEX_TOTAL + '種' + (G.newDex ? '（今回 新しく ' + G.newDex + '種）' : ''); $('oLion').parentElement.hidden = false;
   } else { ['oTime', 'oLevel', 'oPack', 'oBorn', 'oKills', 'oLion'].forEach(id => lab(id)); $('oLion').parentElement.hidden = false; }
+  prepRankEntry(sc, manual);
   show('over', true); show('touch', false); show('pause', false); aimMark.visible = false; $('hint').classList.remove('on'); sfx('over');
 }
 
@@ -1692,6 +1769,7 @@ $('btnResume').addEventListener('click', () => pause(false)); $('btnQuit').addEv
 $('btnEnd').addEventListener('click', () => { G.state = 'play'; show('pause', false); gameOver('自分で切り上げた', true); });
 $('btnSurvival').addEventListener('click', () => resetRun('survival')); document.querySelectorAll('.par-times button').forEach(b => b.addEventListener('click', () => { G.limit = +b.dataset.t; resetRun('parade'); })); $('btnDefense').addEventListener('click', () => resetRun('defense')); $('btnRelax').addEventListener('click', () => resetRun('relax'));
 $('btnAgain').addEventListener('click', () => resetRun(G.mode)); $('btnToTitle').addEventListener('click', toTitle);
+$('btnRank').addEventListener('click', () => openRank()); $('btnRankClose').addEventListener('click', () => show('rank', false)); $('btnSubmit').addEventListener('click', submitRank); $('rankName').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') submitRank(); }); $('rankName').addEventListener('keyup', e => e.stopPropagation());
 $('vitals').addEventListener('click', () => { const on = $('vitals').getAttribute('aria-expanded') !== 'true'; $('vitals').setAttribute('aria-expanded', String(on)); show('vtMore', on); });
 
 /* 入力 */
