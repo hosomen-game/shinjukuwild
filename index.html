@@ -323,8 +323,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
       <div class="wide"><dt>倒した敵</dt><dd id="oLion">0</dd></div>
     </dl>
     <div class="rank-entry" id="rankEntry" hidden>
-      <label for="rankName">ランキングに登録</label>
-      <div class="rank-row"><input id="rankName" maxlength="10" placeholder="なまえ（10文字まで）" autocomplete="nickname"><button class="btn" id="btnSubmit" type="button">登録</button></div>
+      <label for="rankName" id="rankLabel">ランキングに登録</label>
+      <div class="rank-row" id="rankRow"><input id="rankName" maxlength="10" placeholder="なまえ（10文字まで）" autocomplete="nickname"><button class="btn" id="btnSubmit" type="button">登録</button></div>
       <p class="rank-msg" id="rankMsg"></p>
     </div>
     <div class="actions"><button class="btn primary" id="btnAgain">もう一度</button><button class="btn" id="btnToTitle">タイトルへ</button></div>
@@ -1245,22 +1245,24 @@ async function openRank(board) {
   try { const rows = await rankFetch(want); if (want !== rankBoard) return; const ol = $('rankList'); ol.innerHTML = ''; if (!rows.length) rankNote('まだ記録がありません。最初の1位になろう'); else rows.forEach((r, i) => ol.appendChild(rankRow(r, i))); }
   catch (e) { if (want === rankBoard) rankNote('読み込めませんでした。通信を確かめて、もう一度開いてください'); }
 }
-function prepRankEntry(sc, manual) { // 終了画面：登録欄を出す
-  const ok = rankReady() && !manual && sc > 0 && G.mode !== 'relax'; show('rankEntry', ok); if (!ok) return;
+function prepRankEntry(sc, manual, isBest) { // 自己ベストを更新したら、タイトルの名前で自動登録
+  const ok = rankReady() && !manual && sc > 0 && G.mode !== 'relax' && isBest; show('rankEntry', ok); if (!ok) return;
   let nm = ''; try { nm = localStorage.getItem('sw3-name') || ''; } catch (e) {} $('rankName').value = nm; $('btnSubmit').disabled = false; $('rankMsg').textContent = ''; $('rankMsg').className = 'rank-msg';
   G.rankSent = false; G.rankScore = sc; G.rankBoard = boardOf(); G.rankSec = Math.max(1, Math.round(G.playT));
+  const auto = !!nm.trim(); show('rankLabel', !auto); show('rankRow', !auto);
+  if (auto) submitRank(); else { $('rankLabel').textContent = '自己ベスト！ 名前を入れるとランキングに載ります'; }
 }
 async function submitRank() {
   if (G.rankSent) return; const name = $('rankName').value.trim().replace(/\s+/g, ' '), msg = $('rankMsg');
   if (!name) { msg.textContent = 'なまえを入れてください'; msg.className = 'rank-msg bad'; return; }
   if (name.length > 10 || NG_NAME.test(name)) { msg.textContent = 'その名前は使えません'; msg.className = 'rank-msg bad'; return; }
   try { localStorage.setItem('sw3-name', name); } catch (e) {} $('titleName').value = name;
-  $('btnSubmit').disabled = true; msg.textContent = '送信中…'; msg.className = 'rank-msg';
+  $('btnSubmit').disabled = true; msg.textContent = '自己ベスト！ ランキングに登録中…'; msg.className = 'rank-msg';
   try {
     const id = await rankSubmit(G.rankBoard, name, G.rankScore, G.rankSec); G.rankSent = true; rankMine = id;
     const rows = await rankFetch(G.rankBoard), i = rows.findIndex(r => r.id === id);
-    msg.textContent = i >= 0 ? '登録しました。' + (i + 1) + '位です！' : '登録しました（' + CONFIG.ranking.top + '位圏外）'; msg.className = 'rank-msg good';
-  } catch (e) { $('btnSubmit').disabled = false; msg.textContent = '送信できませんでした。もう一度押してください'; msg.className = 'rank-msg bad'; }
+    msg.textContent = '自己ベストをランキングに登録しました（' + name + '）。' + (i >= 0 ? (i + 1) + '位です！' : CONFIG.ranking.top + '位圏外'); msg.className = 'rank-msg good'; show('rankLabel', false); show('rankRow', false);
+  } catch (e) { $('btnSubmit').disabled = false; show('rankLabel', true); show('rankRow', true); $('rankLabel').textContent = 'ランキングに登録できませんでした'; msg.textContent = '通信を確かめて「登録」を押してください'; msg.className = 'rank-msg bad'; }
 }
 function cutParade(i) {
   const lost = parade.splice(i); let pts = 0;
@@ -1642,7 +1644,7 @@ function gameOver(cause, manual) {
     lab('oKills', '列の中身'); $('oKills').textContent = Object.keys(cnt).map(t => CONFIG.species[t].name + ' ' + cnt[t]).join('・') || 'なし';
     lab('oLion', '図鑑'); $('oLion').textContent = DEX.size + ' / ' + DEX_TOTAL + '種' + (G.newDex ? '（今回 新しく ' + G.newDex + '種）' : ''); $('oLion').parentElement.hidden = false;
   } else { ['oTime', 'oLevel', 'oPack', 'oBorn', 'oKills', 'oLion'].forEach(id => lab(id)); $('oLion').parentElement.hidden = false; }
-  prepRankEntry(sc, manual);
+  prepRankEntry(sc, manual, sc > prev);
   show('over', true); show('touch', false); show('pause', false); aimMark.visible = false; $('hint').classList.remove('on'); sfx('over');
 }
 
