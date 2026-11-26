@@ -270,9 +270,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
       <li><b>敵は増え続ける</b><span>30秒ごとに強い肉食が現れる。赤い帯は横へ避けろ</span></li>
     </ol>
     <div class="modes">
+      <div class="mode start parade" id="parBox"><span class="mode-name">パレード</span><span class="mode-desc">敵はいない。12種類の動物に触れると、仲間になって列についてくる。同じ動物でも色違いがいて、それぞれ名前がある。まれに現れるレインボーは足が速いが、点は5倍。気づかれると逃げられるので、後ろからそっと近づこう。Spaceかダッシュボタンを押している間は速く走れるが、気づかれやすい。自分の列にぶつかると、そこから後ろが切れる。</span><span class="par-times"><button type="button" data-t="60">60秒</button><button type="button" data-t="120">120秒</button></span></div>
       <button class="mode start" id="btnDefense"><span class="mode-name">守るゲーム</span><span class="mode-desc">巣にいる5匹の子犬を、食べに来る肉食から守る。食べるとまず自分が回復し、余りで巣に子犬が生まれる。傷ついた子犬は治らない。子犬が尽きたら終わり。</span></button>
       <button class="mode start" id="btnSurvival"><span class="mode-name">攻めるゲーム</span><span class="mode-desc">子犬を連れて狩りに出る。噛みついた相手には、群れ全員が飛びかかる。繁栄ゲージが満タンになると巣で子が生まれ、走って合流する。群れの数が残機。外周から野火が迫る。</span></button>
-      <div class="mode start parade" id="parBox"><span class="mode-name">パレード</span><span class="mode-desc">敵はいない。12種類の動物に触れると、仲間になって列についてくる。同じ動物でも色違いがいて、それぞれ名前がある。まれに現れるレインボーは足が速いが、点は5倍。気づかれると逃げられるので、後ろからそっと近づこう。Spaceかダッシュボタンを押している間は速く走れるが、気づかれやすい。自分の列にぶつかると、そこから後ろが切れる。</span><span class="par-times"><button type="button" data-t="60">60秒</button><button type="button" data-t="90">90秒</button><button type="button" data-t="120">120秒</button></span></div>
       <button class="mode off" id="btnRelax"><span class="mode-name">のんびり</span><span class="mode-desc">危険度は上がらず、敵はこちらから噛まない限りおとなしい。倒れない。好きなだけ狩って群れを育てる。</span></button>
     </div>
     <dl class="keys desk">
@@ -1205,7 +1205,7 @@ function showName(name, val, fresh, fancy) { // 合流した動物の名前を�
   el.classList.toggle('fancy', fancy === true); el.classList.toggle('rainbow', fancy === 'rainbow'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); clearTimeout(showName.t); showName.t = setTimeout(() => el.classList.remove('on'), 1400);
 }
 /* ========= ランキング：Firestore（REST）。設定が空なら「準備中」 ========= */
-const RANK_BOARDS = [['defense', '守る'], ['survival', '攻める'], ['parade60', 'パレード60秒'], ['parade90', 'パレード90秒'], ['parade120', 'パレード120秒']];
+const RANK_BOARDS = [['parade60', 'パレード60秒'], ['parade120', 'パレード120秒'], ['defense', '守る'], ['survival', '攻める']];
 const rankReady = () => !!(CONFIG.ranking.projectId && CONFIG.ranking.apiKey);
 const rankBase = () => 'https://firestore.googleapis.com/v1/projects/' + encodeURIComponent(CONFIG.ranking.projectId) + '/databases/(default)/documents';
 const boardOf = () => (PAR() ? 'parade' + G.limit : G.mode);
@@ -1224,7 +1224,7 @@ async function rankSubmit(board, name, score, sec) {
     body: JSON.stringify({ writes: [{ update: { name: doc, fields: { name: { stringValue: name }, score: { integerValue: String(score) }, sec: { integerValue: String(sec) }, ver: { stringValue: String(CONFIG.version).slice(0, 20) } } }, updateTransforms: [{ fieldPath: 'at', setToServerValue: 'REQUEST_TIME' }], currentDocument: { exists: false } }] }) });
   if (!res.ok) throw new Error('http ' + res.status); return id;
 }
-let rankBoard = 'defense', rankMine = null;
+let rankBoard = 'parade60', rankMine = null;
 function rankRow(r, i) { const li = document.createElement('li'); if (r.id === rankMine) li.className = 'me'; li.innerHTML = '<b></b><span></span><em></em>'; li.children[0].textContent = (i + 1) + '位'; li.children[1].textContent = r.name; li.children[2].textContent = r.score.toLocaleString(); return li; }
 function rankNote(t) { const ol = $('rankList'); ol.innerHTML = ''; const li = document.createElement('li'); li.className = 'note'; li.textContent = t; ol.appendChild(li); }
 async function openRank(board) {
@@ -1728,7 +1728,7 @@ function toTitle() {
   G.state = 'title'; show('hud', false); show('over', false); show('pause', false); show('title', true); show('touch', false); show('tune', false);
   playerView.g.visible = false; marker.visible = false; aimMark.visible = false; clearPack(); refreshBest(); G.nightT = 0; G.level = 1;
 }
-function refreshBest() { let s = 0, d = 0, pb = []; try { [60, 90, 120].forEach(t => { const v = +localStorage.getItem('sw3-best-parade' + t) || 0; if (v) pb.push('パレード' + t + '秒 ' + v.toLocaleString() + 'pt'); }); } catch (e) {} if (false) { try { d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = d ? '自己ベスト　' + d.toLocaleString() + 'pt' : ''; return; } try { s = +localStorage.getItem('sw3-best-survival') || 0; d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = [d ? '守る ' + d.toLocaleString() + 'pt' : '', s ? '攻める ' + s.toLocaleString() + 'pt' : ''].concat(pb).filter(Boolean).join(' ・ ').replace(/^(?=.)/, '自己ベスト　'); }
+function refreshBest() { let s = 0, d = 0, pb = []; try { [60, 120].forEach(t => { const v = +localStorage.getItem('sw3-best-parade' + t) || 0; if (v) pb.push('パレード' + t + '秒 ' + v.toLocaleString() + 'pt'); }); } catch (e) {} if (false) { try { d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = d ? '自己ベスト　' + d.toLocaleString() + 'pt' : ''; return; } try { s = +localStorage.getItem('sw3-best-survival') || 0; d = +localStorage.getItem('sw3-best-defense') || 0; } catch (e) {} $('bestLine').textContent = pb.concat([d ? '守る ' + d.toLocaleString() + 'pt' : '', s ? '攻める ' + s.toLocaleString() + 'pt' : '']).filter(Boolean).join(' ・ ').replace(/^(?=.)/, '自己ベスト　'); }
 
 /* 調整パネル */
 function exportSplit() {
