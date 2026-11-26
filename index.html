@@ -138,7 +138,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 .lede{margin:0;line-height:1.75;color:var(--ink);max-width:40em}
 .name-line{display:flex;align-items:center;gap:10px;margin:0}
 .name-line b{flex:none;font-family:var(--mono);font-weight:400;font-size:11px;letter-spacing:.1em;color:var(--bg);background:var(--moss);border-radius:4px;padding:1px 7px}
-.name-line input{flex:1;min-width:0;font:inherit;font-size:16px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(239,235,220,.06);color:var(--ink)}
+.card{grid-template-columns:minmax(0,1fr)} .card>*{min-width:0} .modes>*{min-width:0}
+.name-line{min-width:0} .name-line input{flex:1 1 0;width:100%;min-width:0;font:inherit;font-size:16px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(239,235,220,.06);color:var(--ink)}
 .brief-card h2{margin:0;font-family:var(--display);font-weight:400;font-size:28px}
 .brief-card .actions{justify-content:flex-start} #btnGo{min-width:9em;font-size:17px;padding:12px 22px}
 .goal-line{margin:0;display:flex;align-items:baseline;gap:10px;font-size:16px;font-weight:700;line-height:1.5}
