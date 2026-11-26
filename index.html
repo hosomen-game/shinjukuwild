@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>:root{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}</style>
-<title>イヌまみれ 試作版</title>
+<title>Anymal ～イヌまみれ～</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
@@ -133,6 +133,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 .card{width:min(560px,100%);background:var(--panel);border:1px solid var(--line);border-radius:16px 16px 16px 40px;padding:24px 24px 22px;display:grid;gap:16px;backdrop-filter:blur(8px)}
 .eyebrow{margin:0;font-family:var(--mono);font-size:12px;color:var(--moss);letter-spacing:.12em}
 .card h1{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(34px,8vw,52px);line-height:1.05;letter-spacing:.02em;text-wrap:balance}
+.card h1 .h1-sub{display:block;margin-top:6px;font-size:.42em;letter-spacing:.08em;color:var(--rose)}
 .card h2{margin:0;font-family:var(--display);font-weight:400;font-size:28px}
 .lede{margin:0;line-height:1.75;color:var(--ink);max-width:40em}
 .goal-line{margin:0;display:flex;align-items:baseline;gap:10px;font-size:16px;font-weight:700;line-height:1.5}
@@ -262,7 +263,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--moss);outline-o
 <div id="title" class="screen">
   <div class="card">
     <p class="eyebrow">試作版 v0.9.0 ・ HTMLプロトタイプ</p>
-    <h1>イヌまみれ</h1>
+    <h1>Anymal<span class="h1-sub">～イヌまみれ～</span></h1>
     <p class="goal-line"><b>目的</b>群れを増やしながら、肉食に食い尽くされるまで粘る</p>
     <ol class="steps">
       <li><b>狩って食べる</b><span>獲物は背後から。食べると繁栄ゲージが貯まる</span></li>
